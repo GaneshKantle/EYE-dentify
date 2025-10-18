@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+facenet-pytorch
+torch
+pillow
+numpy
+pymongo
+python-multipart
