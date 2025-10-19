@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: face-recognition-api
+    env: python
+    plan: starter
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: MONGO_URI
+        sync: false
+      - key: DATABASE_NAME
+        value: face_recognition_db
+      - key: COLLECTION_NAME
+        value: faces
+      - key: RECOGNITION_THRESHOLD
+        value: "0.50"
+      - key: REJECTION_THRESHOLD
+        value: "0.3"
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_ORIGINS
+        sync: false
