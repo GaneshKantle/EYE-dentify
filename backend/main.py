@@ -1,60 +1,58 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
 from pymongo import MongoClient
-import gridfs, pickle, base64, io, torch
+import cloudinary
+import cloudinary.uploader
+import torch, pickle, base64, numpy as np
 from facenet_pytorch import MTCNN, InceptionResnetV1
 from PIL import Image
-import numpy as np
-from bson import ObjectId
 
-# ---------------- MongoDB Atlas ----------------
-MONGO_URI = "mongodb+srv://MANJU-A-R:Atlas%401708@cluster0.w3p8plb.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+# ---------------- MongoDB ----------------
+MONGO_URI = "mongodb+srv://MANJU-A-R:Atlas%401708@cluster0.w3p8plb.mongodb.net/?retryWrites=true&w=majority"
 client = MongoClient(MONGO_URI)
 db = client["face_recognition_db"]
 collection = db["faces"]
-fs = gridfs.GridFS(db)
+
+# ---------------- Cloudinary ----------------
+cloudinary.config(
+    cloud_name="dqkhdusc4",
+    api_key="249697193332389",
+    api_secret="iiN3cjMrzMXGKQew61kAH5lIIXE"
+)
 
 # ---------------- FaceNet ----------------
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 mtcnn = MTCNN(image_size=160, margin=0, min_face_size=20, keep_all=False, post_process=True, device=device)
 facenet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
 
-RECOGNITION_THRESHOLD = 0.50
-REJECTION_THRESHOLD = 0.3
-
-# ---------------- FastAPI ----------------
-app = FastAPI()
-origins = ["http://localhost:5173"]
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_methods=["*"],
-    allow_headers=["*"]
-)
+recognition_threshold = 0.50
+rejection_threshold = 0.30
 
 # ---------------- Utils ----------------
-def preprocess(img: Image.Image):
-    face = mtcnn(img)
-    if face is None:
-        raise HTTPException(status_code=400, detail="No face detected. Please upload a clear frontal photo.")
-    if face.ndim == 3:
-        face = face.unsqueeze(0)
-    return face.to(device)
+def _fixed_image_standardization(x):
+    return (x - 0.5) / 0.5
 
-def get_embedding(img_file: UploadFile):
-    img = Image.open(img_file.file).convert("RGB")
+def get_embedding(file: UploadFile):
+    file.file.seek(0)
+    img = Image.open(file.file).convert("RGB")
     with torch.no_grad():
-        face_tensor = preprocess(img)
-        emb = facenet(face_tensor)
+        face = mtcnn(img)
+        if face is None:
+            img_resized = img.resize((160,160))
+            face = torch.from_numpy(np.array(img_resized)).permute(2,0,1).float()/255.0
+            face = _fixed_image_standardization(face)
+        if face.ndim == 3:
+            face = face.unsqueeze(0)
+        face = face.to(device)
+        emb = facenet(face)
         emb = emb.squeeze(0).cpu().numpy().astype("float32")
         emb = emb / (np.linalg.norm(emb)+1e-10)
         return emb
 
-def encode_embedding(emb: np.ndarray):
-    return base64.b64encode(pickle.dumps(emb)).decode("utf-8")
+def _encode_embedding(embedding: np.ndarray) -> str:
+    return base64.b64encode(pickle.dumps(embedding.astype("float32"))).decode("utf-8")
 
-def decode_embedding(b64: str):
+def _decode_embedding(b64: str) -> np.ndarray:
     return pickle.loads(base64.b64decode(b64.encode("utf-8"))).astype("float32")
 
 def cos_sim(a, b):
@@ -62,32 +60,63 @@ def cos_sim(a, b):
     b = np.asarray(b, dtype="float32").flatten()
     return float(np.dot(a,b))
 
+# ---------------- FastAPI ----------------
+app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
+
 # ---------------- Routes ----------------
-@app.post("/api/register")
-async def register_face(name: str = Form(...), file: UploadFile = File(...)):
+@app.post("/add_face")
+async def add_face(
+    name: str = Form(...),
+    age: str = Form(...),
+    crime: str = Form(...),
+    description: str = Form(...),
+    file: UploadFile = File(...)
+):
     try:
         emb = get_embedding(file)
         file.file.seek(0)
-        image_id = fs.put(file.file.read(), filename=name)
+
+        # Upload image to Cloudinary
+        upload_res = cloudinary.uploader.upload(file.file, folder="faces", public_id=name)
+        image_url = upload_res["secure_url"]
 
         doc = collection.find_one({"name": name})
         if doc:
-            embeddings = doc.get("embeddings", [])
-            embeddings.append(encode_embedding(emb))
-            image_ids = doc.get("image_ids", [])
-            image_ids.append(image_id)
-            collection.update_one({"_id": doc["_id"]}, {"$set": {"embeddings": embeddings, "image_ids": image_ids}})
+            # update existing
+            collection.update_one(
+                {"_id": doc["_id"]},
+                {"$push":{
+                    "embeddings": _encode_embedding(emb),
+                    "image_urls": image_url
+                },
+                 "$set":{
+                     "age": age,
+                     "crime": crime,
+                     "description": description
+                 }}
+            )
         else:
+            # insert new
             collection.insert_one({
                 "name": name,
-                "embeddings": [encode_embedding(emb)],
-                "image_ids": [image_id]
+                "age": age,
+                "crime": crime,
+                "description": description,
+                "embeddings": [_encode_embedding(emb)],
+                "image_urls": [image_url]
             })
-        return {"status": "ok", "message": f"Face registered for {name}"}
+
+        return {"status":"ok","message":f"Face registered for {name}","image_url":image_url}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@app.post("/api/recognize")
+@app.post("/recognize_face")
 async def recognize_face(file: UploadFile = File(...)):
     try:
         emb = get_embedding(file)
@@ -96,60 +125,41 @@ async def recognize_face(file: UploadFile = File(...)):
             return {"status":"empty_db","message":"No faces stored"}
 
         best_score = -1
-        best_name = None
-        best_image_id = None
-
+        best_face = None
         for doc in faces:
-            for emb_b64, img_id in zip(doc.get("embeddings", []), doc.get("image_ids", [])):
-                sim = cos_sim(emb, decode_embedding(emb_b64))
+            for emb_b64, img_url in zip(doc.get("embeddings", []), doc.get("image_urls", [])):
+                sim = cos_sim(emb, _decode_embedding(emb_b64))
                 if sim > best_score:
                     best_score = sim
-                    best_name = doc["name"]
-                    best_image_id = img_id
+                    best_face = {
+                        "name": doc["name"],
+                        "age": doc.get("age",""),
+                        "crime": doc.get("crime",""),
+                        "description": doc.get("description",""),
+                        "image_url": img_url
+                    }
 
-        return {
-            "best_score": best_score,
-            "best_name": best_name,
-            "matched_image_id": str(best_image_id) if best_image_id else None,
-            "recognized": best_score >= RECOGNITION_THRESHOLD
-        }
+        if best_score >= recognition_threshold:
+            return {"status":"recognized","similarity":best_score, **best_face}
+        else:
+            return {"status":"not_recognized","best_score":best_score}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@app.get("/api/faces")
-async def list_faces():
+@app.get("/gallery")
+async def gallery():
     faces_list = []
     for doc in collection.find():
         faces_list.append({
-            "name": doc.get("name", "Unknown"),
-            "image_id": str(doc.get("image_ids")[0]) if doc.get("image_ids") else None
+            "name": doc.get("name","Unknown"),
+            "age": doc.get("age",""),
+            "crime": doc.get("crime",""),
+            "description": doc.get("description",""),
+            "image_urls": doc.get("image_urls", [])
         })
-    return faces_list
+    return {"faces": faces_list}
 
-@app.get("/api/image/{image_id}")
-async def get_image(image_id: str):
-    try:
-        data = fs.get(ObjectId(image_id)).read()
-        return StreamingResponse(io.BytesIO(data), media_type="image/jpeg")
-    except Exception as e:
-        raise HTTPException(status_code=404, detail=str(e))
-
-@app.delete("/api/delete/{name}")
-async def delete_face(name: str):
-    doc = collection.find_one({"name": name})
-    if not doc:
-        raise HTTPException(status_code=404, detail="Face not found")
-    try:
-        for img_id in doc.get("image_ids", []):
-            fs.delete(img_id)
-    except:
-        pass
-    collection.delete_one({"name": name})
-    return {"status":"ok","message":f"{name} deleted"}
-
-@app.post("/api/clear")
+@app.post("/clear_db")
 async def clear_db():
     collection.delete_many({})
-    for f in fs.find():
-        fs.delete(f._id)
     return {"status":"ok","message":"Database cleared"}

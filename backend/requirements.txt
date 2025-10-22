@@ -6,3 +6,5 @@ pillow
 numpy
 pymongo
 python-multipart
+requests
+python-dotenv

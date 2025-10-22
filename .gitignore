@@ -1,0 +1,15 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Node/npm
+node_modules/
+package-lock.json
+
+# VS Code / IDEs
+.vscode/
+.DS_Store
+
+# Others
+*.log
