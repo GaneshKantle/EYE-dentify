@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  # Face Recognition API Backend
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    container_name: face-recognition-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - MONGO_URI=${MONGO_URI}
+      - DATABASE_NAME=${DATABASE_NAME}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./logs:/app/logs
+      - ./uploads:/app/uploads
+    networks:
+      - face-recognition-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: face-recognition-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - api
+    networks:
+      - face-recognition-network
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: face-recognition-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - face-recognition-network
+    command: redis-server --appendonly yes
+
+volumes:
+  redis_data:
+
+networks:
+  face-recognition-network:
+    driver: bridge

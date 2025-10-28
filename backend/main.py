@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient
 import cloudinary
@@ -6,6 +6,7 @@ import cloudinary.uploader
 import torch, pickle, base64, numpy as np
 from facenet_pytorch import MTCNN, InceptionResnetV1
 from PIL import Image
+from routes.assets import router as assets_router
 
 # ---------------- MongoDB ----------------
 MONGO_URI = "mongodb+srv://MANJU-A-R:Atlas%401708@cluster0.w3p8plb.mongodb.net/?retryWrites=true&w=majority"
@@ -68,6 +69,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"]
 )
+
+# Include asset routes
+app.include_router(assets_router)
 
 # ---------------- Routes ----------------
 @app.post("/add_face")
@@ -162,4 +166,53 @@ async def gallery():
 @app.post("/clear_db")
 async def clear_db():
     collection.delete_many({})
+
+# ---------------- CRUD for faces ----------------
+@app.patch("/face/{name}")
+async def update_face(name: str, payload: dict = Body(...)):
+    try:
+        allowed_fields = {"name", "age", "crime", "description"}
+        update_fields = {k: v for k, v in payload.items() if k in allowed_fields}
+        if not update_fields:
+            raise HTTPException(status_code=400, detail="No valid fields to update")
+
+        result = collection.update_one({"name": name}, {"$set": update_fields})
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Face not found")
+        return {"status": "ok", "message": "Face updated"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.delete("/face/{name}")
+async def delete_face(name: str):
+    try:
+        result = collection.delete_one({"name": name})
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Face not found")
+        return {"status": "ok", "message": "Face deleted"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/face/{name}/image")
+async def replace_primary_image(name: str, file: UploadFile = File(...)):
+    try:
+        # Upload image to Cloudinary
+        upload_res = cloudinary.uploader.upload(file.file, folder="faces", public_id=name)
+        image_url = upload_res["secure_url"]
+
+        doc = collection.find_one({"name": name})
+        if not doc:
+            raise HTTPException(status_code=404, detail="Face not found")
+
+        # Replace primary image (index 0)
+        if doc.get("image_urls"):
+            collection.update_one({"_id": doc["_id"]}, {"$set": {"image_urls.0": image_url}})
+        else:
+            collection.update_one({"_id": doc["_id"]}, {"$set": {"image_urls": [image_url]}})
+
+        return {"status": "ok", "image_url": image_url}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
     return {"status":"ok","message":"Database cleared"}
