@@ -24,17 +24,20 @@ except Exception as e:
 # Load environment variables
 load_dotenv()
 
-# ---------------- MongoDB ----------------
-MONGO_URI = "mongodb+srv://MANJU-A-R:Atlas%401708@cluster0.w3p8plb.mongodb.net/?retryWrites=true&w=majority"
+# ---------------- MongoDB ---------------- 
+MONGO_URI = os.getenv(
+    "MONGO_URI",
+    "mongodb+srv://MANJU-A-R:Atlas%401708@cluster0.w3p8plb.mongodb.net/?retryWrites=true&w=majority"
+)
 client = MongoClient(MONGO_URI)
 db = client["face_recognition_db"]
 collection = db["faces"]
 
-# ---------------- Cloudinary ----------------
+# ---------------- Cloudinary ---------------- 
 cloudinary.config(
-    cloud_name="dqkhdusc4",
-    api_key="249697193332389",
-    api_secret="iiN3cjMrzMXGKQew61kAH5lIIXE"
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME", "dqkhdusc4"),
+    api_key=os.getenv("CLOUDINARY_API_KEY", "249697193332389"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET", "iiN3cjMrzMXGKQew61kAH5lIIXE")
 )
 
 # ---------------- FaceNet ----------------
@@ -203,6 +206,7 @@ async def gallery():
 @app.post("/clear_db")
 async def clear_db():
     collection.delete_many({})
+    return {"status": "ok", "message": "Database cleared"}
 
 # ---------------- CRUD for faces ----------------
 @app.patch("/face/{name}")
@@ -252,4 +256,28 @@ async def replace_primary_image(name: str, file: UploadFile = File(...)):
         return {"status": "ok", "image_url": image_url}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-    return {"status":"ok","message":"Database cleared"}
+
+@app.get("/")
+async def root():
+    """Root endpoint"""
+    return {
+        "message": "Face Recognition Dashboard API",
+        "status": "operational",
+        "version": "1.0.0"
+    }
+
+@app.get("/health")
+async def health():
+    """Health check endpoint"""
+    return {"status": "healthy"}
+
+# ---------------- Server Startup ---------------- 
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=port,
+        log_level="info"
+    )
