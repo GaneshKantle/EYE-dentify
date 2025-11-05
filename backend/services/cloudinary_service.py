@@ -43,3 +43,28 @@ class CloudinaryService:
             return result.get('result') == 'ok'
         except Exception as e:
             raise Exception(f"Cloudinary delete failed: {str(e)}")
+    
+    async def upload_sketch_image(self, file, name: str) -> Dict[str, Any]:
+        """Upload sketch image to Cloudinary in Sketch folder"""
+        try:
+            result = cloudinary.uploader.upload(
+                file,
+                folder="Sketch",
+                public_id=f"sketch_{name.lower().replace(' ', '_')}",
+                resource_type="image",
+                transformation=[
+                    {"quality": "auto"},
+                    {"fetch_format": "auto"}
+                ]
+            )
+            
+            return {
+                "url": result['secure_url'],
+                "public_id": result['public_id'],
+                "width": result['width'],
+                "height": result['height'],
+                "format": result['format'],
+                "file_size": result['bytes']
+            }
+        except Exception as e:
+            raise Exception(f"Cloudinary sketch upload failed: {str(e)}")

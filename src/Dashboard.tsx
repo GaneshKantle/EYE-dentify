@@ -9,7 +9,7 @@ import { Separator } from './components/ui/separator';
 import Header from './pages/dashboard/Header';
 import { Footer } from './pages/dashboard/Footer';
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import { apiClient } from './lib/api';
 
 interface FeatureCard {
   id: string;
@@ -72,9 +72,9 @@ export const Dashboard = () => {
     let isMounted = true;
     (async () => {
       try {
-        const res = await axios.get('http://localhost:8000/gallery');
+        const res = await apiClient.directGet<{faces: any[]}>('/gallery');
         if (!isMounted) return;
-        setFaces(res.data?.faces || []);
+        setFaces(res?.faces || []);
       } catch (e) {
         console.error('Failed to load stats:', e);
       } finally {

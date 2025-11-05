@@ -94,6 +94,7 @@ interface RightPanelProps {
   sendToBack: () => void;
   duplicateFeature: () => void;
   deleteSelectedFeatures: () => void;
+  reorderLayer: (draggedFeatureId: string, targetFeatureId: string) => void;
   exportPNG: () => void;
   saveProject: () => void;
   exportMetadata: () => void;
@@ -143,6 +144,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
   exportPNG,
   saveProject,
   exportMetadata,
+  reorderLayer,
   uploadedAssets = [],
   assetSearchTerm = '',
   setAssetSearchTerm,
@@ -155,6 +157,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
   // State for editing
   const [editingAsset, setEditingAsset] = React.useState<string | null>(null);
   const [editName, setEditName] = React.useState('');
+  const [draggedLayerId, setDraggedLayerId] = React.useState<string | null>(null);
+  const [dragOverLayerId, setDragOverLayerId] = React.useState<string | null>(null);
 
   // Edit handlers
   const handleEditStart = (asset: any) => {
@@ -174,8 +178,100 @@ const RightPanel: React.FC<RightPanelProps> = ({
     setEditingAsset(null);
     setEditName('');
   };
+
+  // Layer drag handlers
+  const handleLayerDragStart = (e: React.DragEvent, featureId: string) => {
+    // Only allow drag from the layer item itself, not from buttons
+    if ((e.target as HTMLElement).closest('button')) {
+      e.preventDefault();
+      return;
+    }
+    setDraggedLayerId(featureId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', featureId);
+    e.dataTransfer.setData('application/json', JSON.stringify({ type: 'layer', id: featureId }));
+    
+    // Set drag image opacity
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = '0.5';
+    }
+  };
+
+  const handleLayerDragOver = (e: React.DragEvent, featureId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!draggedLayerId || draggedLayerId === featureId) return;
+    
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverLayerId(featureId);
+    
+    // Get the target element to show insertion indicator
+    const targetElement = e.currentTarget as HTMLElement;
+    const rect = targetElement.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const midpoint = rect.height / 2;
+    
+    // Add visual indicator class
+    if (y < midpoint) {
+      targetElement.classList.add('drag-over-top');
+      targetElement.classList.remove('drag-over-bottom');
+    } else {
+      targetElement.classList.add('drag-over-bottom');
+      targetElement.classList.remove('drag-over-top');
+    }
+  };
+
+  const handleLayerDragLeave = (e: React.DragEvent) => {
+    const targetElement = e.currentTarget as HTMLElement;
+    const rect = targetElement.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    
+    // Only clear if actually leaving the element
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      setDragOverLayerId(null);
+      targetElement.classList.remove('drag-over-top', 'drag-over-bottom');
+    }
+  };
+
+  const handleLayerDrop = (e: React.DragEvent, targetFeatureId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const targetElement = e.currentTarget as HTMLElement;
+    targetElement.classList.remove('drag-over-top', 'drag-over-bottom');
+    
+    if (draggedLayerId && draggedLayerId !== targetFeatureId) {
+      reorderLayer(draggedLayerId, targetFeatureId);
+    }
+    
+    // Reset dragged element opacity
+    const draggedElement = document.querySelector(`[data-layer-id="${draggedLayerId}"]`) as HTMLElement;
+    if (draggedElement) {
+      draggedElement.style.opacity = '1';
+    }
+    
+    setDraggedLayerId(null);
+    setDragOverLayerId(null);
+  };
+
+  const handleLayerDragEnd = (e: React.DragEvent) => {
+    // Reset all elements
+    const draggedElement = e.currentTarget as HTMLElement;
+    draggedElement.style.opacity = '1';
+    draggedElement.classList.remove('drag-over-top', 'drag-over-bottom');
+    
+    // Clear all drag-over classes from all elements
+    document.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach(el => {
+      el.classList.remove('drag-over-top', 'drag-over-bottom');
+    });
+    
+    setDraggedLayerId(null);
+    setDragOverLayerId(null);
+  };
   return (
-    <div className={`${rightSidebarCollapsed ? 'w-20 lg:w-24' : 'w-full lg:w-96'} bg-white/90 backdrop-blur-sm border-t lg:border-t-0 lg:border-l border-amber-200 flex flex-col shadow-sm order-3 transition-all duration-300 ease-in-out ${rightSidebarCollapsed ? 'bg-gradient-to-b from-white/95 to-slate-50/90' : ''}`}>
+    <div className={`${rightSidebarCollapsed ? 'w-20 lg:w-24' : 'w-full lg:w-80'} bg-white/90 backdrop-blur-sm border-t lg:border-t-0 lg:border-l border-amber-200 flex flex-col shadow-sm order-3 transition-all duration-300 ease-in-out ${rightSidebarCollapsed ? 'bg-gradient-to-b from-white/95 to-slate-50/90' : ''}`}>
       {/* Panel Header with Toggle */}
       <div className={`${rightSidebarCollapsed ? 'p-2 justify-center' : 'p-3 md:p-4 justify-between'} border-b border-amber-200 flex items-center transition-all duration-200`}>
         <h3 className={`font-semibold text-slate-800 transition-opacity duration-200 ${rightSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>
@@ -252,22 +348,6 @@ const RightPanel: React.FC<RightPanelProps> = ({
             )}
           </TabsTrigger>
           <TabsTrigger 
-            value="case" 
-            className={`text-xs transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm ${
-              rightSidebarCollapsed ? 'h-12 w-full p-2 flex-col justify-center' : 'h-8'
-            }`}
-            title="Case"
-          >
-            {rightSidebarCollapsed ? (
-              <div className="flex flex-col items-center space-y-1">
-                <ClipboardList className="w-4 h-4 text-orange-600" />
-                <span className="text-[10px] font-medium text-slate-700">Case</span>
-              </div>
-            ) : (
-              'Case'
-            )}
-          </TabsTrigger>
-          <TabsTrigger 
             value="assets" 
             className={`text-xs transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm ${
               rightSidebarCollapsed ? 'h-12 w-full p-2 flex-col justify-center' : 'h-8'
@@ -291,7 +371,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
             {/* Asset Grid Container with Fixed Height */}
             <div className="space-y-3">
               {/* Asset Grid */}
-              <div className="grid gap-2 grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4">
+              <div className="grid gap-2 grid-cols-2">
                 {filteredAssets.map((asset) => (
                   <Card 
                     key={asset.id} 
@@ -450,24 +530,45 @@ const RightPanel: React.FC<RightPanelProps> = ({
         <TabsContent value="layers" className={`flex-1 p-2 md:p-3 lg:p-4 m-0 transition-all duration-200 ${rightSidebarCollapsed ? 'hidden' : ''}`}>
           <ScrollArea className="h-full">
             <div className="space-y-2">
-              {features.map((feature) => (
+              {[...features].sort((a, b) => b.zIndex - a.zIndex).map((feature, index) => (
                 <div
                   key={feature.id}
-                  className={`flex items-center rounded-lg border transition-all duration-200 ${
+                  data-layer-id={feature.id}
+                  draggable
+                  onDragStart={(e) => handleLayerDragStart(e, feature.id)}
+                  onDragOver={(e) => handleLayerDragOver(e, feature.id)}
+                  onDragLeave={handleLayerDragLeave}
+                  onDrop={(e) => handleLayerDrop(e, feature.id)}
+                  onDragEnd={handleLayerDragEnd}
+                  className={`flex items-center rounded-lg border transition-all duration-150 cursor-move relative ${
                     selectedFeatures.includes(feature.id)
                       ? 'bg-blue-50 border-blue-200 shadow-md'
+                      : dragOverLayerId === feature.id
+                      ? 'bg-purple-50 border-purple-300 shadow-lg border-purple-400'
+                      : draggedLayerId === feature.id
+                      ? 'bg-slate-100 border-slate-400 opacity-40'
                       : 'bg-white hover:bg-slate-50 border-slate-300 shadow-lg'
                   } ${
                     rightSidebarCollapsed ? 'p-2 lg:p-3' : 'p-2 md:p-3'
+                  } ${
+                    dragOverLayerId === feature.id ? 'ring-2 ring-purple-400' : ''
                   }`}
+                  style={{
+                    transform: draggedLayerId === feature.id ? 'scale(0.95)' : 'scale(1)',
+                  }}
                 >
+                  {/* Drop indicator line */}
+                  {dragOverLayerId === feature.id && (
+                    <div className="absolute left-0 right-0 h-0.5 bg-purple-500 rounded-full -top-1 z-10 shadow-lg"></div>
+                  )}
                   <div className={`bg-white border border-slate-200 rounded-lg p-1 flex items-center justify-center shadow-inner flex-shrink-0 ${
                     rightSidebarCollapsed ? 'w-6 h-6 lg:w-8 lg:h-8' : 'w-8 h-8 md:w-10 md:h-10'
                   }`}>
                     <img
                       src={feature.asset.path}
                       alt={feature.asset.name}
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-contain pointer-events-none"
+                      draggable={false}
                     />
                   </div>
                   {!rightSidebarCollapsed && (
@@ -478,15 +579,19 @@ const RightPanel: React.FC<RightPanelProps> = ({
                         }`}>{feature.asset.name}</p>
                         <p className="text-xs text-slate-700 hidden sm:block">{feature.asset.category}</p>
                       </div>
-                      <div className="flex items-center space-x-1">
+                      <div className="flex items-center space-x-1" onClick={(e) => e.stopPropagation()}>
                         <Button
-                          onClick={() => toggleVisibility(feature.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleVisibility(feature.id);
+                          }}
                           variant="ghost"
                           size="sm"
                           className={`hover:bg-slate-200 p-0 ${
                             rightSidebarCollapsed ? 'h-5 w-5 lg:h-6 lg:w-6' : 'h-6 w-6 md:h-7 md:w-7'
                           }`}
                           title={feature.visible ? "Hide" : "Show"}
+                          onMouseDown={(e) => e.stopPropagation()}
                         >
                           {feature.visible ? 
                             <Eye className={`${rightSidebarCollapsed ? 'w-2.5 h-2.5 lg:w-3 lg:h-3' : 'w-3 md:w-3.5 h-3 md:h-3.5'}`} /> : 
@@ -494,13 +599,17 @@ const RightPanel: React.FC<RightPanelProps> = ({
                           }
                         </Button>
                         <Button
-                          onClick={() => toggleLock(feature.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleLock(feature.id);
+                          }}
                           variant="ghost"
                           size="sm"
                           className={`hover:bg-slate-200 p-0 ${
                             rightSidebarCollapsed ? 'h-5 w-5 lg:h-6 lg:w-6' : 'h-6 w-6 md:h-7 md:w-7'
                           }`}
                           title={feature.locked ? "Unlock" : "Lock"}
+                          onMouseDown={(e) => e.stopPropagation()}
                         >
                           {feature.locked ? 
                             <Lock className={`${rightSidebarCollapsed ? 'w-2.5 h-2.5 lg:w-3 lg:h-3' : 'w-3 md:w-3.5 h-3 md:h-3.5'}`} /> : 
@@ -893,279 +1002,6 @@ const RightPanel: React.FC<RightPanelProps> = ({
           </ScrollArea>
         </TabsContent>
 
-        <TabsContent value="case" className={`flex-1 p-2 md:p-3 lg:p-4 m-0 transition-all duration-200 ${rightSidebarCollapsed ? 'hidden' : ''}`}>
-          <ScrollArea className="h-full">
-            <div className={`space-y-4 md:space-y-6 transition-all duration-200 ${
-              rightSidebarCollapsed ? 'space-y-3 lg:space-y-4' : 'space-y-4 md:space-y-6'
-            }`}>
-              <Card className="border-slate-300 bg-white shadow-lg">
-                <CardHeader className={`pb-3 transition-all duration-200 ${
-                  rightSidebarCollapsed ? 'pb-2 lg:pb-3' : 'pb-3'
-                }`}>
-                  <CardTitle className={`flex items-center space-x-2 transition-all duration-200 ${
-                    rightSidebarCollapsed ? 'text-xs lg:text-sm' : 'text-sm'
-                  } text-slate-900`}>
-                    <ClipboardList className={`${rightSidebarCollapsed ? 'w-3 h-3 lg:w-4 lg:h-4' : 'w-4 h-4'}`} />
-                    <span className={rightSidebarCollapsed ? 'hidden lg:inline' : ''}>
-                      {rightSidebarCollapsed ? 'Case' : 'Case Information'}
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className={`space-y-4 transition-all duration-200 ${
-                  rightSidebarCollapsed ? 'space-y-3 lg:space-y-4' : 'space-y-4'
-                }`}>
-                  {!rightSidebarCollapsed && (
-                    <>
-                      <div>
-                        <Label className="text-xs text-slate-700 font-medium">Case Number</Label>
-                        <Input
-                          value={caseInfo.caseNumber}
-                          onChange={(e) => setCaseInfo(prev => ({ ...prev, caseNumber: e.target.value }))}
-                          className="h-8 text-xs mt-1 border-slate-300 bg-white"
-                          placeholder="Enter case number..."
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label className="text-xs text-slate-700 font-medium">Date</Label>
-                        <Input
-                          type="date"
-                          value={caseInfo.date}
-                          onChange={(e) => setCaseInfo(prev => ({ ...prev, date: e.target.value }))}
-                          className="h-8 text-xs mt-1 border-slate-300 bg-white"
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label className="text-xs text-slate-700 font-medium">Officer</Label>
-                        <Input
-                          value={caseInfo.officer}
-                          onChange={(e) => setCaseInfo(prev => ({ ...prev, officer: e.target.value }))}
-                          className="h-8 text-xs mt-1 border-slate-300 bg-white"
-                          placeholder="Officer name..."
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label className="text-xs text-slate-700 font-medium">Witness</Label>
-                        <Input
-                          value={caseInfo.witness}
-                          onChange={(e) => setCaseInfo(prev => ({ ...prev, witness: e.target.value }))}
-                          className="h-8 text-xs mt-1 border-slate-300 bg-white"
-                          placeholder="Witness name..."
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <Label className="text-xs text-slate-700 font-medium">Priority</Label>
-                          <select
-                            value={caseInfo.priority}
-                            onChange={(e) => setCaseInfo(prev => ({ ...prev, priority: e.target.value as 'low' | 'medium' | 'high' | 'urgent' }))}
-                            className="h-8 text-xs mt-1 border border-slate-300 rounded-md px-2 bg-white w-full"
-                            title="Select priority level"
-                          >
-                            <option value="low">Low</option>
-                            <option value="medium">Medium</option>
-                            <option value="high">High</option>
-                            <option value="urgent">Urgent</option>
-                          </select>
-                        </div>
-                        
-                        <div>
-                          <Label className="text-xs text-slate-700 font-medium">Status</Label>
-                          <select
-                            value={caseInfo.status}
-                            onChange={(e) => setCaseInfo(prev => ({ ...prev, status: e.target.value as 'draft' | 'in-progress' | 'review' | 'completed' }))}
-                            className="h-8 text-xs mt-1 border border-slate-300 rounded-md px-2 bg-white w-full"
-                            title="Select case status"
-                          >
-                            <option value="draft">Draft</option>
-                            <option value="in-progress">In Progress</option>
-                            <option value="review">Review</option>
-                            <option value="completed">Completed</option>
-                          </select>
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <Label className="text-xs text-slate-700 font-medium">Description</Label>
-                        <textarea
-                          value={caseInfo.description}
-                          onChange={(e) => setCaseInfo(prev => ({ ...prev, description: e.target.value }))}
-                          className="w-full h-20 text-xs mt-1 p-2 border border-slate-300 rounded-md resize-none bg-white"
-                          placeholder="Case description and notes..."
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {/* Compact view for collapsed state */}
-                  {rightSidebarCollapsed && (
-                    <div className="space-y-3">
-                      <div className="text-center">
-                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2 border border-blue-200 shadow-inner">
-                          <Hash className="w-6 h-6 text-blue-600" />
-                        </div>
-                        <p className="text-xs font-medium text-slate-900">{caseInfo.caseNumber || 'No Case'}</p>
-                        <p className="text-xs text-slate-700">{caseInfo.priority}</p>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-slate-600">Features:</span>
-                          <span className="font-medium text-slate-900">{features.length}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-slate-600">Status:</span>
-                          <span className="font-medium text-slate-900">{caseInfo.status}</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Canvas Settings - Only show when expanded */}
-              {!rightSidebarCollapsed && (
-                <>
-                  <Card className="border-slate-300 bg-white shadow-lg">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm flex items-center space-x-2 text-slate-900">
-                        <Settings className="w-4 h-4" />
-                        <span>Canvas Settings</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div>
-                        <Label className="text-xs text-slate-700 font-medium">Background Color</Label>
-                        <div className="flex items-center space-x-2 mt-1">
-                          <input
-                            type="color"
-                            value={canvasSettings.backgroundColor}
-                            onChange={(e) => setCanvasSettings(prev => ({ ...prev, backgroundColor: e.target.value }))}
-                            className="w-8 h-8 rounded border border-slate-300 bg-white"
-                            title="Select background color"
-                          />
-                          <Input
-                            value={canvasSettings.backgroundColor}
-                            onChange={(e) => setCanvasSettings(prev => ({ ...prev, backgroundColor: e.target.value }))}
-                            className="h-8 text-xs flex-1 border-slate-300 bg-white"
-                            placeholder="#ffffff"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <Label className="text-xs text-slate-700 font-medium">Grid Size: {gridSize}px</Label>
-                        <Slider
-                          value={[gridSize]}
-                          onValueChange={([value]) => setGridSize(value)}
-                          min={10}
-                          max={50}
-                          step={5}
-                          className="mt-2"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-xs text-slate-700 font-medium">Show Grid</Label>
-                          <Button
-                            onClick={() => setShowGrid(!showGrid)}
-                            variant={showGrid ? "default" : "outline"}
-                            size="sm"
-                            className="h-7 w-7 p-0"
-                          >
-                            <Grid3X3 className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <Label className="text-xs text-slate-700 font-medium">Snap to Grid</Label>
-                          <Button
-                            onClick={() => setSnapToGrid(!snapToGrid)}
-                            variant={snapToGrid ? "default" : "outline"}
-                            size="sm"
-                            className="h-7 w-7 p-0"
-                          >
-                            <Target className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <Label className="text-xs text-slate-700 font-medium">Show Rulers</Label>
-                          <Button
-                            onClick={() => setCanvasSettings(prev => ({ ...prev, showRulers: !prev.showRulers }))}
-                            variant={canvasSettings.showRulers ? "default" : "outline"}
-                            size="sm"
-                            className="h-7 w-7 p-0"
-                          >
-                            <Hash className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <Label className="text-xs text-slate-700 font-medium">Safe Area</Label>
-                          <Button
-                            onClick={() => setCanvasSettings(prev => ({ ...prev, showSafeArea: !prev.showSafeArea }))}
-                            variant={canvasSettings.showSafeArea ? "default" : "outline"}
-                            size="sm"
-                            className="h-7 w-7 p-0"
-                          >
-                            <Crop className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div>
-                        <Label className="text-xs text-slate-700 font-medium">Export Quality</Label>
-                        <select
-                          value={canvasSettings.quality}
-                          onChange={(e) => setCanvasSettings(prev => ({ ...prev, quality: e.target.value as 'standard' | 'high' }))}
-                          className="w-full h-8 text-xs mt-1 border border-slate-300 rounded-md px-2 bg-white"
-                          title="Select export quality"
-                        >
-                          <option value="standard">Standard (1x)</option>
-                          <option value="high">High Quality (2x)</option>
-                        </select>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="border-slate-300 bg-white shadow-lg">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm flex items-center space-x-2 text-slate-900">
-                        <Archive className="w-4 h-4" />
-                        <span>Project Statistics</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3 text-xs">
-                        <div className="flex justify-between">
-                          <span className="text-slate-700 font-medium">Total Features:</span>
-                          <span className="font-mono text-slate-900">{features.length}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-700 font-medium">Visible Features:</span>
-                          <span className="font-mono text-slate-900">{features.filter(f => f.visible).length}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-700 font-medium">Locked Features:</span>
-                          <span className="font-mono text-slate-900">{features.filter(f => f.locked).length}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-700 font-medium">Canvas Size:</span>
-                          <span className="font-mono text-slate-900">600 × 700</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </>
-              )}
-            </div>
-          </ScrollArea>
-        </TabsContent>
 
             <TabsContent value="assets" className={`flex-1 p-2 md:p-3 lg:p-4 m-0 transition-all duration-200 ${rightSidebarCollapsed ? 'hidden' : ''}`}>
           {/* DEBUG: Assets tab is rendering */}

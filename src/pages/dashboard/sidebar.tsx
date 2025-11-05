@@ -13,6 +13,7 @@ import { useAuthStore } from '../../store/authStore';
 import { Avatar, AvatarFallback } from '../../components/ui/avatar';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLayout } from '../../components/layout/Layout';
+import { apiClient } from '../../lib/api';
 import { useState, useEffect } from 'react';
 
 interface NavItem {
@@ -74,11 +75,8 @@ export const Sidebar = () => {
     const fetchFaces = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch('http://localhost:8000/gallery');
-        if (response.ok) {
-          const data = await response.json();
+        const data = await apiClient.directGet<{faces: any[]}>('/gallery');
           setFaces(data.faces || []);
-        }
       } catch (error) {
         console.log('Could not fetch faces data');
         // Set default data for demo
@@ -102,11 +100,8 @@ export const Sidebar = () => {
       const fetchFaces = async () => {
         setIsLoading(true);
         try {
-          const response = await fetch('http://localhost:8000/gallery');
-          if (response.ok) {
-            const data = await response.json();
+          const data = await apiClient.directGet<{faces: any[]}>('/gallery');
             setFaces(data.faces || []);
-          }
         } catch (error) {
           console.log('Could not fetch faces data');
           setFaces([]);

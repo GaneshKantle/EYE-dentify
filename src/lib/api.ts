@@ -28,10 +28,14 @@ class APIClient {
   }
 
   private setupInterceptors(): void {
-    // Request interceptor
+    // Request interceptor - add auth token
     this.client.interceptors.request.use(
       (config) => {
-        if (config.debug || process.env.NODE_ENV === 'development') {
+        const token = localStorage.getItem('token');
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+        if (process.env.NODE_ENV === 'development') {
           console.log('API Request:', config);
         }
         return config;
@@ -45,7 +49,7 @@ class APIClient {
     // Response interceptor
     this.client.interceptors.response.use(
       (response) => {
-        if (config.debug || process.env.NODE_ENV === 'development') {
+        if (process.env.NODE_ENV === 'development') {
           console.log('API Response:', response);
         }
         return response;
@@ -150,6 +154,137 @@ class APIClient {
       return true;
     } catch {
       return false;
+    }
+  }
+
+  // Direct API methods (without /api/v1 prefix) for routes at root level
+  private getDirectClient(): AxiosInstance {
+    const client = axios.create({
+      baseURL: config.apiUrl,
+      timeout: 30000,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Client-Version': config.version,
+        'X-Client-Environment': config.environment,
+      },
+    });
+
+    // Add auth token interceptor for direct client
+    client.interceptors.request.use(
+      (config) => {
+        const token = localStorage.getItem('token');
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+      },
+      (error) => {
+        return Promise.reject(error);
+      }
+    );
+
+    return client;
+  }
+
+  async directGet<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
+    const client = this.getDirectClient();
+    const response = await client.get<T>(url, config);
+    return response.data;
+  }
+
+  async directPost<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+    const client = this.getDirectClient();
+    const response = await client.post<T>(url, data, config);
+    return response.data;
+  }
+
+  async directPut<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+    const client = this.getDirectClient();
+    const response = await client.put<T>(url, data, config);
+    return response.data;
+  }
+
+  async directDelete<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
+    const client = this.getDirectClient();
+    const response = await client.delete<T>(url, config);
+    return response.data;
+  }
+
+  async directUploadFile<T = any>(
+    url: string,
+    formData: FormData,
+    method: 'POST' | 'PUT' = 'POST',
+    config?: AxiosRequestConfig
+  ): Promise<T> {
+    const client = this.getDirectClient();
+    const requestConfig = {
+      ...config,
+      method,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        ...config?.headers,
+      },
+    };
+    
+    const response = method === 'PUT' 
+      ? await client.put<T>(url, formData, requestConfig)
+      : await client.post<T>(url, formData, requestConfig);
+    return response.data;
+  }
+
+  // Authentication methods
+  async login(email: string, password: string): Promise<{ token: string; user: any }> {
+    const response = await this.directPost<{ status: string; token: string; user: any }>('/auth/login', {
+      email,
+      password
+    });
+    return { token: response.token, user: response.user };
+  }
+
+  async register(
+    email: string,
+    username: string,
+    password: string,
+    secretKey: string,
+    otp: string
+  ): Promise<{ token: string; user: any }> {
+    const response = await this.directPost<{ status: string; token: string; user: any }>('/auth/register', {
+      email,
+      username,
+      password,
+      secret_key: secretKey,
+      otp
+    });
+    return { token: response.token, user: response.user };
+  }
+
+  async sendOtp(email: string): Promise<{ message: string }> {
+    const response = await this.directPost<{ status: string; message: string }>('/auth/send-otp', { email });
+    return { message: response.message };
+  }
+
+  async verifyOtp(email: string, otp: string): Promise<{ message: string }> {
+    const response = await this.directPost<{ status: string; message: string }>('/auth/verify-otp', { email, otp });
+    return { message: response.message };
+  }
+
+  async logout(): Promise<void> {
+    await this.directPost('/auth/logout', {});
+  }
+
+  async getCurrentUser(): Promise<any> {
+    const response = await this.directGet<{ status: string; user: any }>('/auth/me');
+    return response.user;
+  }
+
+  // Set authentication token for requests
+  setAuthToken(token: string | null): void {
+    if (token) {
+      this.client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      this.getDirectClient().defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    } else {
+      delete this.client.defaults.headers.common['Authorization'];
+      delete this.getDirectClient().defaults.headers.common['Authorization'];
     }
   }
 }

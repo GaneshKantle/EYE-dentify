@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 
 interface Notification {

@@ -21,15 +21,45 @@ export const Navbar = () => {
   const { user, clearAuth, isAuthenticated } = useAuthStore();
   const { isSidebarOpen, setIsSidebarOpen } = useLayout();
 
-  const handleLogout = () => {
-    clearAuth();
-    navigate('/');
+  const handleLogout = async () => {
+    await clearAuth();
+    navigate('/login');
   };
 
-  // Temporarily show navbar for testing
-  // if (!isAuthenticated) {
-  //   return null;
-  // }
+  // Show login/register buttons if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <nav className="bg-gradient-to-br from-amber-50/95 via-orange-50/95 to-yellow-50/95 backdrop-blur-sm border-b border-amber-200/50 sticky top-0 z-50 shadow-sm">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <Link to="/login" className="flex items-center space-x-2 sm:space-x-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center">
+                <div className="w-full h-full bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-white" />
+                </div>
+              </div>
+              <span className="font-bold text-lg sm:text-xl lg:text-2xl text-gray-800">EYE'dentify</span>
+            </Link>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => navigate('/login')}
+                className="text-gray-700 hover:bg-amber-100/50"
+              >
+                Sign In
+              </Button>
+              <Button
+                onClick={() => navigate('/register')}
+                className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white"
+              >
+                Sign Up
+              </Button>
+            </div>
+          </div>
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <>

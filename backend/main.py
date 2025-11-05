@@ -6,7 +6,23 @@ import cloudinary.uploader
 import torch, pickle, base64, numpy as np
 from facenet_pytorch import MTCNN, InceptionResnetV1
 from PIL import Image
+from dotenv import load_dotenv
+import os
 from routes.assets import router as assets_router
+from routes.sketches import router as sketches_router
+
+# Import auth router with error handling
+try:
+    from routes.auth import router as auth_router
+    print("✓ Auth router imported successfully")
+except Exception as e:
+    print(f"✗ Failed to import auth router: {e}")
+    import traceback
+    traceback.print_exc()
+    auth_router = None
+
+# Load environment variables
+load_dotenv()
 
 # ---------------- MongoDB ----------------
 MONGO_URI = "mongodb+srv://MANJU-A-R:Atlas%401708@cluster0.w3p8plb.mongodb.net/?retryWrites=true&w=majority"
@@ -63,15 +79,35 @@ def cos_sim(a, b):
 
 # ---------------- FastAPI ----------------
 app = FastAPI()
+# CORS Configuration - Load from environment or use defaults
+allowed_origins = os.getenv(
+    'ALLOWED_ORIGINS',
+    'http://localhost:5000,https://eye-dentify.vercel.app'
+).split(',')
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_methods=["*"],
-    allow_headers=["*"]
+    allow_headers=["*"],
+    allow_credentials=True
 )
 
-# Include asset routes
+# Include routes
 app.include_router(assets_router)
+app.include_router(sketches_router)
+
+# Include auth router if it was successfully imported
+if auth_router:
+    try:
+        app.include_router(auth_router)
+        print("✓ Auth router included successfully")
+    except Exception as e:
+        print(f"✗ Error including auth router: {e}")
+        import traceback
+        traceback.print_exc()
+else:
+    print("✗ Auth router not included (import failed)")
 
 # ---------------- Routes ----------------
 @app.post("/add_face")

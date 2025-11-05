@@ -5,6 +5,7 @@ import { UserPlus, Upload, Shield, CheckCircle } from "lucide-react";
 import Toast from "./Toast";
 import Header from "./pages/dashboard/Header";
 import { Footer } from "./pages/dashboard/Footer";
+import { apiClient } from "./lib/api";
 
 interface ToastState {
   message: string;
@@ -35,12 +36,7 @@ const AddFace: React.FC = () => {
     formData.append("description", description);
 
     try {
-      const res = await fetch("http://localhost:8000/add_face", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (res.ok) {
+      const data = await apiClient.directUploadFile<{status: string, message: string}>("/add_face", formData);
         setToast({ message: data.message, type: "success" });
         // Reset form
         setName("");
@@ -50,11 +46,8 @@ const AddFace: React.FC = () => {
         setFile(null);
         const fileInput = document.getElementById('file-input') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
-      } else {
-        setToast({ message: data.detail || "Error uploading", type: "error" });
-      }
-    } catch (err) {
-      setToast({ message: "Network error", type: "error" });
+    } catch (err: any) {
+      setToast({ message: err?.response?.data?.detail || err?.message || "Network error", type: "error" });
     } finally {
       setIsUploading(false);
     }

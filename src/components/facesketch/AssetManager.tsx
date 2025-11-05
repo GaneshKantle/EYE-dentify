@@ -6,6 +6,7 @@ import { Card } from '../ui/card';
 import { Upload, Trash2, Search } from 'lucide-react';
 import AssetUpload from './AssetUpload';
 import { Asset } from '../../types/asset';
+import { apiClient } from '../../lib/api';
 
 const AssetManager: React.FC<{
   onAssetSelect: (asset: Asset) => void;
@@ -28,8 +29,7 @@ const AssetManager: React.FC<{
   const loadAssets = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8000/assets');
-      const data = await response.json();
+      const data = await apiClient.directGet<any[]>('/assets');
       setAssets(data);
     } catch (error) {
       console.error('Failed to load assets:', error);
@@ -63,17 +63,9 @@ const AssetManager: React.FC<{
       formData.append('tags', JSON.stringify(uploadData.tags));
       formData.append('file', uploadData.file);
 
-      const response = await fetch('http://localhost:8000/assets/upload', {
-        method: 'POST',
-        body: formData
-      });
-
-      if (response.ok) {
-        await loadAssets();
-        setShowUpload(false);
-      } else {
-        throw new Error('Upload failed');
-      }
+      await apiClient.directUploadFile('/assets/upload', formData);
+      await loadAssets();
+      setShowUpload(false);
     } catch (error) {
       console.error('Upload error:', error);
     }
@@ -81,13 +73,8 @@ const AssetManager: React.FC<{
 
   const handleDelete = async (assetId: string) => {
     try {
-      const response = await fetch(`http://localhost:8000/assets/${assetId}`, {
-        method: 'DELETE'
-      });
-
-      if (response.ok) {
-        await loadAssets();
-      }
+      await apiClient.directDelete(`/assets/${assetId}`);
+      await loadAssets();
     } catch (error) {
       console.error('Delete error:', error);
     }

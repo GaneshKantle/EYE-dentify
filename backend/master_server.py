@@ -15,6 +15,24 @@ from datetime import datetime
 from bson import ObjectId
 import json
 import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Import routers
+from routes.assets import router as assets_router
+from routes.sketches import router as sketches_router
+
+# Import auth router with error handling
+try:
+    from routes.auth import router as auth_router
+    print("✓ Auth router imported successfully")
+except Exception as e:
+    print(f"✗ Failed to import auth router: {e}")
+    import traceback
+    traceback.print_exc()
+    auth_router = None
 
 # ==================== CONFIGURATION ====================
 # MongoDB Configuration
@@ -73,13 +91,35 @@ def cos_sim(a, b):
 # ==================== FASTAPI APP ====================
 app = FastAPI(title="Face Recognition Dashboard API", version="1.0.0")
 
-# CORS Middleware
+# CORS Middleware - Load from environment or use defaults
+allowed_origins = os.getenv(
+    'ALLOWED_ORIGINS',
+    'http://localhost:5000,https://eye-dentify.vercel.app'
+).split(',')
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_methods=["*"],
-    allow_headers=["*"]
+    allow_headers=["*"],
+    allow_credentials=True
 )
+
+# Include routers
+app.include_router(assets_router)
+app.include_router(sketches_router)
+
+# Include auth router if it was successfully imported
+if auth_router:
+    try:
+        app.include_router(auth_router)
+        print("✓ Auth router included successfully")
+    except Exception as e:
+        print(f"✗ Error including auth router: {e}")
+        import traceback
+        traceback.print_exc()
+else:
+    print("✗ Auth router not included (import failed)")
 
 # ==================== FACE RECOGNITION ROUTES ====================
 @app.get("/")

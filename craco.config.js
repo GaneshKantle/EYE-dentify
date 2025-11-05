@@ -1,15 +1,13 @@
-import path from "path";
-import { fileURLToPath } from "url";
+const path = require('path');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const config = {
+module.exports = {
+  devServer: {
+    port: 5000,
+    open: false,
+  },
   webpack: {
     alias: {
-      "@": path.resolve(__dirname, "src"),
+      '@': path.resolve(__dirname, 'src'),
     },
   },
 };
-
-export default config;

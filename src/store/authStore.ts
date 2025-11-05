@@ -1,12 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { apiClient } from '../lib/api';
 
 export interface User {
   id: string;
   email: string;
   username: string;
   role?: string;
-  createdAt: string;
+  createdAt?: string;
+  isEmailVerified?: boolean;
 }
 
 interface AuthState {
@@ -17,28 +19,23 @@ interface AuthState {
   
   // Actions
   setAuth: (user: User, token: string) => void;
-  clearAuth: () => void;
+  clearAuth: () => Promise<void>;
   setLoading: (loading: boolean) => void;
   updateUser: (userData: Partial<User>) => void;
+  checkAuth: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
-      user: {
-        id: '1',
-        email: 'officer@forensic.gov',
-        username: 'Detective Smith',
-        role: 'Senior Officer',
-        createdAt: new Date().toISOString()
-      },
-      token: 'demo-token-123',
-      isAuthenticated: true,
+      user: null,
+      token: null,
+      isAuthenticated: false,
       isLoading: false,
 
       setAuth: (user: User, token: string) => {
         localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
+        apiClient.setAuthToken(token);
         set({
           user,
           token,
@@ -47,9 +44,14 @@ export const useAuthStore = create<AuthState>()(
         });
       },
 
-      clearAuth: () => {
+      clearAuth: async () => {
+        try {
+          await apiClient.logout();
+        } catch (error) {
+          // Ignore logout errors
+        }
         localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        apiClient.setAuthToken(null);
         set({
           user: null,
           token: null,
@@ -70,6 +72,35 @@ export const useAuthStore = create<AuthState>()(
           set({ user: updatedUser });
         }
       },
+
+      checkAuth: async () => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          set({ isAuthenticated: false, user: null, token: null });
+          return;
+        }
+
+        try {
+          apiClient.setAuthToken(token);
+          const user = await apiClient.getCurrentUser();
+          set({
+            user,
+            token,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+        } catch (error) {
+          // Token invalid or expired
+          localStorage.removeItem('token');
+          apiClient.setAuthToken(null);
+          set({
+            user: null,
+            token: null,
+            isAuthenticated: false,
+            isLoading: false,
+          });
+        }
+      },
     }),
     {
       name: 'sketch-sight-auth',
@@ -78,6 +109,13 @@ export const useAuthStore = create<AuthState>()(
         token: state.token,
         isAuthenticated: state.isAuthenticated,
       }),
+      onRehydrateStorage: () => (state) => {
+        // On rehydrate, check if token is still valid
+        if (state?.token) {
+          apiClient.setAuthToken(state.token);
+          state.checkAuth();
+        }
+      },
     }
   )
 );

@@ -1,8 +1,10 @@
+/* eslint-disable */
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios, { AxiosError } from "axios";
 import { RecognitionResult } from "./types";
 import { Upload, RotateCcw, PenTool, Target, CheckCircle, Eye, Zap, ArrowRight } from "lucide-react";
+import { apiClient } from "./lib/api";
 
 const RecognizeFace: React.FC = () => {
   const navigate = useNavigate();
@@ -49,7 +51,7 @@ const RecognizeFace: React.FC = () => {
     formData.append("file", file);
 
     try {
-      const res = await axios.post("http://localhost:8000/recognize_face", formData);
+      const res = await apiClient.directUploadFile<RecognitionResult>("/recognize_face", formData);
       
       // Complete the loading animation
       clearInterval(textInterval);
@@ -57,19 +59,18 @@ const RecognizeFace: React.FC = () => {
       
       // Small delay before showing result
       setTimeout(() => {
-        setResult(res.data);
+        setResult(res);
         setIsProcessing(false);
       }, 500);
       
-    } catch (err) {
-      const error = err as AxiosError;
+    } catch (err: any) {
       clearInterval(textInterval);
       setLoadingText("Analysis failed");
       
       setTimeout(() => {
         setResult({ 
           status: "error", 
-          message: (error.response?.data as any)?.detail || error.message 
+          message: err?.response?.data?.detail || err?.message || "Recognition failed"
         });
         setIsProcessing(false);
       }, 500);
@@ -264,10 +265,6 @@ const RecognizeFace: React.FC = () => {
                     <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
                       <span className="text-gray-500 font-medium">Name</span>
                       <span className="font-semibold text-gray-900 truncate ml-2">{result.name}</span>
-                    </div>
-                    <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
-                      <span className="text-gray-500 font-medium">Confidence</span>
-                      <span className="font-semibold text-green-600 ml-2">{((result.similarity || 0) * 100).toFixed(1)}%</span>
                     </div>
                     {result.age && (
                       <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">

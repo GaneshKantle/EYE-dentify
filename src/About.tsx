@@ -1,7 +1,7 @@
 /*eslint-disable*/
 import { Shield, Award } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import { apiClient } from './lib/api';
 import { Database, Lock, BarChart3, Globe, CheckCircle } from 'lucide-react';
 
 const About = () => {
@@ -31,9 +31,9 @@ const About = () => {
     let isMounted = true;
     (async () => {
       try {
-        const res = await axios.get('http://localhost:8000/gallery');
+        const res = await apiClient.directGet<{faces: any[]}>('/gallery');
         if (!isMounted) return;
-        setFaces(res.data?.faces || []);
+        setFaces(res?.faces || []);
       } catch (e: any) {
         if (!isMounted) return;
         setError(e?.message || 'Failed to load stats');
