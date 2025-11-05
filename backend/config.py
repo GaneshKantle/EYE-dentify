@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     
     # Security
     secret_key: str
-    allowed_origins: str = "http://localhost:3000"
+    allowed_origins: str = "https://eye-dentify.vercel.app,http://localhost:3000,http://localhost:5000,http://localhost:5173"
     
     # Face Recognition
     recognition_threshold: float = 0.50

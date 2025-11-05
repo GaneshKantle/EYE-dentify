@@ -77,12 +77,13 @@ def cos_sim(a, b):
     b = np.asarray(b, dtype="float32").flatten()
     return float(np.dot(a,b))
 
-# ---------------- FastAPI ----------------
+# ---------------- FastAPI ---------------- 
 app = FastAPI()
 # CORS Configuration - Load from environment or use defaults
+# Supports both production domains and localhost for development
 allowed_origins = os.getenv(
     'ALLOWED_ORIGINS',
-    'http://localhost:5000,https://eye-dentify.vercel.app'
+    'https://eye-dentify.vercel.app,http://localhost:3000,http://localhost:5000,http://localhost:5173'
 ).split(',')
 
 app.add_middleware(
