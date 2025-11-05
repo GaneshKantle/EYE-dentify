@@ -1,6 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient
+from contextlib import asynccontextmanager
 import cloudinary
 import cloudinary.uploader
 import torch, pickle, base64, numpy as np
@@ -40,11 +41,11 @@ cloudinary.config(
     api_secret=os.getenv("CLOUDINARY_API_SECRET", "iiN3cjMrzMXGKQew61kAH5lIIXE")
 )
 
-# ---------------- FaceNet ----------------
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-mtcnn = MTCNN(image_size=160, margin=0, min_face_size=20, keep_all=False, post_process=True, device=device)
-facenet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
-
+# ---------------- FaceNet ---------------- 
+# Global variables for ML models (loaded at startup)
+device = None
+mtcnn = None
+facenet = None
 recognition_threshold = 0.50
 rejection_threshold = 0.30
 
@@ -53,6 +54,10 @@ def _fixed_image_standardization(x):
     return (x - 0.5) / 0.5
 
 def get_embedding(file: UploadFile):
+    """Get face embedding from uploaded image"""
+    if mtcnn is None or facenet is None:
+        raise HTTPException(status_code=503, detail="ML models not loaded yet. Please wait and try again.")
+    
     file.file.seek(0)
     img = Image.open(file.file).convert("RGB")
     with torch.no_grad():
@@ -80,8 +85,41 @@ def cos_sim(a, b):
     b = np.asarray(b, dtype="float32").flatten()
     return float(np.dot(a,b))
 
+# ---------------- Application Lifespan ---------------- 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Load ML models at startup"""
+    global device, mtcnn, facenet
+    
+    print("🚀 Starting application...")
+    print("📦 Loading ML models (this may take a moment)...")
+    
+    try:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print(f"🔧 Using device: {device}")
+        
+        mtcnn = MTCNN(image_size=160, margin=0, min_face_size=20, keep_all=False, post_process=True, device=device)
+        print("✓ MTCNN model loaded")
+        
+        facenet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
+        print("✓ FaceNet model loaded")
+        print("✅ ML models loaded successfully!")
+        
+    except Exception as e:
+        print(f"❌ Error loading ML models: {e}")
+        import traceback
+        traceback.print_exc()
+        # Don't exit - allow app to start without models (will return 503 errors)
+    
+    print("✅ Application startup complete!")
+    
+    yield
+    
+    print("🛑 Shutting down application...")
+
 # ---------------- FastAPI ---------------- 
-app = FastAPI()
+app = FastAPI(title="Face Recognition Dashboard API", version="1.0.0", lifespan=lifespan)
+
 # CORS Configuration - Load from environment or use defaults
 # Supports both production domains and localhost for development
 allowed_origins = os.getenv(
