@@ -6,6 +6,7 @@ import {
   Database, 
   Home, 
   User, 
+  UserPlus,
   Shield,
   BarChart3
 } from 'lucide-react';
