@@ -1,5 +1,7 @@
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Body
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Body, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
+from starlette.middleware.base import BaseHTTPMiddleware
 from pymongo import MongoClient
 from contextlib import asynccontextmanager
 import cloudinary
@@ -9,21 +11,36 @@ from facenet_pytorch import MTCNN, InceptionResnetV1
 from PIL import Image
 from dotenv import load_dotenv
 import os
+import gc
 from routes.assets import router as assets_router
 from routes.sketches import router as sketches_router
 
 # Import auth router with error handling
+print("🔍 Attempting to import auth router...")
+auth_router = None
 try:
     from routes.auth import router as auth_router
     print("✓ Auth router imported successfully")
+    print(f"✓ Router object: {auth_router}")
+    print(f"✓ Router prefix: {auth_router.prefix if auth_router else 'None'}")
+    print(f"✓ Router routes count: {len(auth_router.routes) if auth_router else 0}")
+except ImportError as e:
+    print(f"✗ ImportError importing auth router: {e}")
+    import traceback
+    traceback.print_exc()
+    auth_router = None
 except Exception as e:
     print(f"✗ Failed to import auth router: {e}")
     import traceback
     traceback.print_exc()
     auth_router = None
 
-# Load environment variables
-load_dotenv()
+# Load environment variables with error handling
+try:
+    load_dotenv()
+except Exception as e:
+    print(f"⚠️ Warning: Could not load .env file: {e}")
+    print("Continuing with environment variables from system...")
 
 # ---------------- MongoDB ---------------- 
 MONGO_URI = os.getenv(
@@ -88,68 +105,192 @@ def cos_sim(a, b):
 # ---------------- Application Lifespan ---------------- 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Load ML models at startup"""
+    """Load ML models at startup with memory optimization"""
     global device, mtcnn, facenet
     
     print("🚀 Starting application...")
     print("📦 Loading ML models (this may take a moment)...")
     
     try:
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # Force CPU mode to reduce memory usage on Render
+        # CUDA is not available on Render's free tier anyway
+        device = torch.device("cpu")
         print(f"🔧 Using device: {device}")
         
-        mtcnn = MTCNN(image_size=160, margin=0, min_face_size=20, keep_all=False, post_process=True, device=device)
+        # Optimize PyTorch memory usage
+        torch.set_num_threads(1)  # Limit threads to reduce memory
+        if hasattr(torch, 'set_num_interop_threads'):
+            torch.set_num_interop_threads(1)
+        
+        # Enable memory-efficient settings
+        os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:128'
+        
+        # Clear any existing cache
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        
+        print("📥 Loading MTCNN model...")
+        # Load MTCNN with minimal memory footprint
+        mtcnn = MTCNN(
+            image_size=160, 
+            margin=0, 
+            min_face_size=20, 
+            keep_all=False, 
+            post_process=True, 
+            device=device
+        )
         print("✓ MTCNN model loaded")
         
-        facenet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
+        # Force garbage collection before loading next model
+        gc.collect()
+        
+        print("📥 Loading FaceNet model...")
+        # Load FaceNet model with memory optimization
+        facenet = InceptionResnetV1(pretrained='vggface2').eval()
+        facenet = facenet.to(device)
+        
+        # Set model to evaluation mode and disable gradient computation
+        facenet.requires_grad_(False)
+        
+        # Final garbage collection
+        gc.collect()
+        
         print("✓ FaceNet model loaded")
         print("✅ ML models loaded successfully!")
         
+    except MemoryError as e:
+        print(f"❌ Out of memory while loading ML models: {e}")
+        print("💡 Tip: Consider upgrading to a higher memory tier or using model quantization")
+        import traceback
+        traceback.print_exc()
+        # Clear variables on error
+        mtcnn = None
+        facenet = None
     except Exception as e:
         print(f"❌ Error loading ML models: {e}")
         import traceback
         traceback.print_exc()
-        # Don't exit - allow app to start without models (will return 503 errors)
+        # Clear variables on error
+        mtcnn = None
+        facenet = None
     
     print("✅ Application startup complete!")
     
     yield
     
     print("🛑 Shutting down application...")
+    # Cleanup models on shutdown
+    if mtcnn is not None:
+        del mtcnn
+    if facenet is not None:
+        del facenet
+    gc.collect()
+    print("✅ Cleanup complete")
 
 # ---------------- FastAPI ---------------- 
 app = FastAPI(title="Face Recognition Dashboard API", version="1.0.0", lifespan=lifespan)
 
+# CORS logging middleware for debugging
+class CORSLoggingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        origin = request.headers.get("origin", "No origin")
+        method = request.method
+        path = request.url.path
+        
+        # Log CORS requests
+        if method == "OPTIONS" or origin != "No origin":
+            print(f"🌐 CORS Request: {method} {path} from origin: {origin}")
+        
+        # Let CORSMiddleware handle OPTIONS requests - just pass through
+        response = await call_next(request)
+        
+        # Add CORS headers for localhost origins in development (as backup)
+        # CORSMiddleware should handle this, but this ensures it works
+        environment = os.getenv('ENVIRONMENT', 'development')
+        if environment == 'development' and origin and origin != "No origin":
+            if origin.startswith('http://localhost:') or origin.startswith('http://127.0.0.1:'):
+                # Only add if not already set by CORSMiddleware
+                if "Access-Control-Allow-Origin" not in response.headers:
+                    response.headers["Access-Control-Allow-Origin"] = origin
+                    response.headers["Access-Control-Allow-Credentials"] = "true"
+                    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD"
+                    response.headers["Access-Control-Allow-Headers"] = "*"
+                    response.headers["Access-Control-Expose-Headers"] = "*"
+        
+        return response
+
 # CORS Configuration - Load from environment or use defaults
 # Supports both production domains and localhost for development
-allowed_origins = os.getenv(
-    'ALLOWED_ORIGINS',
-    'https://eye-dentify.vercel.app,http://localhost:3000,http://localhost:5000,http://localhost:5173'
-).split(',')
+allowed_origins_env = os.getenv('ALLOWED_ORIGINS', '')
+environment = os.getenv('ENVIRONMENT', 'development')
 
+if allowed_origins_env:
+    allowed_origins = [origin.strip() for origin in allowed_origins_env.split(',') if origin.strip()]
+else:
+    # Default: Allow common localhost origins for development + production domain
+    allowed_origins = [
+        'https://eye-dentify.vercel.app',
+        'http://localhost:3000',
+        'http://localhost:5000',
+        'http://localhost:5173',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:5000',
+        'http://127.0.0.1:5173',
+    ]
+    # In development, add more common ports and allow all localhost origins
+    if environment == 'development':
+        # Add common development ports
+        for port in [3001, 3002, 5174, 5175, 8080, 8081, 3003, 3004, 3005, 3006, 3007, 3008, 3009, 3010, 5001, 5002, 5003, 5004, 5005]:
+            allowed_origins.extend([
+                f'http://localhost:{port}',
+                f'http://127.0.0.1:{port}'
+            ])
+        print("⚠️  Development mode: CORS allows localhost origins")
+
+print(f"🌐 CORS allowed origins: {allowed_origins}")
+
+# Add CORS middleware FIRST - it needs to handle OPTIONS requests before other middleware
+# FastAPI's CORSMiddleware automatically handles OPTIONS requests
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_methods=["*"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
     allow_headers=["*"],
-    allow_credentials=True
+    expose_headers=["*"],
+    max_age=3600  # Cache preflight requests for 1 hour
 )
+
+# Add CORS logging middleware AFTER CORSMiddleware (for logging only)
+app.add_middleware(CORSLoggingMiddleware)
 
 # Include routes
 app.include_router(assets_router)
 app.include_router(sketches_router)
 
 # Include auth router if it was successfully imported
+print(f"🔍 Checking if auth router exists: {auth_router is not None}")
 if auth_router:
     try:
+        print(f"🔍 Including auth router with prefix: {auth_router.prefix}")
         app.include_router(auth_router)
         print("✓ Auth router included successfully")
+        print(f"✓ Auth router prefix: {auth_router.prefix}")
+        # Debug: Print registered routes with methods
+        print(f"✓ Router has {len(auth_router.routes)} routes")
+        for route in auth_router.routes:
+            if hasattr(route, 'path') and hasattr(route, 'methods'):
+                full_path = f"{auth_router.prefix}{route.path}" if route.path != "/" else auth_router.prefix
+                print(f"  - {list(route.methods)} {full_path}")
     except Exception as e:
         print(f"✗ Error including auth router: {e}")
         import traceback
         traceback.print_exc()
 else:
-    print("✗ Auth router not included (import failed)")
+    print("✗ Auth router not included (import failed or router is None)")
+    print("⚠️  WARNING: Auth routes will not be available!")
+    print("⚠️  Check the import error above to see why the router wasn't imported")
 
 # ---------------- Routes ----------------
 @app.post("/add_face")
@@ -308,6 +449,18 @@ async def root():
 async def health():
     """Health check endpoint"""
     return {"status": "healthy"}
+
+@app.get("/debug/routes")
+async def debug_routes():
+    """Debug endpoint to list all registered routes"""
+    routes = []
+    for route in app.routes:
+        if hasattr(route, 'path') and hasattr(route, 'methods'):
+            routes.append({
+                "path": route.path,
+                "methods": list(route.methods) if hasattr(route, 'methods') else []
+            })
+    return {"routes": routes}
 
 # ---------------- Server Startup ---------------- 
 if __name__ == "__main__":

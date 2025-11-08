@@ -208,10 +208,21 @@ class APIClient {
     return response.data;
   }
 
-  async directPost<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    const client = this.getDirectClient();
-    const response = await client.post<T>(url, data, config);
-    return response.data;
+  async directPost<T = any>(url: string, data?: any, requestConfig?: AxiosRequestConfig): Promise<T> {
+    try {
+      const client = this.getDirectClient();
+      const response = await client.post<T>(url, data, requestConfig);
+      return response.data;
+    } catch (error: any) {
+      // Better error handling for network/CORS errors
+      if (error.code === 'ECONNREFUSED' || error.message?.includes('Network Error')) {
+        throw new Error(`Cannot connect to backend server at ${config.apiUrl}. Make sure the backend is running on port 8000.`);
+      }
+      if (error.response?.status === 0 || error.message?.includes('CORS')) {
+        throw new Error(`CORS error: The backend server may not be allowing requests from ${window.location.origin}. Check CORS configuration.`);
+      }
+      throw error;
+    }
   }
 
   async directPut<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
@@ -257,23 +268,26 @@ class APIClient {
     return { token: response.token, user: response.user };
   }
 
+  // OTP is temporarily disabled - registration works without OTP verification
   async register(
     email: string,
     username: string,
     password: string,
     secretKey: string,
-    otp: string
+    otp?: string // OTP parameter is optional - kept for backward compatibility but not required
   ): Promise<{ token: string; user: any }> {
     const response = await this.directPost<{ status: string; token: string; user: any }>('/auth/register', {
       email,
       username,
       password,
       secret_key: secretKey,
-      otp
+      otp: otp || '' // Send empty string if OTP not provided
     });
     return { token: response.token, user: response.user };
   }
 
+  // OTP methods commented out - OTP verification is temporarily disabled
+  /*
   async sendOtp(email: string): Promise<{ message: string }> {
     const response = await this.directPost<{ status: string; message: string }>('/auth/send-otp', { email });
     return { message: response.message };
@@ -283,6 +297,7 @@ class APIClient {
     const response = await this.directPost<{ status: string; message: string }>('/auth/verify-otp', { email, otp });
     return { message: response.message };
   }
+  */
 
   async logout(): Promise<void> {
     await this.directPost('/auth/logout', {});

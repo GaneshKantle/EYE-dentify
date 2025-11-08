@@ -1,8 +1,10 @@
-from fastapi import APIRouter, HTTPException, Body, Depends
+from fastapi import APIRouter, HTTPException, Body, Depends, Request
+from fastapi.responses import Response
 from pymongo import MongoClient
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from bson import ObjectId
+from pydantic import BaseModel, EmailStr
 import bcrypt
 import os
 import random
@@ -12,6 +14,18 @@ import hashlib
 from middleware.auth import create_access_token, get_current_user_id, verify_token
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from services.email_service import EmailService
+
+# Pydantic models for request validation
+class RegisterRequest(BaseModel):
+    email: str
+    username: str
+    password: str
+    secret_key: str
+    otp: Optional[str] = None  # OTP is optional - OTP verification is temporarily disabled
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
 
 # Database connection
 MONGO_URI = os.getenv('MONGO_URI', 'mongodb+srv://MANJU-A-R:Atlas%401708@cluster0.w3p8plb.mongodb.net/?retryWrites=true&w=majority')
@@ -30,6 +44,12 @@ email_service = EmailService()
 router = APIRouter(prefix="/auth", tags=["auth"])
 security = HTTPBearer()
 
+# Test endpoint to verify router is working
+@router.get("/test")
+async def test_auth_router():
+    """Test endpoint to verify auth router is working"""
+    return {"message": "Auth router is working!", "prefix": router.prefix}
+
 # Helper functions
 def hash_password(password: str) -> str:
     """Hash password using bcrypt"""
@@ -40,121 +60,129 @@ def verify_password(password: str, hashed: str) -> bool:
     """Verify password against hash"""
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
-def generate_otp() -> str:
-    """Generate 6-digit OTP"""
-    return str(random.randint(100000, 999999))
+# OTP helper functions commented out - OTP verification is temporarily disabled
+# These functions are kept for future re-enablement
+# def generate_otp() -> str:
+#     """Generate 6-digit OTP"""
+#     return str(random.randint(100000, 999999))
+#
+# def hash_otp(otp: str) -> str:
+#     """Hash OTP for storage"""
+#     return hashlib.sha256(otp.encode()).hexdigest()
 
-def hash_otp(otp: str) -> str:
-    """Hash OTP for storage"""
-    return hashlib.sha256(otp.encode()).hexdigest()
-
-@router.post("/send-otp")
-async def send_otp(email: str = Body(..., embed=True)):
-    """Send OTP to email for registration"""
-    try:
-        # Validate email format
-        if not email or '@' not in email:
-            raise HTTPException(status_code=400, detail="Invalid email format")
-        
-        # Check if email already exists
-        existing_user = users_collection.find_one({"email": email.lower()})
-        if existing_user:
-            raise HTTPException(status_code=400, detail="Email already registered")
-        
-        # Generate OTP
-        otp = generate_otp()
-        otp_hash = hash_otp(otp)
-        
-        # Store OTP in database with expiration
-        expires_at = datetime.utcnow() + timedelta(minutes=OTP_EXPIRATION_MINUTES)
-        otps_collection.update_one(
-            {"email": email.lower()},
-            {
-                "$set": {
-                    "otp_hash": otp_hash,
-                    "expires_at": expires_at,
-                    "created_at": datetime.utcnow(),
-                    "attempts": 0
-                }
-            },
-            upsert=True
-        )
-        
-        # Send OTP email
-        email_result = await email_service.send_otp_email(email, otp)
-        
-        if not email_result.get("success"):
-            error_msg = email_result.get("message", "Unknown error")
-            print(f"Email service error: {error_msg}")  # Debug log
-            raise HTTPException(status_code=500, detail=f"Failed to send OTP email: {error_msg}")
-        
-        return {
-            "status": "ok",
-            "message": "OTP sent successfully to your email",
-            "expires_in_minutes": OTP_EXPIRATION_MINUTES
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to send OTP: {str(e)}")
-
-@router.post("/verify-otp")
-async def verify_otp(
-    email: str = Body(..., embed=True),
-    otp: str = Body(..., embed=True)
-):
-    """Verify OTP code"""
-    try:
-        # Get OTP record
-        otp_record = otps_collection.find_one({"email": email.lower()})
-        
-        if not otp_record:
-            raise HTTPException(status_code=400, detail="OTP not found. Please request a new OTP.")
-        
-        # Check expiration
-        if datetime.utcnow() > otp_record["expires_at"]:
-            otps_collection.delete_one({"email": email.lower()})
-            raise HTTPException(status_code=400, detail="OTP expired. Please request a new OTP.")
-        
-        # Check attempts (prevent brute force)
-        if otp_record.get("attempts", 0) >= 5:
-            otps_collection.delete_one({"email": email.lower()})
-            raise HTTPException(status_code=400, detail="Too many failed attempts. Please request a new OTP.")
-        
-        # Verify OTP
-        otp_hash = hash_otp(otp)
-        if otp_hash != otp_record["otp_hash"]:
-            otps_collection.update_one(
-                {"email": email.lower()},
-                {"$inc": {"attempts": 1}}
-            )
-            raise HTTPException(status_code=400, detail="Invalid OTP code")
-        
-        # OTP verified successfully - mark as verified
-        otps_collection.update_one(
-            {"email": email.lower()},
-            {"$set": {"verified": True, "verified_at": datetime.utcnow()}}
-        )
-        
-        return {
-            "status": "ok",
-            "message": "OTP verified successfully"
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to verify OTP: {str(e)}")
+# OTP endpoints commented out - OTP verification is temporarily disabled
+# These endpoints are kept for future re-enablement
+# Uncomment the code below to re-enable OTP verification:
+#
+# @router.post("/send-otp")
+# async def send_otp(email: str = Body(..., embed=True)):
+#     """Send OTP to email for registration"""
+#     try:
+#         # Validate email format
+#         if not email or '@' not in email:
+#             raise HTTPException(status_code=400, detail="Invalid email format")
+#         
+#         # Check if email already exists
+#         existing_user = users_collection.find_one({"email": email.lower()})
+#         if existing_user:
+#             raise HTTPException(status_code=400, detail="Email already registered")
+#         
+#         # Generate OTP
+#         otp = generate_otp()
+#         otp_hash = hash_otp(otp)
+#         
+#         # Store OTP in database with expiration
+#         expires_at = datetime.utcnow() + timedelta(minutes=OTP_EXPIRATION_MINUTES)
+#         otps_collection.update_one(
+#             {"email": email.lower()},
+#             {
+#                 "$set": {
+#                     "otp_hash": otp_hash,
+#                     "expires_at": expires_at,
+#                     "created_at": datetime.utcnow(),
+#                     "attempts": 0
+#                 }
+#             },
+#             upsert=True
+#         )
+#         
+#         # Send OTP email
+#         email_result = await email_service.send_otp_email(email, otp)
+#         
+#         if not email_result.get("success"):
+#             error_msg = email_result.get("message", "Unknown error")
+#             print(f"Email service error: {error_msg}")  # Debug log
+#             raise HTTPException(status_code=500, detail=f"Failed to send OTP email: {error_msg}")
+#         
+#         return {
+#             "status": "ok",
+#             "message": "OTP sent successfully to your email",
+#             "expires_in_minutes": OTP_EXPIRATION_MINUTES
+#         }
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Failed to send OTP: {str(e)}")
+#
+# @router.post("/verify-otp")
+# async def verify_otp(
+#     email: str = Body(..., embed=True),
+#     otp: str = Body(..., embed=True)
+# ):
+#     """Verify OTP code"""
+#     try:
+#         # Get OTP record
+#         otp_record = otps_collection.find_one({"email": email.lower()})
+#         
+#         if not otp_record:
+#             raise HTTPException(status_code=400, detail="OTP not found. Please request a new OTP.")
+#         
+#         # Check expiration
+#         if datetime.utcnow() > otp_record["expires_at"]:
+#             otps_collection.delete_one({"email": email.lower()})
+#             raise HTTPException(status_code=400, detail="OTP expired. Please request a new OTP.")
+#         
+#         # Check attempts (prevent brute force)
+#         if otp_record.get("attempts", 0) >= 5:
+#             otps_collection.delete_one({"email": email.lower()})
+#             raise HTTPException(status_code=400, detail="Too many failed attempts. Please request a new OTP.")
+#         
+#         # Verify OTP
+#         otp_hash = hash_otp(otp)
+#         if otp_hash != otp_record["otp_hash"]:
+#             otps_collection.update_one(
+#                 {"email": email.lower()},
+#                 {"$inc": {"attempts": 1}}
+#             )
+#             raise HTTPException(status_code=400, detail="Invalid OTP code")
+#         
+#         # OTP verified successfully - mark as verified
+#         otps_collection.update_one(
+#             {"email": email.lower()},
+#             {"$set": {"verified": True, "verified_at": datetime.utcnow()}}
+#         )
+#         
+#         return {
+#             "status": "ok",
+#             "message": "OTP verified successfully"
+#         }
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Failed to verify OTP: {str(e)}")
 
 @router.post("/register")
-async def register(
-    email: str = Body(..., embed=True),
-    username: str = Body(..., embed=True),
-    password: str = Body(..., embed=True),
-    secret_key: str = Body(..., embed=True),
-    otp: str = Body(..., embed=True)
-):
-    """Register new user with secret key and OTP verification"""
+async def register(request: RegisterRequest):
+    """Register new user with secret key - OTP verification is temporarily disabled"""
     try:
+        print(f"📥 Register request received: email={request.email}, username={request.username}")
+        # Extract fields from request
+        email = request.email
+        username = request.username
+        password = request.password
+        secret_key = request.secret_key
+        otp = request.otp
+        
         # Validate secret key
         if secret_key != REGISTRATION_SECRET_KEY:
             raise HTTPException(status_code=403, detail="Invalid registration secret key")
@@ -163,6 +191,19 @@ async def register(
         if not email or not username or not password:
             raise HTTPException(status_code=400, detail="All fields are required")
         
+        # Email format validation
+        if '@' not in email or '.' not in email.split('@')[1]:
+            raise HTTPException(status_code=400, detail="Invalid email format")
+        
+        # Username validation
+        if len(username) < 3:
+            raise HTTPException(status_code=400, detail="Username must be at least 3 characters")
+        if len(username) > 20:
+            raise HTTPException(status_code=400, detail="Username must be less than 20 characters")
+        if not username.replace('_', '').isalnum():
+            raise HTTPException(status_code=400, detail="Username can only contain letters, numbers, and underscores")
+        
+        # Password validation
         if len(password) < 8:
             raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
         
@@ -176,15 +217,15 @@ async def register(
         if existing_username:
             raise HTTPException(status_code=400, detail="Username already taken")
         
-        # Verify OTP
-        otp_record = otps_collection.find_one({"email": email.lower()})
-        if not otp_record or not otp_record.get("verified"):
-            raise HTTPException(status_code=400, detail="Please verify your email with OTP first")
-        
-        # Verify OTP code matches
-        otp_hash = hash_otp(otp)
-        if otp_hash != otp_record["otp_hash"]:
-            raise HTTPException(status_code=400, detail="Invalid OTP code")
+        # OTP verification commented out - OTP is temporarily disabled
+        # OTP verification code kept for future re-enablement:
+        # Uncomment the code below to re-enable OTP verification:
+        # otp_record = otps_collection.find_one({"email": email.lower()})
+        # if not otp_record or not otp_record.get("verified"):
+        #     raise HTTPException(status_code=400, detail="Please verify your email with OTP first")
+        # otp_hash = hash_otp(otp)
+        # if otp_hash != otp_record["otp_hash"]:
+        #     raise HTTPException(status_code=400, detail="Invalid OTP code")
         
         # Hash password
         hashed_password = hash_password(password)
@@ -194,7 +235,7 @@ async def register(
             "email": email.lower(),
             "username": username,
             "password": hashed_password,
-            "isEmailVerified": True,
+            "isEmailVerified": False,  # Set to False since OTP verification is disabled
             "createdAt": datetime.utcnow(),
             "updatedAt": datetime.utcnow()
         }
@@ -202,8 +243,8 @@ async def register(
         result = users_collection.insert_one(user_doc)
         user_id = str(result.inserted_id)
         
-        # Delete OTP record after successful registration
-        otps_collection.delete_one({"email": email.lower()})
+        # OTP record deletion commented out - OTP is temporarily disabled
+        # otps_collection.delete_one({"email": email.lower()})
         
         # Generate JWT token
         token = create_access_token({"sub": user_id, "email": email.lower()})
@@ -224,12 +265,13 @@ async def register(
         raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
 
 @router.post("/login")
-async def login(
-    email: str = Body(..., embed=True),
-    password: str = Body(..., embed=True)
-):
+async def login(request: LoginRequest):
     """Login with email and password"""
     try:
+        # Extract fields from request
+        email = request.email
+        password = request.password
+        
         # Find user
         user = users_collection.find_one({"email": email.lower()})
         
