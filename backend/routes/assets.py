@@ -1,17 +1,38 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from typing import List, Optional
-from models.asset import Asset, AssetCreate, AssetResponse
+from models.asset import AssetResponse
 from services.cloudinary_service import CloudinaryService
-from pymongo import MongoClient
 from datetime import datetime
 from bson import ObjectId
 import json
 import os
+from pymongo import MongoClient
+from dotenv import load_dotenv
+from pathlib import Path
 
-# Database connection
-MONGO_URI = "mongodb+srv://MANJU-A-R:Atlas%401708@cluster0.w3p8plb.mongodb.net/?retryWrites=true&w=majority"
-client = MongoClient(MONGO_URI)
-db = client["face_recognition_db"]
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+DOTENV_PATH = BACKEND_DIR / ".env"
+
+if DOTENV_PATH.exists():
+    load_dotenv(dotenv_path=DOTENV_PATH)
+else:
+    load_dotenv()
+
+
+def _get_mongo_client() -> MongoClient:
+    mongo_uri = os.getenv("MONGO_URI")
+    if not mongo_uri:
+        raise RuntimeError("MONGO_URI is not set. Update backend/.env before starting the server.")
+    return MongoClient(mongo_uri)
+
+
+def _get_database():
+    client = _get_mongo_client()
+    database_name = os.getenv("DATABASE_NAME", "face_recognition_db")
+    return client[database_name]
+
+
+db = _get_database()
 
 router = APIRouter(prefix="/assets", tags=["assets"])
 cloudinary_service = CloudinaryService()
@@ -58,11 +79,12 @@ async def upload_asset(
         
         # Save to MongoDB
         result = db.assets.insert_one(asset_data)
-        asset_data["_id"] = str(result.inserted_id)
-        
-        return AssetResponse(**asset_data)
+        return AssetResponse(**{**asset_data, "id": str(result.inserted_id)})
         
     except Exception as e:
+        print(f"❌ Asset upload failed: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/", response_model=List[AssetResponse])
@@ -73,7 +95,13 @@ async def get_assets(type: Optional[str] = None):
             query["type"] = type
             
         assets = list(db.assets.find(query))
-        return [AssetResponse(**{**asset, "_id": str(asset["_id"])}) for asset in assets]
+        return [
+            AssetResponse(**{
+                **{k: v for k, v in asset.items() if k != "_id"},
+                "id": str(asset["_id"])
+            })
+            for asset in assets
+        ]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -83,7 +111,10 @@ async def get_asset(asset_id: str):
         asset = db.assets.find_one({"_id": ObjectId(asset_id)})
         if not asset:
             raise HTTPException(status_code=404, detail="Asset not found")
-        return AssetResponse(**{**asset, "_id": str(asset["_id"])})
+        return AssetResponse(**{
+            **{k: v for k, v in asset.items() if k != "_id"},
+            "id": str(asset["_id"])
+        })
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

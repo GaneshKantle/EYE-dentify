@@ -1,5 +1,6 @@
 /*eslint-disable*/
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
@@ -7,7 +8,7 @@ import { Separator } from '../ui/separator';
 import { Card } from '../ui/card';
 import { 
   Save, Download, Undo2, Redo2, FileText, User, Hash, Eye, Minus, Triangle, Smile, Waves, Zap, LucideIcon,
-  ChevronDown, Calendar, Settings, Upload, Plus, X, ZoomIn, ZoomOut, Grid3X3, Target, Copy, Trash2
+  ChevronDown, Calendar, Settings, Upload, Plus, X, ZoomIn, ZoomOut, Grid3X3, Target, Copy, Trash2, Clock, Loader2
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -28,7 +29,38 @@ import {
 } from '../../types/facesketch';
 import { Asset, AssetUpload as AssetUploadType } from '../../types/asset';
 import { apiClient } from '../../lib/api';
+import { getSketchById, invalidateSketchDetail, invalidateSketchList } from '../../lib/sketchService';
+import { useNotifications } from '../../contexts/NotificationContext';
 
+
+const createInitialCaseInfo = (): CaseInfo => ({
+  caseNumber: '',
+  date: new Date().toISOString().split('T')[0],
+  officer: '',
+  description: '',
+  witness: '',
+  priority: 'medium',
+  status: 'draft',
+});
+
+const createInitialSaveDetails = () => ({
+  name: '',
+  suspect: '',
+  eyewitness: '',
+  officer: '',
+  date: new Date().toISOString().split('T')[0],
+  reason: '',
+  description: '',
+  priority: 'normal',
+  status: 'draft',
+});
+
+const createInitialCanvasSettings = () => ({
+  backgroundColor: '#ffffff',
+  showRulers: false,
+  showSafeArea: false,
+  quality: 'high' as 'standard' | 'high',
+});
 
 const FaceSketch: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
@@ -57,23 +89,17 @@ const FaceSketch: React.FC = () => {
   const pendingFeaturesRef = useRef<PlacedFeature[] | null>(null);
   const rafUpdateRef = useRef<number | null>(null);
   const imageCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
+  const loadedSketchIdRef = useRef<string | null>(null);
 
-  const [caseInfo, setCaseInfo] = useState<CaseInfo>({
-    caseNumber: '',
-    date: new Date().toISOString().split('T')[0],
-    officer: '',
-    description: '',
-    witness: '',
-    priority: 'medium',
-    status: 'draft'
-  });
+  const [caseInfo, setCaseInfo] = useState<CaseInfo>(() => createInitialCaseInfo());
 
-  const [canvasSettings, setCanvasSettings] = useState({
-    backgroundColor: '#ffffff',
-    showRulers: false,
-    showSafeArea: false,
-    quality: 'high' as 'standard' | 'high'
-  });
+  const [canvasSettings, setCanvasSettings] = useState(createInitialCanvasSettings);
+
+  const location = useLocation();
+  const navigate = useNavigate();
+  const searchParams = React.useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const requestedSketchId = searchParams.get('id');
+  const isNewSketchRequested = searchParams.get('mode') === 'new';
 
   // Dynamic asset loading system
   const [featureCategories, setFeatureCategories] = useState<Record<string, {
@@ -98,196 +124,72 @@ const FaceSketch: React.FC = () => {
   const [isLoadingSketch, setIsLoadingSketch] = useState(false);
   const [lastSavedStateHash, setLastSavedStateHash] = useState<string>('');
   const autoSaveIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const notifications = useNotifications();
+  const [saveDetails, setSaveDetails] = useState(createInitialSaveDetails);
+
+  const resetSketchState = useCallback(() => {
+    if (autoSaveIntervalRef.current) {
+      clearInterval(autoSaveIntervalRef.current);
+      autoSaveIntervalRef.current = null;
+    }
+    loadedSketchIdRef.current = null;
+    setFeatures([]);
+    setSelectedFeatures([]);
+    setHistory([]);
+    setHistoryIndex(-1);
+    setPanOffset({ x: 0, y: 0 });
+    setZoom(100);
+    setCurrentSketchId(null);
+    setLastSavedStateHash('');
+    setCaseInfo(createInitialCaseInfo());
+    setCanvasSettings(createInitialCanvasSettings());
+    setAutoSelectedFeature(null);
+    setSaveDetails(createInitialSaveDetails());
+  }, []);
 
   // Asset category configuration
   const assetCategories = React.useMemo(() => ({
     'face-shapes': {
       name: 'Face Shapes',
       icon: User,
-      color: 'bg-blue-100 text-blue-700',
-      folder: 'head',
-      maxAssets: 10
+      color: 'bg-blue-100 text-blue-700'
     },
     'eyes': {
       name: 'Eyes',
       icon: Eye,
-      color: 'bg-green-100 text-green-700',
-      folder: 'eyes',
-      maxAssets: 12
+      color: 'bg-green-100 text-green-700'
     },
     'eyebrows': {
       name: 'Eyebrows',
       icon: Minus,
-      color: 'bg-purple-100 text-purple-700',
-      folder: 'eyebrows',
-      maxAssets: 12
+      color: 'bg-purple-100 text-purple-700'
     },
     'nose': {
       name: 'Nose',
       icon: Triangle,
-      color: 'bg-orange-100 text-orange-700',
-      folder: 'nose',
-      maxAssets: 12
+      color: 'bg-orange-100 text-orange-700'
     },
     'lips': {
       name: 'Lips',
       icon: Smile,
-      color: 'bg-pink-100 text-pink-700',
-      folder: 'lips',
-      maxAssets: 12
+      color: 'bg-pink-100 text-pink-700'
     },
     'hair': {
       name: 'Hair',
       icon: Waves,
-      color: 'bg-yellow-100 text-yellow-700',
-      folder: 'hair',
-      maxAssets: 12
+      color: 'bg-yellow-100 text-yellow-700'
     },
     'facial-hair': {
-      name: 'Mustach',
+      name: 'Facial Hair',
       icon: Zap,
-      color: 'bg-gray-100 text-gray-700',
-      folder: 'mustach',
-      maxAssets: 12
+      color: 'bg-gray-100 text-gray-700'
     },
     'accessories': {
       name: 'More',
       icon: Settings,
-      color: 'bg-indigo-100 text-indigo-700',
-      folder: 'more',
-      maxAssets: 6
+      color: 'bg-indigo-100 text-indigo-700'
     }
   }), []);
-
-  // Generate asset names based on category
-  const generateAssetNames = (category: string, folder: string, maxAssets: number): Record<string, string> => {
-    const names: Record<string, Record<string, string>> = {
-      'face-shapes': {
-        '01': 'Oval Face',
-        '02': 'Round Face',
-        '03': 'Square Face',
-        '04': 'Heart Face',
-        '05': 'Diamond Face',
-        '06': 'Triangle Face',
-        '07': 'Rectangle Face',
-        '08': 'Oblong Face',
-        '09': 'Long Face',
-        '10': 'Wide Face'
-      },
-      'eyes': {
-        '01': 'Almond Eyes',
-        '02': 'Round Eyes',
-        '03': 'Hooded Eyes',
-        '04': 'Upturned Eyes',
-        '05': 'Downturned Eyes',
-        '06': 'Wide-Set Eyes',
-        '07': 'Close-Set Eyes',
-        '08': 'Monolid Eyes',
-        '09': 'Deep-Set Eyes',
-        '10': 'Prominent Eyes',
-        '11': 'Small Eyes',
-        '12': 'Large Eyes'
-      },
-      'eyebrows': {
-        '01': 'Straight Brows',
-        '02': 'Arched Brows',
-        '03': 'Thick Brows',
-        '04': 'Thin Brows',
-        '05': 'Unibrow',
-        '06': 'Bushy Brows',
-        '07': 'Angled Brows',
-        '08': 'Rounded Brows',
-        '09': 'Sparse Brows',
-        '10': 'Full Brows',
-        '11': 'Natural Brows',
-        '12': 'Groomed Brows'
-      },
-      'nose': {
-        '01': 'Straight Nose',
-        '02': 'Roman Nose',
-        '03': 'Button Nose',
-        '04': 'Wide Nose',
-        '05': 'Narrow Nose',
-        '06': 'Aquiline Nose',
-        '07': 'Snub Nose',
-        '08': 'Crooked Nose',
-        '09': 'Long Nose',
-        '10': 'Short Nose',
-        '11': 'Pointed Nose',
-        '12': 'Flat Nose'
-      },
-      'lips': {
-        '01': 'Full Lips',
-        '02': 'Thin Lips',
-        '03': 'Cupid\'s Bow',
-        '04': 'Wide Lips',
-        '05': 'Small Lips',
-        '06': 'Downturned Lips',
-        '07': 'Upturned Lips',
-        '08': 'Heart Lips',
-        '09': 'Bow Lips',
-        '10': 'Natural Lips',
-        '11': 'Plump Lips',
-        '12': 'Delicate Lips'
-      },
-      'hair': {
-        '01': 'Short Straight',
-        '02': 'Medium Wavy',
-        '03': 'Long Curly',
-        '04': 'Buzz Cut',
-        '05': 'Afro',
-        '06': 'Balding',
-        '07': 'Ponytail',
-        '08': 'Dreadlocks',
-        '09': 'Long Straight',
-        '10': 'Short Curly',
-        '11': 'Medium Straight',
-        '12': 'Long Wavy'
-      },
-      'facial-hair': {
-        '01': 'Clean Shaven',
-        '02': '5 O\'Clock Shadow',
-        '03': 'Goatee',
-        '04': 'Full Beard',
-        '05': 'Mustache',
-        '06': 'Van Dyke',
-        '07': 'Soul Patch',
-        '08': 'Handlebar',
-        '09': 'Stubble',
-        '10': 'Chin Strap',
-        '11': 'Sideburns',
-        '12': 'Full Goatee'
-      },
-      'accessories': {
-        '01': 'Reading Glasses',
-        '02': 'Sunglasses',
-        '03': 'Baseball Cap',
-        '04': 'Beanie',
-        '05': 'Earrings',
-        '06': 'Scarf'
-      }
-    };
-
-    return names[category] || {};
-  };
-
-  // Generate tags based on category
-  const generateAssetTags = (category: string, assetName: string) => {
-    const tagMap: Record<string, string[]> = {
-      'face-shapes': ['face', 'shape', 'structure'],
-      'eyes': ['eyes', 'vision', 'facial'],
-      'eyebrows': ['eyebrows', 'brows', 'facial'],
-      'nose': ['nose', 'nasal', 'facial'],
-      'lips': ['lips', 'mouth', 'facial'],
-      'hair': ['hair', 'hairstyle', 'head'],
-      'facial-hair': ['beard', 'mustache', 'facial'],
-      'accessories': ['accessory', 'wear', 'item']
-    };
-
-    const baseTags = tagMap[category] || [];
-    const nameWords = assetName.toLowerCase().split(' ').filter(word => word.length > 2);
-    return [...baseTags, ...nameWords];
-  };
 
   // Load assets dynamically
   useEffect(() => {
@@ -303,32 +205,13 @@ const FaceSketch: React.FC = () => {
           assets: FeatureAsset[];
         }> = {};
 
-        // Load local assets
+        // Initialize empty categories; assets are sourced from user uploads
         Object.entries(assetCategories).forEach(([categoryKey, categoryConfig]) => {
-          const assets: FeatureAsset[] = [];
-          const assetNames = generateAssetNames(categoryKey, categoryConfig.folder, categoryConfig.maxAssets);
-
-          // Generate assets for this category
-          for (let i = 1; i <= categoryConfig.maxAssets; i++) {
-            const assetNumber = i.toString().padStart(2, '0');
-            const assetName = assetNames[assetNumber] || `${categoryConfig.name} ${assetNumber}`;
-            const path = `/assets/${categoryConfig.folder}/${assetNumber}.png`;
-            
-            assets.push({
-              id: `${categoryKey}-${assetNumber}`,
-              name: assetName,
-              path: path,
-              category: categoryKey,
-              tags: generateAssetTags(categoryKey, assetName),
-              description: `${assetName} - ${categoryConfig.name} option`
-            });
-          }
-
           categories[categoryKey] = {
             name: categoryConfig.name,
             icon: categoryConfig.icon,
             color: categoryConfig.color,
-            assets: assets
+            assets: []
           };
         });
 
@@ -352,7 +235,7 @@ const FaceSketch: React.FC = () => {
           });
         } catch (apiError) {
           console.warn('Failed to load uploaded assets:', apiError);
-          // Continue with local assets only
+          // Keep categories initialized even if none are available yet
         }
 
         setFeatureCategories(categories);
@@ -374,22 +257,8 @@ const FaceSketch: React.FC = () => {
         const assets = await apiClient.directGet<any[]>('/assets');
         setUploadedAssets(assets);
       } catch (error) {
-        console.warn('Backend server not available, using mock data:', error);
-        // Mock data for testing
-        setUploadedAssets([
-          {
-            id: 'mock-1',
-            name: 'Sample Face Shape',
-            type: 'face-shapes',
-            category: 'face-shapes',
-            cloudinary_url: 'https://via.placeholder.com/200x200/4F46E5/FFFFFF?text=Face+Shape',
-            tags: ['sample', 'face'],
-            description: 'Sample face shape for testing',
-            upload_date: new Date().toISOString(),
-            usage_count: 0,
-            metadata: { width: 200, height: 200, file_size: 1000, format: 'png' }
-          }
-        ]);
+        console.warn('Backend server not available, no assets loaded:', error);
+        setUploadedAssets([]);
       }
     };
 
@@ -412,6 +281,28 @@ const FaceSketch: React.FC = () => {
     
     setFilteredUploadedAssets(filtered);
   }, [uploadedAssets, assetSearchTerm, selectedCategory]);
+
+  useEffect(() => {
+    if (!isNewSketchRequested) {
+      return;
+    }
+    resetSketchState();
+    setIsLoadingSketch(false);
+    const params = new URLSearchParams(location.search);
+    params.delete('mode');
+    params.delete('id');
+    const next = params.toString();
+    navigate(next ? `/sketch?${next}` : '/sketch', { replace: true });
+  }, [isNewSketchRequested, location.search, navigate, resetSketchState]);
+
+  useEffect(() => {
+    if (!requestedSketchId && currentSketchId) {
+      resetSketchState();
+    }
+    if (!requestedSketchId) {
+      loadedSketchIdRef.current = null;
+    }
+  }, [requestedSketchId, currentSketchId, resetSketchState]);
 
   // Asset upload handler
   const handleAssetUpload = async (uploadData: AssetUploadType) => {
@@ -575,8 +466,11 @@ const FaceSketch: React.FC = () => {
       if (!img) {
         // Create and cache image
         img = new Image();
+        img.crossOrigin = 'anonymous';
         img.src = feature.asset.path;
         imageCacheRef.current.set(feature.asset.path, img);
+      } else if (!img.crossOrigin) {
+        img.crossOrigin = 'anonymous';
       }
       
       // Draw function
@@ -1144,7 +1038,10 @@ const FaceSketch: React.FC = () => {
     e.preventDefault();
     
     try {
-      const assetData = e.dataTransfer.getData('application/json');
+      let assetData = e.dataTransfer.getData('application/json');
+      if (!assetData) {
+        assetData = e.dataTransfer.getData('text/plain');
+      }
       if (assetData) {
         const asset: FeatureAsset = JSON.parse(assetData);
         
@@ -1451,8 +1348,22 @@ const FaceSketch: React.FC = () => {
           panOffset
         });
         setLastSavedStateHash(stateHash);
-        
-        alert('Sketch updated successfully!');
+
+        invalidateSketchList();
+        invalidateSketchDetail(currentSketchId ?? undefined);
+
+        notifications.success('Sketch updated', 'All changes saved to the database.');
+        setSaveDetails(saveData);
+        setCaseInfo((prev) => ({
+          ...prev,
+          caseNumber: saveData.name || prev.caseNumber,
+          officer: saveData.officer || '',
+          description: saveData.description || '',
+          witness: saveData.eyewitness || '',
+          date: saveData.date ? saveData.date.split('T')[0] : prev.date,
+          priority: (saveData.priority as CaseInfo['priority']) || prev.priority,
+          status: (saveData.status as CaseInfo['status']) || prev.status,
+        }));
       } else {
         // Create new sketch
         const result = await apiClient.directUploadFile<{ status: string; message: string; sketch_id: string }>('/sketches/save', formData);
@@ -1477,23 +1388,51 @@ const FaceSketch: React.FC = () => {
           panOffset
         });
         setLastSavedStateHash(stateHash);
-        
-        alert('Sketch saved successfully!');
+
+        notifications.success('Sketch saved', 'Your sketch is now available in recent sketches.');
+        setSaveDetails(saveData);
+        setCaseInfo((prev) => ({
+          ...prev,
+          caseNumber: saveData.name || prev.caseNumber,
+          officer: saveData.officer || '',
+          description: saveData.description || '',
+          witness: saveData.eyewitness || '',
+          date: saveData.date ? saveData.date.split('T')[0] : prev.date,
+          priority: (saveData.priority as CaseInfo['priority']) || prev.priority,
+          status: (saveData.status as CaseInfo['status']) || prev.status,
+        }));
         
         // Update URL with sketch ID
         const url = new URL(window.location.href);
         url.searchParams.set('id', sketchId);
         window.history.pushState({}, '', url.toString());
+
+        invalidateSketchList();
+        invalidateSketchDetail(sketchId);
       }
       
       setShowSaveModal(false);
     } catch (error: any) {
       console.error('Error saving sketch:', error);
-      alert(`Failed to save sketch: ${error?.response?.data?.detail || error?.message || 'Unknown error'}`);
+      notifications.error(
+        'Save failed',
+        error?.response?.data?.detail || error?.message || 'Unknown error'
+      );
     } finally {
       setIsSaving(false);
     }
-  }, [features, canvasSettings, zoom, panOffset, selectedFeatures, exportCanvasAsBlob, currentSketchId]);
+  }, [features, canvasSettings, zoom, panOffset, selectedFeatures, exportCanvasAsBlob, currentSketchId, notifications, setCaseInfo]);
+
+  const handlePrimarySaveClick = useCallback(() => {
+    if (isSaving) {
+      return;
+    }
+    if (!currentSketchId || !saveDetails.name.trim()) {
+      setShowSaveModal(true);
+      return;
+    }
+    void handleSaveSketch(saveDetails);
+  }, [currentSketchId, handleSaveSketch, isSaving, saveDetails]);
 
   // Export JSON metadata only
   const exportMetadata = useCallback(() => {
@@ -1794,43 +1733,29 @@ const FaceSketch: React.FC = () => {
     }
   }, [history.length, addToHistory]);
 
-  // Load sketch from URL params on mount
+  // Load sketch whenever the requested ID changes
   useEffect(() => {
-    const loadSketchFromURL = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const sketchId = urlParams.get('id');
-      
-      if (!sketchId) {
-        // No sketch ID in URL, start with empty state
-        if (history.length === 0) {
-          addToHistory([]);
-        }
-        return;
-      }
-      
+    if (!requestedSketchId) {
+      return;
+    }
+
+    if (loadedSketchIdRef.current === requestedSketchId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchSketch = async (sketchId: string) => {
       setIsLoadingSketch(true);
-      setCurrentSketchId(sketchId);
-      
       try {
-        const sketchData = await apiClient.directGet<{
-          sketch_state: any;
-          name: string;
-          suspect?: string;
-          eyewitness?: string;
-          officer?: string;
-          date?: string;
-          reason?: string;
-          description?: string;
-          priority?: string;
-          status?: string;
-        }>(`/sketches/${sketchId}`);
-        
-        if (sketchData.sketch_state) {
-          const state = sketchData.sketch_state;
-          
-          // Restore features
-          if (state.features && Array.isArray(state.features)) {
-            const restoredFeatures: PlacedFeature[] = state.features.map((f: any) => ({
+        const sketchData = await getSketchById(sketchId, true);
+        if (cancelled) {
+          return;
+        }
+
+        const state = sketchData.sketch_state;
+        const restoredFeatures: PlacedFeature[] = state?.features && Array.isArray(state.features)
+          ? state.features.map((f: any) => ({
               id: f.id,
               asset: {
                 id: f.asset.id,
@@ -1855,64 +1780,99 @@ const FaceSketch: React.FC = () => {
               brightness: f.brightness ?? 100,
               contrast: f.contrast ?? 100,
               scale: f.scale ?? 1
-            }));
-            
-            setFeatures(restoredFeatures);
-            addToHistory(restoredFeatures);
-            
-            // Update state hash for auto-save tracking (prevent immediate auto-save after load)
-            const stateHash = JSON.stringify({
-              features: restoredFeatures.map((f: PlacedFeature) => ({
-                id: f.id,
-                x: f.x,
-                y: f.y,
-                width: f.width,
-                height: f.height,
-                rotation: f.rotation,
-                opacity: f.opacity,
-                zIndex: f.zIndex,
-                visible: f.visible,
-                locked: f.locked
-              })),
-              zoom: state.zoom || zoom,
-              panOffset: state.panOffset || panOffset
-            });
-            setLastSavedStateHash(stateHash);
-          }
-          
-          // Restore case info if available
-          if (sketchData.name) {
-            setCaseInfo(prev => ({
-              ...prev,
-              caseNumber: sketchData.name,
-              officer: sketchData.officer || '',
-              description: sketchData.description || '',
-              witness: sketchData.eyewitness || '',
-              date: sketchData.date ? new Date(sketchData.date).toISOString().split('T')[0] : prev.date,
-              priority: (sketchData.priority as any) || 'medium',
-              status: (sketchData.status as any) || 'draft'
-            }));
-          }
+            }))
+          : [];
+
+        setFeatures(restoredFeatures);
+        const snapshot = restoredFeatures.map(feature => ({
+          ...feature,
+          asset: { ...feature.asset },
+        }));
+        setHistory([snapshot]);
+        setHistoryIndex(0);
+
+        const restoredZoom = state?.zoom ?? 100;
+        setZoom(restoredZoom);
+
+        const restoredPanOffset = state?.panOffset ?? { x: 0, y: 0 };
+        setPanOffset(restoredPanOffset);
+
+        if (state?.selectedFeatures) {
+          setSelectedFeatures(state.selectedFeatures);
+        } else {
+          setSelectedFeatures([]);
         }
+
+        setCanvasSettings({
+          ...createInitialCanvasSettings(),
+          ...(state?.canvasSettings || {}),
+        });
+
+        const stateHash = JSON.stringify({
+          features: restoredFeatures.map((f: PlacedFeature) => ({
+            id: f.id,
+            x: f.x,
+            y: f.y,
+            width: f.width,
+            height: f.height,
+            rotation: f.rotation,
+            opacity: f.opacity,
+            zIndex: f.zIndex,
+            visible: f.visible,
+            locked: f.locked,
+          })),
+          zoom: restoredZoom,
+          panOffset: restoredPanOffset,
+        });
+        setLastSavedStateHash(stateHash);
+
+        const baseCase = createInitialCaseInfo();
+        setCaseInfo({
+          ...baseCase,
+          caseNumber: sketchData.name || baseCase.caseNumber,
+          officer: sketchData.officer || '',
+          description: sketchData.description || '',
+          witness: sketchData.eyewitness || '',
+          date: sketchData.date ? new Date(sketchData.date).toISOString().split('T')[0] : baseCase.date,
+          priority: (sketchData.priority as CaseInfo['priority']) || 'medium',
+          status: (sketchData.status as CaseInfo['status']) || 'draft',
+        });
+        setSaveDetails({
+          name: sketchData.name || '',
+          suspect: sketchData.suspect || '',
+          eyewitness: sketchData.eyewitness || '',
+          officer: sketchData.officer || '',
+          date: sketchData.date ? new Date(sketchData.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          reason: sketchData.reason || '',
+          description: sketchData.description || '',
+          priority: sketchData.priority || 'normal',
+          status: sketchData.status || 'draft',
+        });
+
+        setCurrentSketchId(sketchId);
+        loadedSketchIdRef.current = sketchId;
       } catch (error: any) {
+        if (cancelled) {
+          return;
+        }
         console.error('Failed to load sketch:', error);
         alert(`Failed to load sketch: ${error?.response?.data?.detail || error?.message || 'Unknown error'}`);
-        // Clear sketch ID from URL if loading failed
-        const url = new URL(window.location.href);
-        url.searchParams.delete('id');
-        window.history.replaceState({}, '', url.toString());
-        setCurrentSketchId(null);
-        if (history.length === 0) {
-          addToHistory([]);
-        }
+        invalidateSketchDetail(sketchId);
+        resetSketchState();
+        navigate('/sketch', { replace: true });
       } finally {
-        setIsLoadingSketch(false);
+        if (!cancelled) {
+          setIsLoadingSketch(false);
+        }
       }
     };
-    
-    loadSketchFromURL();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run on mount - intentionally excluding dependencies
+
+    fetchSketch(requestedSketchId);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [requestedSketchId, navigate, resetSketchState]);
 
   // Auto-save functionality (every 30 seconds if changes detected)
   useEffect(() => {
@@ -2074,7 +2034,7 @@ const FaceSketch: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 flex flex-col">
       {/* Enhanced Header */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-amber-200 shadow-sm">
-        <div className="px-3 sm:px-4 md:px-6 py-2 sm:py-3">
+        <div className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 space-y-2">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
             {/* Canvas Controls - Left Side */}
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3">
@@ -2171,9 +2131,34 @@ const FaceSketch: React.FC = () => {
                 <span className="hidden sm:inline ml-1 text-xs">Redo</span>
               </Button>
               <Separator orientation="vertical" className="h-5 hidden sm:block" />
+              <Button
+                onClick={() => navigate('/sketches/recent')}
+                variant="outline"
+                size="sm"
+                className="flex items-center justify-center gap-1 text-slate-600 border-slate-300 h-7 w-7 sm:w-auto sm:px-3 hover:bg-amber-100/70"
+                title="Recent sketches"
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline text-xs">Recent</span>
+              </Button>
+              <Separator orientation="vertical" className="h-5 hidden sm:block" />
               <Button onClick={() => setShowAssetUpload(true)} size="sm" className="bg-green-600 hover:bg-green-700 text-white h-7 w-7 sm:w-auto sm:px-3">
                 <Upload className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline ml-1 text-xs">Upload</span>
+              </Button>
+              <Separator orientation="vertical" className="h-5 hidden sm:block" />
+              <Button
+                onClick={handlePrimarySaveClick}
+                size="sm"
+                disabled={isSaving}
+                className="flex items-center justify-center gap-1 bg-blue-600 hover:bg-blue-700 text-white h-7 w-7 sm:w-auto sm:px-3 disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {isSaving ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Save className="w-3.5 h-3.5" />
+                )}
+                <span className="hidden sm:inline text-xs">{isSaving ? 'Saving...' : 'Save'}</span>
               </Button>
               <Separator orientation="vertical" className="h-5 hidden sm:block" />
               <DropdownMenu>
@@ -2181,7 +2166,7 @@ const FaceSketch: React.FC = () => {
                   <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white h-7 w-7 sm:w-auto sm:px-3" size="sm">
                     <Download className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline ml-1 text-xs">Download</span>
-                    <ChevronDown className="hidden sm:block ml-1 h-3 h-3" />
+                    <ChevronDown className="hidden sm:block ml-1 h-3 w-3" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
@@ -2204,6 +2189,23 @@ const FaceSketch: React.FC = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Button
+              size="sm"
+              disabled
+              className="cursor-default bg-blue-600 text-white h-8 px-4 shadow-sm"
+            >
+              Sketch Workspace
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigate('/sketches/recent')}
+              className="h-8 px-4 border-amber-200 text-amber-700 hover:text-amber-800 hover:bg-amber-100/70 transition-all"
+            >
+              View Recent Sketches
+            </Button>
           </div>
         </div>
       </header>
@@ -2295,6 +2297,7 @@ const FaceSketch: React.FC = () => {
         open={showSaveModal}
         onOpenChange={setShowSaveModal}
         onSave={handleSaveSketch}
+        initialData={saveDetails}
         isLoading={isSaving}
       />
 

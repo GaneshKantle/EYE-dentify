@@ -278,7 +278,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
           {activeTab === 'workspace' && 'Asset Library'}
           {activeTab === 'layers' && 'Layer Management'}
           {activeTab === 'properties' && 'Properties Panel'}
-          {activeTab === 'case' && 'Case Information'}
+          {/* {activeTab === 'case' && 'Case Information'} */}
         </h3>
         <Button 
           onClick={() => setRightSidebarCollapsed(!rightSidebarCollapsed)} 
@@ -297,7 +297,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
         <TabsList className={`grid bg-slate-100 m-2 transition-all duration-200 ${
           rightSidebarCollapsed 
             ? 'grid-cols-1 gap-2 p-2' 
-            : 'grid-cols-2 lg:grid-cols-4 gap-1'
+            : 'grid-cols-2 sm:grid-cols-3 gap-1'
         }`}>
           <TabsTrigger 
             value="workspace" 
@@ -347,22 +347,6 @@ const RightPanel: React.FC<RightPanelProps> = ({
               'Props'
             )}
           </TabsTrigger>
-          <TabsTrigger 
-            value="assets" 
-            className={`text-xs transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm ${
-              rightSidebarCollapsed ? 'h-12 w-full p-2 flex-col justify-center' : 'h-8'
-            }`}
-            title="Upload Assets"
-          >
-            {rightSidebarCollapsed ? (
-              <div className="flex flex-col items-center space-y-1">
-                <Upload className="w-4 h-4 text-blue-600" />
-                <span className="text-[10px] font-medium text-slate-700">Upload</span>
-              </div>
-            ) : (
-              'Upload'
-            )}
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="workspace" className={`flex-1 p-2 md:p-3 lg:p-4 m-0 transition-all duration-200 ${rightSidebarCollapsed ? 'hidden' : ''}`}>
@@ -378,7 +362,9 @@ const RightPanel: React.FC<RightPanelProps> = ({
                     className="cursor-grab active:cursor-grabbing hover:shadow-lg transition-all duration-200 border-slate-200 hover:border-amber-300 group bg-white shadow-sm hover:shadow-md"
                     draggable={true}
                     onDragStart={(e) => {
-                      e.dataTransfer.setData('application/json', JSON.stringify(asset));
+                      const payload = JSON.stringify(asset);
+                      e.dataTransfer.setData('application/json', payload);
+                      e.dataTransfer.setData('text/plain', payload);
                       e.dataTransfer.effectAllowed = 'copy';
                       // Add visual feedback
                       e.currentTarget.style.opacity = '0.5';
@@ -999,110 +985,6 @@ const RightPanel: React.FC<RightPanelProps> = ({
                 </p>
               </div>
             )}
-          </ScrollArea>
-        </TabsContent>
-
-
-            <TabsContent value="assets" className={`flex-1 p-2 md:p-3 lg:p-4 m-0 transition-all duration-200 ${rightSidebarCollapsed ? 'hidden' : ''}`}>
-          {/* DEBUG: Assets tab is rendering */}
-          <div className="bg-green-100 p-2 border-2 border-green-500 rounded mb-4">
-            <p className="text-sm font-bold text-green-800">✅ ASSETS TAB IS RENDERING</p>
-          </div>
-              <ScrollArea className="h-full">
-                <div className="space-y-4">
-                  {/* DEBUG: Show what we're receiving */}
-                  <div className="bg-red-100 p-3 border-2 border-red-500 rounded">
-                    <h3 className="text-lg font-bold text-red-800">DEBUG: Assets Tab Active</h3>
-                    <p className="text-sm">uploadedAssets.length: {uploadedAssets.length}</p>
-                    <p className="text-sm">assetSearchTerm: "{assetSearchTerm}"</p>
-                    <p className="text-sm">selectedCategory: "{selectedCategory}"</p>
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-semibold">Asset Library</h3>
-                    <Button onClick={onShowUpload} size="sm" className="bg-blue-600 hover:bg-blue-700">
-                      <Upload className="w-4 h-4 mr-2" />
-                      Upload
-                    </Button>
-                  </div>
-
-              <div className="space-y-2">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
-                    placeholder="Search assets by name..."
-                    value={assetSearchTerm}
-                    onChange={(e) => setAssetSearchTerm?.(e.target.value)}
-                    className="pl-10 h-8"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 max-h-96 overflow-y-auto">
-                {uploadedAssets.length === 0 ? (
-                  <div className="col-span-2 text-center py-8 text-gray-500">
-                    <p>No assets found</p>
-                    <p className="text-xs mt-2">Upload assets to see action buttons</p>
-                  </div>
-                ) : (
-                  <div className="col-span-2 text-xs text-green-600 mb-2">
-                    Found {uploadedAssets.length} assets with action buttons
-                  </div>
-                )}
-                {uploadedAssets.length > 0 && (
-                  uploadedAssets.map(asset => (
-                    <Card key={asset.id} className="p-4 border-2 border-red-500 bg-yellow-100">
-                      <div className="space-y-3">
-                        {/* DEBUG: Asset Info */}
-                        <div className="bg-blue-100 p-2 rounded">
-                          <p className="text-sm font-bold text-blue-800">DEBUG: Asset Card</p>
-                          <p className="text-xs">ID: {asset.id}</p>
-                          <p className="text-xs">Name: {asset.name}</p>
-                          <p className="text-xs">Type: {asset.type}</p>
-                        </div>
-                        
-                        {/* DEBUG: Action Buttons */}
-                        <div className="bg-green-100 p-2 rounded">
-                          <p className="text-sm font-bold text-green-800 mb-2">DEBUG: Action Buttons</p>
-                          <div className="flex justify-center space-x-2">
-                            <button
-                              className="h-10 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded font-bold"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                alert('VIEW BUTTON CLICKED!');
-                                onAssetView?.(asset);
-                              }}
-                            >
-                              👁️ VIEW
-                            </button>
-                            <button
-                              className="h-10 px-4 bg-green-500 hover:bg-green-600 text-white rounded font-bold"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                alert('EDIT BUTTON CLICKED!');
-                                handleEditStart(asset);
-                              }}
-                            >
-                              ✏️ EDIT
-                            </button>
-                            <button
-                              className="h-10 px-4 bg-red-500 hover:bg-red-600 text-white rounded font-bold"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                alert('DELETE BUTTON CLICKED!');
-                                onAssetDelete?.(asset.id);
-                              }}
-                            >
-                              🗑️ DELETE
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  ))
-                )}
-              </div>
-            </div>
           </ScrollArea>
         </TabsContent>
       </Tabs>

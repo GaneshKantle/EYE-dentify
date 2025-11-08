@@ -8,6 +8,7 @@ import RecognizeFace from "./RecognizeFace";
 import Gallery from "./Gallery";
 import About from "./About";
 import FaceSketch from "./components/facesketch/FaceSketch";
+import RecentSketches from "./pages/RecentSketches";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -72,6 +73,14 @@ const AppContent: React.FC = () => {
         element={
           <ProtectedRoute>
             <FaceSketch />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/sketches/recent"
+        element={
+          <ProtectedRoute>
+            <RecentSketches />
           </ProtectedRoute>
         }
       />

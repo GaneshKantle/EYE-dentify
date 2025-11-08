@@ -1,12 +1,16 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Body, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from pymongo import MongoClient
 from contextlib import asynccontextmanager
+from typing import Optional
+from pathlib import Path
 import cloudinary
 import cloudinary.uploader
-import torch, pickle, base64, numpy as np
+import torch
+import pickle
+import base64
+import numpy as np
 from facenet_pytorch import MTCNN, InceptionResnetV1
 from PIL import Image
 from dotenv import load_dotenv
@@ -35,44 +39,152 @@ except Exception as e:
     traceback.print_exc()
     auth_router = None
 
+# Resolve backend/.env explicitly so we don't pick up the frontend root file
+BASE_DIR = Path(__file__).resolve().parent
+DOTENV_PATH = BASE_DIR / ".env"
+
 # Load environment variables with error handling
 try:
-    load_dotenv()
+    if DOTENV_PATH.exists():
+        load_dotenv(dotenv_path=DOTENV_PATH)
+    else:
+        load_dotenv()
 except Exception as e:
     print(f"⚠️ Warning: Could not load .env file: {e}")
     print("Continuing with environment variables from system...")
 
-# ---------------- MongoDB ---------------- 
-MONGO_URI = os.getenv(
+# Validate required environment variables
+REQUIRED_ENV_VARS = [
     "MONGO_URI",
-    "mongodb+srv://MANJU-A-R:Atlas%401708@cluster0.w3p8plb.mongodb.net/?retryWrites=true&w=majority"
-)
+    "CLOUDINARY_CLOUD_NAME",
+    "CLOUDINARY_API_KEY",
+    "CLOUDINARY_API_SECRET",
+]
+
+missing_env = [var for var in REQUIRED_ENV_VARS if not os.getenv(var)]
+if missing_env:
+    missing_str = ", ".join(missing_env)
+    raise RuntimeError(
+        f"Missing required environment variables: {missing_str}. "
+        "Copy backend/env.example to backend/.env and update the placeholders before starting the server."
+    )
+
+
+def _bool_env(key: str, default: str = "false") -> bool:
+    """Return boolean environment variables."""
+    return os.getenv(key, default).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _float_env(key: str, default: float) -> float:
+    """Return float environment variables with validation."""
+    value = os.getenv(key)
+    if value is None:
+        return float(default)
+    try:
+        return float(value)
+    except ValueError as exc:
+        raise RuntimeError(f"Environment variable {key} must be a float. Got: {value}") from exc
+
+
+# ---------------- MongoDB ---------------- 
+MONGO_URI = os.getenv("MONGO_URI")
+DATABASE_NAME = os.getenv("DATABASE_NAME", "face_recognition_db")
 client = MongoClient(MONGO_URI)
-db = client["face_recognition_db"]
+db = client[DATABASE_NAME]
 collection = db["faces"]
 
 # ---------------- Cloudinary ---------------- 
 cloudinary.config(
-    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME", "dqkhdusc4"),
-    api_key=os.getenv("CLOUDINARY_API_KEY", "249697193332389"),
-    api_secret=os.getenv("CLOUDINARY_API_SECRET", "iiN3cjMrzMXGKQew61kAH5lIIXE")
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+    secure=True,
 )
 
 # ---------------- FaceNet ---------------- 
 # Global variables for ML models (loaded at startup)
-device = None
-mtcnn = None
-facenet = None
-recognition_threshold = 0.50
-rejection_threshold = 0.30
+device: Optional[torch.device] = None
+mtcnn: Optional[MTCNN] = None
+facenet: Optional[InceptionResnetV1] = None
+models_ready = False
+recognition_threshold = _float_env("RECOGNITION_THRESHOLD", 0.50)
+rejection_threshold = _float_env("REJECTION_THRESHOLD", 0.30)
+model_auto_load = _bool_env("MODEL_AUTO_LOAD", "true")
 
 # ---------------- Utils ----------------
 def _fixed_image_standardization(x):
     return (x - 0.5) / 0.5
 
+
+def _load_models():
+    """Load ML models synchronously with memory optimisations."""
+    global device, mtcnn, facenet, models_ready
+
+    if models_ready and mtcnn is not None and facenet is not None:
+        return
+
+    print("📦 Initialising ML models...")
+
+    try:
+        device = torch.device("cpu")
+        print(f"🔧 Using device: {device}")
+
+        torch.set_num_threads(1)
+        if hasattr(torch, "set_num_interop_threads"):
+            torch.set_num_interop_threads(1)
+
+        os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:128"
+
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+        print("📥 Loading MTCNN model...")
+        mtcnn_local = MTCNN(
+            image_size=160,
+            margin=0,
+            min_face_size=20,
+            keep_all=False,
+            post_process=True,
+            device=device,
+        )
+        print("✓ MTCNN model loaded")
+
+        gc.collect()
+
+        print("📥 Loading FaceNet model...")
+        facenet_local = InceptionResnetV1(pretrained="vggface2").eval()
+        facenet_local = facenet_local.to(device)
+        facenet_local.requires_grad_(False)
+        print("✓ FaceNet model loaded")
+
+        mtcnn = mtcnn_local
+        facenet = facenet_local
+        models_ready = True
+        print("✅ ML models initialised successfully")
+
+    except MemoryError as e:
+        print(f"❌ Out of memory while loading ML models: {e}")
+        print("💡 Tip: Consider upgrading to a higher memory tier or using model quantization")
+        import traceback
+        traceback.print_exc()
+        mtcnn = None
+        facenet = None
+        models_ready = False
+    except Exception as e:
+        print(f"❌ Error loading ML models: {e}")
+        import traceback
+        traceback.print_exc()
+        mtcnn = None
+        facenet = None
+        models_ready = False
+
+
 def get_embedding(file: UploadFile):
     """Get face embedding from uploaded image"""
-    if mtcnn is None or facenet is None:
+    if mtcnn is None or facenet is None or not models_ready:
+        _load_models()
+    if mtcnn is None or facenet is None or not models_ready:
         raise HTTPException(status_code=503, detail="ML models not loaded yet. Please wait and try again.")
     
     file.file.seek(0)
@@ -106,74 +218,14 @@ def cos_sim(a, b):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Load ML models at startup with memory optimization"""
-    global device, mtcnn, facenet
+    global device, mtcnn, facenet, models_ready
     
     print("🚀 Starting application...")
-    print("📦 Loading ML models (this may take a moment)...")
-    
-    try:
-        # Force CPU mode to reduce memory usage on Render
-        # CUDA is not available on Render's free tier anyway
-        device = torch.device("cpu")
-        print(f"🔧 Using device: {device}")
-        
-        # Optimize PyTorch memory usage
-        torch.set_num_threads(1)  # Limit threads to reduce memory
-        if hasattr(torch, 'set_num_interop_threads'):
-            torch.set_num_interop_threads(1)
-        
-        # Enable memory-efficient settings
-        os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:128'
-        
-        # Clear any existing cache
-        gc.collect()
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-        
-        print("📥 Loading MTCNN model...")
-        # Load MTCNN with minimal memory footprint
-        mtcnn = MTCNN(
-            image_size=160, 
-            margin=0, 
-            min_face_size=20, 
-            keep_all=False, 
-            post_process=True, 
-            device=device
-        )
-        print("✓ MTCNN model loaded")
-        
-        # Force garbage collection before loading next model
-        gc.collect()
-        
-        print("📥 Loading FaceNet model...")
-        # Load FaceNet model with memory optimization
-        facenet = InceptionResnetV1(pretrained='vggface2').eval()
-        facenet = facenet.to(device)
-        
-        # Set model to evaluation mode and disable gradient computation
-        facenet.requires_grad_(False)
-        
-        # Final garbage collection
-        gc.collect()
-        
-        print("✓ FaceNet model loaded")
-        print("✅ ML models loaded successfully!")
-        
-    except MemoryError as e:
-        print(f"❌ Out of memory while loading ML models: {e}")
-        print("💡 Tip: Consider upgrading to a higher memory tier or using model quantization")
-        import traceback
-        traceback.print_exc()
-        # Clear variables on error
-        mtcnn = None
-        facenet = None
-    except Exception as e:
-        print(f"❌ Error loading ML models: {e}")
-        import traceback
-        traceback.print_exc()
-        # Clear variables on error
-        mtcnn = None
-        facenet = None
+    if model_auto_load:
+        print("📦 Loading ML models at startup (MODEL_AUTO_LOAD=true)...")
+        _load_models()
+    else:
+        print("⏳ MODEL_AUTO_LOAD=false. Models will be loaded on first request.")
     
     print("✅ Application startup complete!")
     
@@ -185,6 +237,10 @@ async def lifespan(app: FastAPI):
         del mtcnn
     if facenet is not None:
         del facenet
+    mtcnn = None
+    facenet = None
+    device = None
+    models_ready = False
     gc.collect()
     print("✅ Cleanup complete")
 

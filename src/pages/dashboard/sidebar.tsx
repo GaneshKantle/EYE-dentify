@@ -8,7 +8,8 @@ import {
   User, 
   UserPlus,
   Shield,
-  BarChart3
+  BarChart3,
+  Clock
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { Avatar, AvatarFallback } from '../../components/ui/avatar';
@@ -22,6 +23,7 @@ interface NavItem {
   path: string;
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   description: string;
+  matchPaths?: string[];
 }
 
 const navItems: NavItem[] = [
@@ -39,9 +41,10 @@ const navItems: NavItem[] = [
   },
   { 
     name: 'Make Sketch', 
-    path: '/sketch', 
+    path: '/sketches/recent', 
     icon: PenTool, 
-    description: 'Create facial sketches' 
+    description: 'Create facial sketches',
+    matchPaths: ['/sketches/recent', '/sketch']
   },
   { 
     name: 'Criminal Database', 
@@ -155,7 +158,10 @@ export const Sidebar = () => {
               <nav className="space-y-1.5 mb-6">
                 {navItems.map((item, index) => {
                   const Icon = item.icon;
-                  const isActive = location.pathname === item.path;
+                  const matches = item.matchPaths && item.matchPaths.length > 0
+                    ? item.matchPaths
+                    : [item.path];
+                  const isActive = matches.includes(location.pathname);
                   return (
                     <motion.button
                       key={item.path}
