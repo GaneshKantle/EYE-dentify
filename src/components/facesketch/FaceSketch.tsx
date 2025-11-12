@@ -77,7 +77,7 @@ const FaceSketch: React.FC = () => {
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [history, setHistory] = useState<PlacedFeature[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const [activeTab, setActiveTab] = useState('workspace');
+  const [activeTab, setActiveTab] = useState('properties');
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
   const [autoSelectedFeature, setAutoSelectedFeature] = useState<string | null>(null);
@@ -191,79 +191,69 @@ const FaceSketch: React.FC = () => {
     }
   }), []);
 
-  // Load assets dynamically
-  useEffect(() => {
-    const loadAssets = async () => {
+  // Reload assets function for real-time updates
+  const reloadAssets = useCallback(async () => {
+    try {
+      setAssetsLoading(true);
+      setAssetsError(null);
+      
+      const categories: Record<string, {
+        name: string;
+        icon: LucideIcon;
+        color: string;
+        assets: FeatureAsset[];
+      }> = {};
+
+      // Initialize empty categories; assets are sourced from user uploads
+      Object.entries(assetCategories).forEach(([categoryKey, categoryConfig]) => {
+        categories[categoryKey] = {
+          name: categoryConfig.name,
+          icon: categoryConfig.icon,
+          color: categoryConfig.color,
+          assets: []
+        };
+      });
+
+      // Load uploaded assets from API
       try {
-        setAssetsLoading(true);
-        setAssetsError(null);
+        const uploadedAssetsData = await apiClient.directGet<any[]>('/assets');
         
-        const categories: Record<string, {
-          name: string;
-          icon: LucideIcon;
-          color: string;
-          assets: FeatureAsset[];
-        }> = {};
-
-        // Initialize empty categories; assets are sourced from user uploads
-        Object.entries(assetCategories).forEach(([categoryKey, categoryConfig]) => {
-          categories[categoryKey] = {
-            name: categoryConfig.name,
-            icon: categoryConfig.icon,
-            color: categoryConfig.color,
-            assets: []
-          };
+        // Update uploadedAssets state
+        setUploadedAssets(uploadedAssetsData);
+        
+        // Add uploaded assets to their respective categories
+        uploadedAssetsData.forEach((asset: any) => {
+          if (categories[asset.type]) {
+            const featureAsset: FeatureAsset = {
+              id: asset.id,
+              name: asset.name,
+              path: asset.cloudinary_url,
+              category: asset.type,
+              tags: asset.tags || [],
+              description: asset.description
+            };
+            categories[asset.type].assets.push(featureAsset);
+          }
         });
-
-        // Load uploaded assets from API
-        try {
-          const uploadedAssets = await apiClient.directGet<any[]>('/assets');
-          
-          // Add uploaded assets to their respective categories
-          uploadedAssets.forEach((asset: any) => {
-            if (categories[asset.type]) {
-              const featureAsset: FeatureAsset = {
-                id: asset.id,
-                name: asset.name,
-                path: asset.cloudinary_url,
-                category: asset.type,
-                tags: asset.tags,
-                description: asset.description
-              };
-              categories[asset.type].assets.push(featureAsset);
-            }
-          });
-        } catch (apiError) {
-          console.warn('Failed to load uploaded assets:', apiError);
-          // Keep categories initialized even if none are available yet
-        }
-
-        setFeatureCategories(categories);
-        setAssetsLoading(false);
-      } catch (error) {
-        console.error('Error loading assets:', error);
-        setAssetsError('Failed to load assets. Please refresh the page.');
-        setAssetsLoading(false);
-      }
-    };
-
-    loadAssets();
-  }, [assetCategories]);
-
-  // Load uploaded assets
-  useEffect(() => {
-    const loadUploadedAssets = async () => {
-      try {
-        const assets = await apiClient.directGet<any[]>('/assets');
-        setUploadedAssets(assets);
-      } catch (error) {
-        console.warn('Backend server not available, no assets loaded:', error);
+      } catch (apiError) {
+        console.warn('Failed to load uploaded assets:', apiError);
         setUploadedAssets([]);
       }
-    };
 
-    loadUploadedAssets();
-  }, []);
+      setFeatureCategories(categories);
+      setAssetsLoading(false);
+    } catch (error) {
+      console.error('Error loading assets:', error);
+      setAssetsError('Failed to load assets. Please refresh the page.');
+      setAssetsLoading(false);
+    }
+  }, [assetCategories]);
+
+  // Load assets dynamically
+  useEffect(() => {
+    reloadAssets();
+  }, [reloadAssets]);
+
 
   // Filter uploaded assets based on search term
   useEffect(() => {
@@ -314,13 +304,14 @@ const FaceSketch: React.FC = () => {
       formData.append('tags', JSON.stringify(uploadData.tags));
       formData.append('file', uploadData.file);
 
-      const newAsset = await apiClient.directUploadFile<any>('/assets/upload', formData);
-      setUploadedAssets(prev => [...prev, newAsset]);
+      await apiClient.directUploadFile<any>('/assets/upload', formData);
       setShowAssetUpload(false);
+      // Reload assets to show new upload in real-time
+      await reloadAssets();
+      notifications.success('Asset uploaded', 'Your asset is now available.');
     } catch (error) {
       console.error('Upload error:', error);
-      // Show user-friendly message
-      alert('Backend server is not available. Please start the backend server to enable asset uploads.');
+      notifications.error('Upload failed', 'Failed to upload asset. Please try again.');
     }
   };
 
@@ -328,11 +319,12 @@ const FaceSketch: React.FC = () => {
   const handleAssetDelete = async (assetId: string) => {
     try {
       await apiClient.directDelete(`/assets/${assetId}`);
-      setUploadedAssets(prev => prev.filter(asset => asset.id !== assetId));
+      // Reload assets to update both featureCategories and uploadedAssets in real-time
+      await reloadAssets();
+      notifications.success('Asset deleted', 'Asset has been removed.');
     } catch (error) {
       console.error('Delete error:', error);
-      // For mock data, just remove from local state
-      setUploadedAssets(prev => prev.filter(asset => asset.id !== assetId));
+      notifications.error('Delete failed', 'Failed to delete asset. Please try again.');
     }
   };
 
@@ -354,8 +346,9 @@ const FaceSketch: React.FC = () => {
   const [fullscreenIndex, setFullscreenIndex] = React.useState(0);
 
   const handleAssetView = (asset: Asset) => {
-    const index = filteredUploadedAssets.findIndex(a => a.id === asset.id);
-    setFullscreenIndex(index);
+    const allUploadedAssets = uploadedAssets;
+    const index = allUploadedAssets.findIndex(a => a.id === asset.id);
+    setFullscreenIndex(index >= 0 ? index : 0);
     setFullscreenAsset(asset);
   };
 
@@ -365,32 +358,27 @@ const FaceSketch: React.FC = () => {
   };
 
   const handleFullscreenNavigate = (direction: 'prev' | 'next') => {
+    const allUploadedAssets = uploadedAssets;
+    if (allUploadedAssets.length === 0) return;
+    
     const newIndex = direction === 'next' 
-      ? (fullscreenIndex + 1) % filteredUploadedAssets.length
-      : (fullscreenIndex - 1 + filteredUploadedAssets.length) % filteredUploadedAssets.length;
+      ? (fullscreenIndex + 1) % allUploadedAssets.length
+      : (fullscreenIndex - 1 + allUploadedAssets.length) % allUploadedAssets.length;
     
     setFullscreenIndex(newIndex);
-    setFullscreenAsset(filteredUploadedAssets[newIndex]);
+    setFullscreenAsset(allUploadedAssets[newIndex]);
   };
 
   // Asset edit handler
   const handleAssetEdit = async (assetId: string, newName: string) => {
     try {
       await apiClient.directPut(`/assets/${assetId}/name`, { name: newName });
-      // Update local state
-      setUploadedAssets(prev => 
-        prev.map(asset => 
-          asset.id === assetId ? { ...asset, name: newName } : asset
-        )
-      );
+      // Reload assets to update both featureCategories and uploadedAssets in real-time
+      await reloadAssets();
+      notifications.success('Asset updated', 'Asset name has been changed.');
     } catch (error) {
       console.error('Edit error:', error);
-      // For mock data, just update local state
-      setUploadedAssets(prev => 
-        prev.map(asset => 
-          asset.id === assetId ? { ...asset, name: newName } : asset
-        )
-      );
+      notifications.error('Update failed', 'Failed to update asset. Please try again.');
     }
   };
 
@@ -1388,7 +1376,7 @@ const FaceSketch: React.FC = () => {
           panOffset
         });
         setLastSavedStateHash(stateHash);
-
+        
         notifications.success('Sketch saved', 'Your sketch is now available in recent sketches.');
         setSaveDetails(saveData);
         setCaseInfo((prev) => ({
@@ -2032,12 +2020,44 @@ const FaceSketch: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 flex flex-col">
-      {/* Enhanced Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-amber-200 shadow-sm">
-        <div className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 space-y-2">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-            {/* Canvas Controls - Left Side */}
-            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3">
+      {/* Enhanced Header - Reorganized */}
+      <header className="bg-white/80 backdrop-blur-sm border-b border-amber-200 shadow-sm flex-shrink-0">
+        <div className="px-3 sm:px-4 md:px-6 py-2 sm:py-3">
+          {/* Navigation Strip - Moved to Top */}
+          <div className="flex flex-wrap items-center justify-center gap-2 mb-2 sm:mb-3">
+            <Button
+              size="sm"
+              disabled
+              className="cursor-default bg-blue-600 text-white h-7 px-3 text-xs shadow-sm"
+            >
+              Sketch Workspace
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigate('/sketches/recent')}
+              className="h-7 px-3 text-xs border-amber-200 text-amber-700 hover:text-amber-800 hover:bg-amber-100/70 transition-all"
+            >
+              View Recent Sketches
+            </Button>
+          </div>
+
+          {/* Main Toolbar - Reorganized */}
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
+            {/* Left Group: View & Edit Controls */}
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 sm:gap-3">
+              {/* History Controls - Moved First */}
+              <div className="flex items-center space-x-1 bg-white rounded-lg p-1 border-2 border-slate-200 shadow-sm">
+                <Button onClick={undo} disabled={historyIndex <= 0} variant="ghost" size="sm" className="h-7 w-7 p-0 hover:bg-slate-100 text-slate-700 hover:text-slate-800 disabled:opacity-50 transition-all duration-200" title="Undo (Ctrl+Z)">
+                  <Undo2 className="w-3.5 h-3.5" />
+                </Button>
+                <Button onClick={redo} disabled={historyIndex >= history.length - 1} variant="ghost" size="sm" className="h-7 w-7 p-0 hover:bg-slate-100 text-slate-700 hover:text-slate-800 disabled:opacity-50 transition-all duration-200" title="Redo (Ctrl+Shift+Z)">
+                  <Redo2 className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+              
+              <Separator orientation="vertical" className="h-6 hidden sm:block bg-amber-300" />
+              
               {/* Zoom Controls */}
               <div className="flex items-center space-x-1 bg-white rounded-lg p-1 border-2 border-slate-200 shadow-sm">
                 <Button 
@@ -2120,17 +2140,8 @@ const FaceSketch: React.FC = () => {
               </div>
             </div>
             
-            {/* Action Buttons - Right Side */}
-            <div className="flex items-center justify-center sm:justify-end gap-2">
-              <Button onClick={undo} disabled={historyIndex <= 0} variant="outline" size="sm" className="text-slate-600 border-slate-300 h-7 w-7 sm:w-auto sm:px-3">
-                <Undo2 className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline ml-1 text-xs">Undo</span>
-              </Button>
-              <Button onClick={redo} disabled={historyIndex >= history.length - 1} variant="outline" size="sm" className="text-slate-600 border-slate-300 h-7 w-7 sm:w-auto sm:px-3">
-                <Redo2 className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline ml-1 text-xs">Redo</span>
-              </Button>
-              <Separator orientation="vertical" className="h-5 hidden sm:block" />
+            {/* Right Group: File & Export Actions - Reorganized */}
+            <div className="flex items-center justify-center lg:justify-end gap-2">
               <Button
                 onClick={() => navigate('/sketches/recent')}
                 variant="outline"
@@ -2190,27 +2201,10 @@ const FaceSketch: React.FC = () => {
               </DropdownMenu>
             </div>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <Button
-              size="sm"
-              disabled
-              className="cursor-default bg-blue-600 text-white h-8 px-4 shadow-sm"
-            >
-              Sketch Workspace
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => navigate('/sketches/recent')}
-              className="h-8 px-4 border-amber-200 text-amber-700 hover:text-amber-800 hover:bg-amber-100/70 transition-all"
-            >
-              View Recent Sketches
-            </Button>
-          </div>
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden flex-col lg:flex-row">
+      <div className="flex flex-1 flex-col lg:flex-row min-h-0 relative">
         {/* Enhanced Left Sidebar */}
         <LeftPanel
           leftSidebarCollapsed={leftSidebarCollapsed}
@@ -2302,7 +2296,7 @@ const FaceSketch: React.FC = () => {
       />
 
       {/* Enhanced Status Bar */}
-      <div className="bg-white/90 backdrop-blur-sm border-t border-amber-200 px-3 sm:px-4 md:px-6 py-2 shadow-sm">
+      <div className="bg-white/90 backdrop-blur-sm border-t border-amber-200 px-3 sm:px-4 md:px-6 py-2 shadow-sm flex-shrink-0">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs text-slate-600 space-y-2 sm:space-y-0">
           <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-6">
             <div className="flex items-center justify-center sm:justify-start space-x-2">
@@ -2408,7 +2402,7 @@ const FaceSketch: React.FC = () => {
             </Button>
 
             {/* Navigation arrows */}
-            {filteredUploadedAssets.length > 1 && (
+            {uploadedAssets.length > 1 && (
               <>
                 <Button
                   variant="ghost"
@@ -2439,9 +2433,9 @@ const FaceSketch: React.FC = () => {
               <div className="mt-4 text-center text-white">
                 <h3 className="text-xl font-semibold">{fullscreenAsset.name}</h3>
                 <p className="text-sm opacity-80">{fullscreenAsset.type}</p>
-                {filteredUploadedAssets.length > 1 && (
+                {uploadedAssets.length > 1 && (
                   <p className="text-xs opacity-60 mt-2">
-                    {fullscreenIndex + 1} of {filteredUploadedAssets.length}
+                    {fullscreenIndex + 1} of {uploadedAssets.length}
                   </p>
                 )}
               </div>

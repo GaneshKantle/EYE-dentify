@@ -3,8 +3,6 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { UserPlus, Upload, Shield, CheckCircle } from "lucide-react";
 import Toast from "./Toast";
-import Header from "./pages/dashboard/Header";
-import { Footer } from "./pages/dashboard/Footer";
 import { apiClient } from "./lib/api";
 
 interface ToastState {
@@ -54,204 +52,194 @@ const AddFace: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white text-gray-800 relative overflow-hidden">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-3">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(239,68,68,0.03)_0%,transparent_50%),radial-gradient(circle_at_80%_80%,rgba(139,69,19,0.03)_0%,transparent_50%),linear-gradient(45deg,transparent_40%,rgba(239,68,68,0.02)_50%,transparent_60%)] bg-[length:100%_100%,100%_100%,200px_200px]" />
-      </div>
-
-      {/* Border Accents */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-gray-300 to-transparent opacity-50" />
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-gray-300 to-transparent opacity-50" />
-
-      {/* Header */}
-
-      {/* Main Content */}
-      <div className="relative z-10 px-2 xs:px-3 sm:px-4 md:px-6 lg:px-8 xl:px-12 2xl:px-16 3xl:px-20 py-4 xs:py-6 sm:py-8 md:py-10 lg:py-12 xl:py-16 2xl:py-20 3xl:py-24">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          
-          {/* Compact Page Header */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="text-center mb-3 xs:mb-4 sm:mb-5 md:mb-6"
-          >
-            <div className="flex items-center justify-center mb-1 xs:mb-2">
-              <div className="w-6 xs:w-8 sm:w-10 h-6 xs:h-8 sm:h-10 bg-gray-800 rounded-md flex items-center justify-center shadow-sm mr-2">
-                <UserPlus className="w-3 xs:w-4 sm:w-5 h-3 xs:h-4 sm:h-5 text-white" />
-              </div>
-              <h1 className="text-base xs:text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-800">
+    <div className="min-h-screen bg-white">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12 py-3 sm:py-4 md:py-5 lg:py-6 space-y-3 sm:space-y-4 md:space-y-5 lg:space-y-6">
+        
+        {/* Page Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="bg-white rounded-xl sm:rounded-2xl lg:rounded-3xl p-3 sm:p-4 md:p-5 lg:p-6 shadow-[0_2px_8px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.1)]"
+        >
+          <div className="flex items-start gap-2 sm:gap-3">
+            <div className="mt-0.5 sm:mt-1 inline-flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-red-500 to-red-600 shadow-lg text-white flex-shrink-0">
+              <UserPlus className="h-4 w-4 sm:h-4 sm:w-4 md:h-5 md:w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl font-bold text-slate-900">
                 Add Suspect
               </h1>
+              <p className="text-xs sm:text-sm text-slate-600 max-w-2xl leading-relaxed mt-1 sm:mt-1.5">
+                Add new criminal records to the database with complete information for investigation purposes.
+              </p>
             </div>
-            <div className="w-12 xs:w-16 sm:w-20 md:w-24 lg:w-28 h-0.5 xs:h-1 bg-gray-800/80 mx-auto rounded-full" />
-          </motion.div>
+          </div>
+        </motion.div>
 
-          {/* Ultra-Compact Form */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="bg-white backdrop-blur-sm rounded-md border border-gray-200 shadow-sm p-3 xs:p-4 sm:p-5"
-          >
-            {/* Form Fields Grid */}
-            <div className="grid grid-cols-1 gap-4 sm:gap-5">
-              
-              {/* Name Field */}
-              <div className="space-y-2">
-                <label htmlFor="name" className="block text-xs xs:text-sm font-semibold text-gray-700">
-                  Full Name *
-                </label>
-                <input 
-                  type="text" 
-                  id="name"
-                  placeholder="Enter suspect's name" 
-                  value={name} 
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-white border border-gray-300 rounded-md px-2 xs:px-3 py-1.5 xs:py-2 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent transition-all duration-200 text-xs xs:text-sm"
-                  required
-                />
-              </div>
-              
-              {/* Age Field */}
-              <div className="space-y-2">
-                <label htmlFor="age" className="block text-xs xs:text-sm font-semibold text-gray-700">
-                  Age
-                </label>
-                <input 
-                  type="number" 
-                  id="age"
-                  placeholder="Age" 
-                  value={age} 
-                  onChange={(e) => setAge(e.target.value)}
-                  className="w-full bg-white border border-gray-300 rounded-md px-2 xs:px-3 py-1.5 xs:py-2 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent transition-all duration-200 text-xs xs:text-sm"
-                />
-              </div>
-              
-              {/* Crime Field */}
-              <div className="space-y-2">
-                <label htmlFor="crime" className="block text-xs xs:text-sm font-semibold text-gray-700">
-                  Crime Type
-                </label>
-                <input 
-                  type="text" 
-                  id="crime"
-                  placeholder="e.g., Theft, Assault" 
-                  value={crime} 
-                  onChange={(e) => setCrime(e.target.value)}
-                  className="w-full bg-white border border-gray-300 rounded-md px-2 xs:px-3 py-1.5 xs:py-2 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent transition-all duration-200 text-xs xs:text-sm"
-                />
-              </div>
-              
-              {/* Description Field */}
-              <div className="space-y-1 xs:col-span-1 sm:col-span-2 md:col-span-2 lg:col-span-3 xl:col-span-3 2xl:col-span-3 3xl:col-span-3">
-                <label htmlFor="description" className="block text-xs xs:text-sm font-semibold text-gray-700">
-                  Description
-                </label>
-                <textarea 
-                  id="description"
-                  placeholder="Physical description, aliases, additional details..."
-                  value={description} 
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={2}
-                  className="w-full bg-white border border-gray-300 rounded-md px-2 xs:px-3 py-1.5 xs:py-2 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent transition-all duration-200 resize-none text-xs xs:text-sm"
-                />
-              </div>
+        {/* Form Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="bg-white border-2 border-slate-200 rounded-xl sm:rounded-2xl lg:rounded-3xl p-3 sm:p-4 md:p-5 lg:p-6 shadow-sm space-y-3 sm:space-y-4"
+        >
+          {/* Form Fields Grid */}
+          <div className="grid grid-cols-1 gap-3 sm:gap-4">
+            
+            {/* Name Field */}
+            <div className="space-y-1.5 sm:space-y-2">
+              <label htmlFor="name" className="block text-xs sm:text-sm font-semibold text-slate-700">
+                Full Name *
+              </label>
+              <input 
+                type="text" 
+                id="name"
+                placeholder="Enter suspect's name" 
+                value={name} 
+                onChange={(e) => setName(e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-300 transition-all duration-200 text-sm"
+                required
+              />
             </div>
+            
+            {/* Age Field */}
+            <div className="space-y-1.5 sm:space-y-2">
+              <label htmlFor="age" className="block text-xs sm:text-sm font-semibold text-slate-700">
+                Age
+              </label>
+              <input 
+                type="number" 
+                id="age"
+                placeholder="Age" 
+                value={age} 
+                onChange={(e) => setAge(e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-300 transition-all duration-200 text-sm"
+              />
+            </div>
+            
+            {/* Crime Field */}
+            <div className="space-y-1.5 sm:space-y-2">
+              <label htmlFor="crime" className="block text-xs sm:text-sm font-semibold text-slate-700">
+                Crime Type
+              </label>
+              <input 
+                type="text" 
+                id="crime"
+                placeholder="e.g., Theft, Assault" 
+                value={crime} 
+                onChange={(e) => setCrime(e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-300 transition-all duration-200 text-sm"
+              />
+            </div>
+            
+            {/* Description Field */}
+            <div className="space-y-1.5 sm:space-y-2">
+              <label htmlFor="description" className="block text-xs sm:text-sm font-semibold text-slate-700">
+                Description
+              </label>
+              <textarea 
+                id="description"
+                placeholder="Physical description, aliases, additional details..."
+                value={description} 
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+                className="w-full bg-white border border-slate-200 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-300 transition-all duration-200 resize-none text-sm"
+              />
+            </div>
+          </div>
 
-            {/* Compact Photo Upload */}
-            <div className="mt-2 xs:mt-3 sm:mt-4">
-              <div className="border-2 border-dashed border-gray-300 rounded-md p-3 text-center hover:border-gray-400 hover:bg-gray-50 transition-all duration-200">
-                <input 
-                  type="file" 
-                  id="file-input"
-                  accept="image/*"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  className="hidden"
-                />
-                <label htmlFor="file-input" className="cursor-pointer">
-                  <div className="space-y-1 xs:space-y-2">
-                    <div className="w-6 xs:w-8 sm:w-10 h-6 xs:h-8 sm:h-10 bg-gray-800 rounded-md flex items-center justify-center mx-auto shadow-sm">
-                      <Upload className="w-3 xs:w-4 sm:w-5 h-3 xs:h-4 sm:h-5 text-white" />
+          {/* Photo Upload */}
+          <div className="mt-3 sm:mt-4">
+            <label htmlFor="file-input" className="block text-xs sm:text-sm font-semibold text-slate-700 mb-2">
+              Photo *
+            </label>
+            <div className="border-2 border-dashed border-slate-200 rounded-lg sm:rounded-xl p-4 sm:p-6 text-center hover:border-slate-300 hover:bg-slate-50 transition-all duration-200 cursor-pointer shadow-[0_2px_6px_rgba(0,0,0,0.06),0_0_0_1px_rgba(148,163,184,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1),0_0_0_1px_rgba(148,163,184,0.15)]">
+              <input 
+                type="file" 
+                id="file-input"
+                accept="image/*"
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                className="hidden"
+              />
+              <label htmlFor="file-input" className="cursor-pointer">
+                <div className="space-y-2 sm:space-y-3">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mx-auto shadow-sm">
+                    <Upload className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm sm:text-base font-semibold text-slate-700 mb-1">
+                      Upload Photo
+                    </h3>
+                    <p className="text-xs sm:text-sm text-slate-500">
+                      Click to browse or drag and drop
+                    </p>
+                  </div>
+                  {file && (
+                    <div className="mt-3 sm:mt-4">
+                      <img 
+                        src={URL.createObjectURL(file)} 
+                        alt="Preview" 
+                        className="max-w-32 sm:max-w-40 md:max-w-48 max-h-32 sm:max-h-40 md:max-h-48 mx-auto rounded-lg object-contain shadow-[0_2px_8px_rgba(0,0,0,0.1),0_0_0_1px_rgba(148,163,184,0.12)]"
+                      />
+                      <p className="text-xs sm:text-sm text-slate-600 mt-2 truncate max-w-xs mx-auto">{file.name}</p>
                     </div>
-                    <div>
-                      <h3 className="text-xs xs:text-sm font-semibold text-gray-700 mb-0.5">
-                        Upload Photo
-                      </h3>
-                      <p className="text-xs text-gray-500">
-                        Click to browse
-                      </p>
-                    </div>
-                    {file && (
-                      <div className="mt-1 xs:mt-2">
-                        <img 
-                          src={URL.createObjectURL(file)} 
-                          alt="Preview" 
-                          className="max-w-20 max-h-20 mx-auto rounded-md border border-gray-200 object-contain"
-                        />
-                        <p className="text-xs text-gray-600 mt-0.5 truncate max-w-24 xs:max-w-32">{file.name}</p>
-                      </div>
-                    )}
-                  </div>
-                </label>
-              </div>
+                  )}
+                </div>
+              </label>
             </div>
+          </div>
 
-            {/* Compact Upload Button */}
-            <div className="mt-2 xs:mt-3 sm:mt-4 text-center">
-              <motion.button 
-                type="button" 
-                onClick={handleUpload}
-                disabled={isUploading || !file || !name}
-                className="bg-gray-800 hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-3 xs:px-4 sm:px-6 py-1.5 xs:py-2 sm:py-2.5 rounded-md transition-all duration-200 text-xs xs:text-sm shadow-sm"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                {isUploading ? (
-                  <div className="flex items-center gap-1.5 xs:gap-2">
-                    <div className="w-3 xs:w-4 h-3 xs:h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    <span>Processing...</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 xs:gap-2">
-                    <Shield className="w-3 xs:w-4 h-3 xs:h-4" />
-                    <span>Add to Database</span>
-                  </div>
-                )}
-              </motion.button>
-            </div>
-          </motion.div>
+          {/* Upload Button */}
+          <div className="mt-4 sm:mt-5">
+            <motion.button 
+              type="button" 
+              onClick={handleUpload}
+              disabled={isUploading || !file || !name}
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-xl transition-all duration-200 text-sm sm:text-base shadow-lg flex items-center justify-center gap-2"
+              whileHover={{ scale: isUploading || !file || !name ? 1 : 1.02 }}
+              whileTap={{ scale: isUploading || !file || !name ? 1 : 0.98 }}
+            >
+              {isUploading ? (
+                <>
+                  <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <span>Processing...</span>
+                </>
+              ) : (
+                <>
+                  <Shield className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span>Add to Database</span>
+                </>
+              )}
+            </motion.button>
+          </div>
+        </motion.div>
 
-          {/* Compact Guidelines */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="mt-2 xs:mt-3 sm:mt-4 md:mt-5"
-          >
-            <div className="bg-white backdrop-blur-sm rounded-md border border-gray-200 shadow-sm p-3 xs:p-4 sm:p-5">
-              <h3 className="text-xs xs:text-sm font-bold text-gray-800 mb-1.5 xs:mb-2 flex items-center">
-                <CheckCircle className="w-3 xs:w-4 h-3 xs:h-4 text-gray-700 mr-1" />
-                Guidelines
-              </h3>
-              <div className="grid grid-cols-1 xs:grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 3xl:grid-cols-4 gap-1 xs:gap-1.5 sm:gap-2">
-                {[
-                  "High-quality photos",
-                  "Front-facing preferred", 
-                  "Good lighting",
-                  "Complete information"
-                ].map((guideline, index) => (
-                  <div key={index} className="flex items-center text-xs xs:text-sm text-gray-600">
-                    <div className="w-1 xs:w-1.5 h-1 xs:h-1.5 bg-gray-500 rounded-full mr-1 flex-shrink-0" />
-                    <span>{guideline}</span>
-                  </div>
-                ))}
+        {/* Guidelines Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="bg-white rounded-xl sm:rounded-2xl lg:rounded-3xl p-3 sm:p-4 md:p-5 lg:p-6 shadow-[0_2px_8px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.1)]"
+        >
+          <h3 className="text-sm sm:text-base font-bold text-slate-900 mb-3 sm:mb-4 flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
+            Guidelines
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+            {[
+              "High-quality photos",
+              "Front-facing preferred", 
+              "Good lighting",
+              "Complete information"
+            ].map((guideline, index) => (
+              <div key={index} className="flex items-center text-xs sm:text-sm text-slate-600">
+                <div className="w-1.5 h-1.5 bg-amber-500 rounded-full mr-2 flex-shrink-0" />
+                <span>{guideline}</span>
               </div>
-            </div>
-          </motion.div>
-      
-        </div>
+            ))}
+          </div>
+        </motion.div>
       </div>
 
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}

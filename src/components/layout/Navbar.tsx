@@ -29,7 +29,7 @@ export const Navbar = () => {
   // Show login/register buttons if not authenticated
   if (!isAuthenticated) {
     return (
-      <nav className="bg-gradient-to-br from-amber-50/95 via-orange-50/95 to-yellow-50/95 backdrop-blur-sm border-b border-amber-200/50 sticky top-0 z-50 shadow-sm">
+      <nav className="bg-white sticky top-0 z-50 shadow-[0_2px_8px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.1)]">
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link to="/login" className="flex items-center space-x-2 sm:space-x-3">
@@ -44,13 +44,13 @@ export const Navbar = () => {
               <Button
                 variant="ghost"
                 onClick={() => navigate('/login')}
-                className="text-gray-700 hover:bg-amber-100/50"
+                className="text-slate-700 hover:bg-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.12)]"
               >
                 Sign In
               </Button>
               <Button
                 onClick={() => navigate('/register')}
-                className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-[0_2px_8px_rgba(59,130,246,0.3),0_0_0_1px_rgba(59,130,246,0.2)]"
               >
                 Sign Up
               </Button>
@@ -64,7 +64,7 @@ export const Navbar = () => {
   return (
     <>
       {/* Main Navbar */}
-      <nav className="bg-gradient-to-br from-amber-50/95 via-orange-50/95 to-yellow-50/95 backdrop-blur-sm border-b border-amber-200/50 sticky top-0 z-50 shadow-sm">
+      <nav className="bg-white sticky top-0 z-50 shadow-[0_2px_8px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.1)]">
         <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16">
           <div className="flex items-center justify-between h-16">
             {/* Hamburger Menu Button - Left */}
@@ -72,7 +72,7 @@ export const Navbar = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                className="p-2 hover:bg-amber-100/50 text-gray-700 transition-all duration-200"
+                className="p-2 hover:bg-slate-100 text-slate-700 transition-all duration-200 shadow-[0_1px_3px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.12)]"
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                 aria-label="Toggle menu"
               >
@@ -100,7 +100,7 @@ export const Navbar = () => {
             <div className="flex items-center flex-shrink-0">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-amber-100/50 transition-all duration-200">
+                  <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-slate-100 transition-all duration-200 shadow-[0_1px_3px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.12)]">
                     <Avatar className="h-10 w-10">
                       <AvatarFallback className="bg-gradient-to-br from-red-500 to-red-600 text-white font-semibold">
                         {user?.username?.charAt(0).toUpperCase() || 'U'}
@@ -108,7 +108,7 @@ export const Navbar = () => {
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 bg-gradient-to-br from-amber-50/95 via-orange-50/95 to-yellow-50/95 backdrop-blur-sm border-amber-200/50 shadow-lg" align="end">
+                <DropdownMenuContent className="w-56 bg-white shadow-[0_4px_16px_rgba(0,0,0,0.12),0_0_0_1px_rgba(148,163,184,0.15)]" align="end">
                   <div className="flex items-center justify-start gap-2 p-2">
                     <div className="flex flex-col space-y-1 leading-none">
                       <p className="font-medium text-gray-800">{user?.username}</p>
@@ -117,20 +117,20 @@ export const Navbar = () => {
                       </p>
                     </div>
                   </div>
-                  <DropdownMenuSeparator className="bg-amber-200/50" />
-                  <DropdownMenuItem asChild className="hover:bg-amber-100/50 focus:bg-amber-100/50 transition-colors duration-200">
-                    <Link to="/profile" className="flex items-center text-gray-700">
+                  <DropdownMenuSeparator className="bg-slate-200" />
+                  <DropdownMenuItem asChild className="hover:bg-slate-100 focus:bg-slate-100 transition-colors duration-200">
+                    <Link to="/profile" className="flex items-center text-slate-700">
                       <User className="mr-2 h-4 w-4" />
                       Profile
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="hover:bg-amber-100/50 focus:bg-amber-100/50 transition-colors duration-200">
-                    <Link to="/settings" className="flex items-center text-gray-700">
+                  <DropdownMenuItem asChild className="hover:bg-slate-100 focus:bg-slate-100 transition-colors duration-200">
+                    <Link to="/settings" className="flex items-center text-slate-700">
                       <Settings className="mr-2 h-4 w-4" />
                       Settings
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-amber-200/50" />
+                  <DropdownMenuSeparator className="bg-slate-200" />
                   <DropdownMenuItem onClick={handleLogout} className="text-red-600 hover:bg-red-50/50 focus:bg-red-50/50 transition-colors duration-200">
                     <LogOut className="mr-2 h-4 w-4" />
                     Logout

@@ -89,34 +89,38 @@ const RecognizeFace: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-sm xs:max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl xl:max-w-3xl mx-auto px-3 xs:px-4 sm:px-5 md:px-6 py-6 xs:py-8 sm:py-10 md:py-12">
+    <div className="min-h-screen bg-white">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12 py-3 sm:py-4 md:py-5 lg:py-6 space-y-3 sm:space-y-4 md:space-y-5 lg:space-y-6">
         
         {/* Header */}
-        <div className="text-center mb-8 xs:mb-10 sm:mb-12">
-          <div className="inline-flex items-center justify-center w-16 xs:w-18 sm:w-20 h-16 xs:h-18 sm:h-20 bg-gray-900 rounded-2xl mb-4 xs:mb-5">
-            <Eye className="w-8 xs:w-9 sm:w-10 h-8 xs:h-9 sm:h-10 text-white" />
+        <div className="bg-white rounded-xl sm:rounded-2xl lg:rounded-3xl p-3 sm:p-4 md:p-5 lg:p-6 shadow-[0_2px_8px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.1)]">
+          <div className="flex items-start gap-2 sm:gap-3">
+            <div className="mt-0.5 sm:mt-1 inline-flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-red-500 to-red-600 shadow-lg text-white flex-shrink-0">
+              <Eye className="h-4 w-4 sm:h-4 sm:w-4 md:h-5 md:w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl font-bold text-slate-900">
+                Face Recognition
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-600 max-w-2xl leading-relaxed mt-1 sm:mt-1.5">
+                Upload facial image to identify suspects from the criminal database using advanced AI recognition.
+              </p>
+            </div>
           </div>
-          <h1 className="text-2xl xs:text-3xl sm:text-4xl font-bold text-gray-900 mb-2 xs:mb-3">
-            Face Recognition
-          </h1>
-          <p className="text-sm xs:text-base text-gray-600 max-w-md mx-auto">
-            Upload facial image to identify suspects
-          </p>
         </div>
 
- {/* Don't Have Image Section */}
- {!file && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 xs:p-7 sm:p-8 mb-8 xs:mb-10 sm:mb-12">
+        {/* Don't Have Image Section */}
+        {!file && (
+          <div className="bg-white rounded-xl sm:rounded-2xl lg:rounded-3xl p-4 sm:p-5 md:p-6 shadow-[0_2px_8px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.1)]">
             <div className="text-center">
-              <div className="w-12 xs:w-14 h-12 xs:h-14 bg-gray-900 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <PenTool className="w-6 xs:w-7 h-6 xs:h-7 text-white" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                <PenTool className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <h3 className="text-base xs:text-lg font-semibold text-gray-900 mb-2">No Image?</h3>
-              <p className="text-sm text-gray-600 mb-4">Create a facial sketch instead</p>
+              <h3 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 mb-1.5 sm:mb-2">No Image?</h3>
+              <p className="text-xs sm:text-sm text-slate-600 mb-3 sm:mb-4">Create a facial sketch instead</p>
               <button 
                 onClick={handleNewSketch}
-                className="bg-gray-900 hover:bg-gray-800 text-white font-medium px-6 py-3 rounded-xl transition-colors duration-200 flex items-center gap-2 mx-auto"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg sm:rounded-xl transition-all duration-200 flex items-center gap-2 mx-auto text-sm sm:text-base shadow-lg"
               >
                 <PenTool className="w-4 h-4" />
                 <span>Create Sketch</span>
@@ -126,16 +130,16 @@ const RecognizeFace: React.FC = () => {
         )}
         
         {/* Upload Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 xs:p-7 sm:p-8 mb-8 xs:mb-10 sm:mb-12">
-          <div className="text-center mb-6 xs:mb-7">
-            <h2 className="text-lg xs:text-xl font-semibold text-gray-900 mb-2">Upload Image</h2>
-            <p className="text-xs xs:text-sm text-gray-500">Drag & drop or click to browse</p>
+        <div className="bg-white border-2 border-slate-200 rounded-xl sm:rounded-2xl lg:rounded-3xl p-3 sm:p-4 md:p-5 lg:p-6 shadow-sm">
+          <div className="text-center mb-4 sm:mb-5">
+            <h2 className="text-base sm:text-lg md:text-xl font-semibold text-slate-900 mb-1 sm:mb-2">Upload Image</h2>
+            <p className="text-xs sm:text-sm text-slate-500">Drag & drop or click to browse</p>
           </div>
           
           <div className="relative">
             {/* State 1: No file uploaded - Show upload dropzone */}
             {!file && (
-              <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 xs:p-8 text-center bg-gray-50 hover:bg-gray-100 transition-colors duration-200 cursor-pointer group">
+              <div className="border-2 border-dashed border-slate-200 rounded-lg sm:rounded-xl p-4 sm:p-6 md:p-8 text-center bg-slate-50 hover:bg-slate-100 hover:border-slate-300 transition-all duration-200 cursor-pointer group shadow-[0_2px_6px_rgba(0,0,0,0.06),0_0_0_1px_rgba(148,163,184,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1),0_0_0_1px_rgba(148,163,184,0.15)]">
                 <input 
                   type="file" 
                   id="recognize-file"
@@ -146,15 +150,15 @@ const RecognizeFace: React.FC = () => {
                   title="Upload image file"
                 />
                 
-                <div className="space-y-4">
-                  <div className="w-12 xs:w-14 h-12 xs:h-14 bg-gray-200 rounded-xl flex items-center justify-center mx-auto group-hover:bg-gray-300 transition-colors">
-                    <Upload className="w-6 xs:w-7 h-6 xs:h-7 text-gray-500" />
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mx-auto group-hover:scale-105 transition-transform shadow-sm">
+                    <Upload className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-sm xs:text-base font-medium text-gray-900 mb-1">
+                    <h3 className="text-sm sm:text-base font-medium text-slate-900 mb-1">
                       Choose Image
                     </h3>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs sm:text-sm text-slate-500">
                       JPG, PNG, JPEG • Max 10MB
                     </p>
                   </div>
@@ -164,24 +168,24 @@ const RecognizeFace: React.FC = () => {
 
             {/* State 2: File uploaded, no result - Show image preview with animation */}
             {file && !result && (
-              <div className="bg-white border border-gray-200 rounded-xl p-4">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
+              <div className="bg-white rounded-lg sm:rounded-xl p-3 sm:p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.1)]">
+                <div className="flex items-center gap-2 sm:gap-3 mb-3">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{file.name}</p>
-                    <p className="text-xs text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                    <p className="text-xs sm:text-sm font-medium text-slate-900 truncate">{file.name}</p>
+                    <p className="text-xs text-slate-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                   </div>
                 </div>
 
-                <div className="relative border border-gray-100 rounded-lg overflow-hidden mx-auto max-w-xs">
+                <div className="relative rounded-lg sm:rounded-xl overflow-hidden mx-auto max-w-xs sm:max-w-sm shadow-[0_2px_8px_rgba(0,0,0,0.1),0_0_0_1px_rgba(148,163,184,0.12)]">
                   {objectUrl && (
                     <div className="relative">
                       <img 
                         src={objectUrl}
                         alt="Uploaded"
-                        className={`w-full h-64 object-cover transition-all duration-500 ${
+                        className={`w-full h-48 sm:h-56 md:h-64 object-cover transition-all duration-500 ${
                           isProcessing 
                             ? 'animate-pulse brightness-75 contrast-125 saturate-150' 
                             : ''
@@ -222,21 +226,21 @@ const RecognizeFace: React.FC = () => {
 
             {/* State 3: Result available - Show large comparison */}
             {file && result && (
-              <div className="bg-white border border-gray-200 rounded-xl p-4 animate-fadeIn">
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 lg:gap-8">
+              <div className="bg-white rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-5 shadow-[0_2px_8px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.1)]">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 md:gap-6 lg:gap-8">
                   {/* Uploaded Image */}
                   <div className="flex-shrink-0 text-center">
                     <img
                       src={objectUrl || ''}
                       alt="Uploaded"
-                      className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 lg:w-56 lg:h-56 rounded-lg object-cover border-2 border-gray-300"
+                      className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 lg:w-48 lg:h-48 rounded-lg sm:rounded-xl object-cover border-2 border-slate-300 shadow-sm"
                     />
-                    <p className="text-sm text-gray-600 text-center mt-2 font-medium">Uploaded Image</p>
+                    <p className="text-xs sm:text-sm text-slate-600 text-center mt-2 font-medium">Uploaded Image</p>
                   </div>
                   
                   {/* Arrow */}
                   <div className="flex-shrink-0">
-                    <ArrowRight className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-gray-400" />
+                    <ArrowRight className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 text-amber-500" />
                   </div>
                   
                   {/* Result Image */}
@@ -246,13 +250,13 @@ const RecognizeFace: React.FC = () => {
                         <img
                           src={result.image_url || ''}
                           alt={result.name || 'Match'}
-                          className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 lg:w-56 lg:h-56 rounded-lg object-cover border-2 border-green-400"
+                          className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 lg:w-48 lg:h-48 rounded-lg sm:rounded-xl object-cover border-2 border-emerald-400 shadow-sm"
                         />
-                        <p className="text-sm text-green-600 text-center mt-2 font-medium">Database Match</p>
+                        <p className="text-xs sm:text-sm text-emerald-600 text-center mt-2 font-medium">Database Match</p>
                       </>
                     ) : (
-                      <div className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 lg:w-56 lg:h-56 rounded-lg bg-red-50 border-2 border-red-300 flex items-center justify-center">
-                        <span className="text-red-500 text-lg font-medium">No Match</span>
+                      <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 lg:w-48 lg:h-48 rounded-lg sm:rounded-xl bg-red-50 border-2 border-red-300 flex items-center justify-center">
+                        <span className="text-red-500 text-sm sm:text-base md:text-lg font-medium">No Match</span>
                       </div>
                     )}
                   </div>
@@ -260,28 +264,28 @@ const RecognizeFace: React.FC = () => {
 
                 {/* Details Grid */}
                 {result.status === 'recognized' && (
-                  <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                    <h2 className="text-lg font-bold text-gray-900 sm:col-span-2 mb-3">Match Details</h2>
-                    <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
-                      <span className="text-gray-500 font-medium">Name</span>
-                      <span className="font-semibold text-gray-900 truncate ml-2">{result.name}</span>
+                  <div className="mt-4 sm:mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                    <h2 className="text-base sm:text-lg font-bold text-slate-900 sm:col-span-2 mb-2 sm:mb-3">Match Details</h2>
+                    <div className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2 shadow-[0_1px_3px_rgba(0,0,0,0.05),0_0_0_1px_rgba(148,163,184,0.08)]">
+                      <span className="text-xs sm:text-sm text-slate-500 font-medium">Name</span>
+                      <span className="text-xs sm:text-sm font-semibold text-slate-900 truncate ml-2">{result.name}</span>
                     </div>
                     {result.age && (
-                      <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
-                        <span className="text-gray-500 font-medium">Age</span>
-                        <span className="font-semibold text-gray-900 ml-2">{result.age}</span>
+                      <div className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2 shadow-[0_1px_3px_rgba(0,0,0,0.05),0_0_0_1px_rgba(148,163,184,0.08)]">
+                        <span className="text-xs sm:text-sm text-slate-500 font-medium">Age</span>
+                        <span className="text-xs sm:text-sm font-semibold text-slate-900 ml-2">{result.age}</span>
                       </div>
                     )}
                     {result.crime && (
-                      <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
-                        <span className="text-gray-500 font-medium">Crime</span>
-                        <span className="font-semibold text-gray-900 ml-2 truncate">{result.crime}</span>
+                      <div className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2 shadow-[0_1px_3px_rgba(0,0,0,0.05),0_0_0_1px_rgba(148,163,184,0.08)]">
+                        <span className="text-xs sm:text-sm text-slate-500 font-medium">Crime</span>
+                        <span className="text-xs sm:text-sm font-semibold text-slate-900 ml-2 truncate">{result.crime}</span>
                       </div>
                     )}
                     {result.description && (
-                      <div className="sm:col-span-2 bg-gray-50 rounded-lg px-3 py-2">
-                        <div className="text-gray-500 font-medium mb-1">Description</div>
-                        <div className="text-gray-800 text-sm line-clamp-3">{result.description}</div>
+                      <div className="sm:col-span-2 bg-slate-50 rounded-lg px-3 py-2 shadow-[0_1px_3px_rgba(0,0,0,0.05),0_0_0_1px_rgba(148,163,184,0.08)]">
+                        <div className="text-xs sm:text-sm text-slate-500 font-medium mb-1">Description</div>
+                        <div className="text-xs sm:text-sm text-slate-800 line-clamp-3">{result.description}</div>
                       </div>
                     )}
                   </div>
@@ -291,12 +295,12 @@ const RecognizeFace: React.FC = () => {
           </div>
 
           {/* Action Buttons */}
-          <div className="mt-6 xs:mt-7 text-center">
+          <div className="mt-4 sm:mt-5 md:mt-6 text-center">
             {file && !result && (
-              <div className="flex gap-3 justify-center">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
                 <button 
                   onClick={handleReset}
-                  className="bg-gray-600 hover:bg-gray-700 text-white font-medium px-6 py-3 rounded-xl transition-all duration-200 flex items-center gap-2 hover:scale-105 active:scale-95"
+                  className="bg-slate-500 hover:bg-slate-600 text-white font-medium px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg sm:rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-sm sm:text-base hover:scale-105 active:scale-95"
                 >
                   <RotateCcw className="w-4 h-4" />
                   <span>Reset</span>
@@ -304,12 +308,12 @@ const RecognizeFace: React.FC = () => {
                 <button 
                   onClick={handleRecognize}
                   disabled={isProcessing}
-                  className="bg-gray-900 hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium px-6 py-3 rounded-xl transition-all duration-200 flex items-center gap-2 hover:scale-105 active:scale-95 disabled:hover:scale-100"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg sm:rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-sm sm:text-base hover:scale-105 active:scale-95 disabled:hover:scale-100 shadow-lg"
                 >
                   {isProcessing ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span className="animate-pulse">{loadingText}</span>
+                      <span className="animate-pulse text-xs sm:text-sm">{loadingText}</span>
                     </>
                   ) : (
                     <>
@@ -325,10 +329,10 @@ const RecognizeFace: React.FC = () => {
 
         {/* Smart Action buttons for result */}
         {result && !isProcessing && (
-          <div className="mt-6">
+          <div className="bg-white rounded-xl sm:rounded-2xl lg:rounded-3xl p-3 sm:p-4 md:p-5 lg:p-6 shadow-[0_2px_8px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.1)]">
             {/* Context-aware button section */}
-            <div className="text-center mb-4">
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">
+            <div className="text-center mb-3 sm:mb-4">
+              <h3 className="text-xs sm:text-sm font-semibold text-slate-700 mb-2">
                 {result.status === 'recognized' 
                   ? "✓ Match Found! What's next?" 
                   : "No match found. Try these options:"
@@ -336,25 +340,22 @@ const RecognizeFace: React.FC = () => {
               </h3>
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
               {/* Primary Action - Context dependent */}
               {result.status === 'recognized' ? (
-                // When match found - Show "View Details" or "Add to Case"
                 <button 
                   onClick={() => {
-                    // Could navigate to detailed criminal profile or add to case
                     alert(`Viewing detailed profile for ${result.name}`);
                   }}
-                  className="bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-3 rounded-xl transition-all duration-200 flex items-center gap-2 hover:scale-105 active:scale-95"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg sm:rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-sm sm:text-base hover:scale-105 active:scale-95 shadow-lg"
                 >
                   <Target className="w-4 h-4" />
                   <span>View Full Profile</span>
                 </button>
               ) : (
-                // When no match - Show "Create Sketch" as primary action
                 <button 
                   onClick={handleNewSketch}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-xl transition-all duration-200 flex items-center gap-2 hover:scale-105 active:scale-95"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg sm:rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-sm sm:text-base hover:scale-105 active:scale-95 shadow-lg"
                 >
                   <PenTool className="w-4 h-4" />
                   <span>Create Sketch</span>
@@ -364,10 +365,9 @@ const RecognizeFace: React.FC = () => {
               {/* Secondary Action - Always relevant */}
               <button 
                 onClick={() => {
-                  // Navigate to add suspect page to add this person
                   navigate('/add');
                 }}
-                className="bg-orange-600 hover:bg-orange-700 text-white font-medium px-6 py-3 rounded-xl transition-all duration-200 flex items-center gap-2 hover:scale-105 active:scale-95"
+                className="bg-amber-600 hover:bg-amber-700 text-white font-medium px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg sm:rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-sm sm:text-base hover:scale-105 active:scale-95 shadow-lg"
               >
                 <Upload className="w-4 h-4" />
                 <span>{result.status === 'recognized' ? 'Update Record' : 'Add to Database'}</span>
@@ -376,7 +376,7 @@ const RecognizeFace: React.FC = () => {
               {/* Tertiary Action - Reset for new search */}
               <button 
                 onClick={handleReset}
-                className="bg-gray-500 hover:bg-gray-600 text-white font-medium px-6 py-3 rounded-xl transition-all duration-200 flex items-center gap-2 hover:scale-105 active:scale-95"
+                className="bg-slate-500 hover:bg-slate-600 text-white font-medium px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg sm:rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-sm sm:text-base hover:scale-105 active:scale-95"
               >
                 <RotateCcw className="w-4 h-4" />
                 <span>New Search</span>
@@ -384,8 +384,8 @@ const RecognizeFace: React.FC = () => {
             </div>
             
             {/* Additional context message */}
-            <div className="mt-4 text-center">
-              <p className="text-xs text-gray-500">
+            <div className="mt-3 sm:mt-4 text-center">
+              <p className="text-xs sm:text-sm text-slate-500">
                 {result.status === 'recognized' 
                   ? `Confidence: ${((result.similarity || 0) * 100).toFixed(1)}% • Ready for investigation`
                   : "Try creating a sketch or adding this person to the database"
@@ -396,29 +396,27 @@ const RecognizeFace: React.FC = () => {
         )}
 
         {/* Tips Section */}
-        <div className="space-y-4">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 xs:p-5">
-            <div className="flex items-center space-x-3 mb-3">
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Zap className="w-4 h-4 text-blue-600" />
-              </div>
-              <h3 className="text-sm font-semibold text-gray-900">Quick Tips</h3>
+        <div className="bg-white rounded-xl sm:rounded-2xl lg:rounded-3xl p-3 sm:p-4 md:p-5 lg:p-6 shadow-[0_2px_8px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.1)]">
+          <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
             </div>
-            <ul className="space-y-2 text-xs text-gray-700">
-              <li className="flex items-start gap-2">
-                <span className="text-green-600 font-bold">•</span>
-                <span>Use clear, well-lit images</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-600 font-bold">•</span>
-                <span>Front-facing photos work best</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-600 font-bold">•</span>
-                <span>Avoid hats, masks, or obstructions</span>
-              </li>
-            </ul>
+            <h3 className="text-sm sm:text-base font-semibold text-slate-900">Quick Tips</h3>
           </div>
+          <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-slate-700">
+            <li className="flex items-start gap-2">
+              <span className="text-emerald-600 font-bold flex-shrink-0">•</span>
+              <span>Use clear, well-lit images</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-emerald-600 font-bold flex-shrink-0">•</span>
+              <span>Front-facing photos work best</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-emerald-600 font-bold flex-shrink-0">•</span>
+              <span>Avoid hats, masks, or obstructions</span>
+            </li>
+          </ul>
         </div>
       </div>
     </div>

@@ -271,13 +271,13 @@ const RightPanel: React.FC<RightPanelProps> = ({
     setDragOverLayerId(null);
   };
   return (
-    <div className={`${rightSidebarCollapsed ? 'w-20 lg:w-24' : 'w-full lg:w-80'} bg-white/90 backdrop-blur-sm border-t lg:border-t-0 lg:border-l border-amber-200 flex flex-col shadow-sm order-3 transition-all duration-300 ease-in-out ${rightSidebarCollapsed ? 'bg-gradient-to-b from-white/95 to-slate-50/90' : ''}`}>
+    <div className={`${rightSidebarCollapsed ? 'w-14 sm:w-16 md:w-20 lg:w-24' : 'w-full sm:w-full md:w-72 lg:w-80'} bg-white/90 backdrop-blur-sm border-t lg:border-t-0 lg:border-l border-amber-200 flex flex-col shadow-sm order-3 transition-all duration-300 ease-in-out flex-shrink-0 lg:sticky lg:top-0 lg:self-start ${rightSidebarCollapsed ? 'bg-gradient-to-b from-white/95 to-slate-50/90' : ''}`} style={{ maxHeight: 'calc(100vh - 8rem)' }}>
       {/* Panel Header with Toggle */}
-      <div className={`${rightSidebarCollapsed ? 'p-2 justify-center' : 'p-3 md:p-4 justify-between'} border-b border-amber-200 flex items-center transition-all duration-200`}>
-        <h3 className={`font-semibold text-slate-800 transition-opacity duration-200 ${rightSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>
-          {activeTab === 'workspace' && 'Asset Library'}
-          {activeTab === 'layers' && 'Layer Management'}
+      <div className={`${rightSidebarCollapsed ? 'p-1.5 sm:p-2 justify-center' : 'p-2 sm:p-3 md:p-4 justify-between'} border-b border-amber-200 flex items-center transition-all duration-200 flex-shrink-0`}>
+        <h3 className={`font-semibold text-slate-800 text-xs sm:text-sm transition-opacity duration-200 ${rightSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>
           {activeTab === 'properties' && 'Properties Panel'}
+          {activeTab === 'layers' && 'Layer Management'}
+          {activeTab === 'workspace' && 'Asset Library'}
           {/* {activeTab === 'case' && 'Case Information'} */}
         </h3>
         <Button 
@@ -293,32 +293,32 @@ const RightPanel: React.FC<RightPanelProps> = ({
         </Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-        <TabsList className={`grid bg-slate-100 m-2 transition-all duration-200 ${
-          rightSidebarCollapsed 
-            ? 'grid-cols-1 gap-2 p-2' 
-            : 'grid-cols-2 sm:grid-cols-3 gap-1'
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden min-h-0">
+        <TabsList className={`grid bg-slate-100 m-1.5 sm:m-2 transition-all duration-200 flex-shrink-0 ${
+            rightSidebarCollapsed
+              ? 'grid-cols-1 gap-1.5 sm:gap-2 p-1.5 sm:p-2'
+            : 'grid-cols-2 sm:grid-cols-3 gap-0.5 sm:gap-1'
         }`}>
           <TabsTrigger 
-            value="workspace" 
-            className={`text-xs transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm ${
-              rightSidebarCollapsed ? 'h-12 w-full p-2 flex-col justify-center' : 'h-8'
+            value="properties" 
+            className={`text-[10px] sm:text-xs transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm ${
+              rightSidebarCollapsed ? 'h-10 sm:h-12 w-full p-1.5 sm:p-2 flex-col justify-center' : 'h-7 sm:h-8'
             }`}
-            title="Assets"
+            title="Properties"
           >
             {rightSidebarCollapsed ? (
               <div className="flex flex-col items-center space-y-1">
-                <Layers className="w-4 h-4 text-blue-600" />
-                <span className="text-[10px] font-medium text-slate-700">Assets</span>
+                <Settings className="w-4 h-4 text-purple-600" />
+                <span className="text-[10px] font-medium text-slate-700">Props</span>
               </div>
             ) : (
-              'Assets'
+              'Props'
             )}
           </TabsTrigger>
           <TabsTrigger 
             value="layers" 
-            className={`text-xs transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm ${
-              rightSidebarCollapsed ? 'h-12 w-full p-2 flex-col justify-center' : 'h-8'
+            className={`text-[10px] sm:text-xs transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm ${
+              rightSidebarCollapsed ? 'h-10 sm:h-12 w-full p-1.5 sm:p-2 flex-col justify-center' : 'h-7 sm:h-8'
             }`}
             title="Layers"
           >
@@ -332,90 +332,175 @@ const RightPanel: React.FC<RightPanelProps> = ({
             )}
           </TabsTrigger>
           <TabsTrigger 
-            value="properties" 
-            className={`text-xs transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm ${
-              rightSidebarCollapsed ? 'h-12 w-full p-2 flex-col justify-center' : 'h-8'
+            value="workspace" 
+            className={`text-[10px] sm:text-xs transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm ${
+              rightSidebarCollapsed ? 'h-10 sm:h-12 w-full p-1.5 sm:p-2 flex-col justify-center' : 'h-7 sm:h-8'
             }`}
-            title="Properties"
+            title="Assets"
           >
             {rightSidebarCollapsed ? (
               <div className="flex flex-col items-center space-y-1">
-                <Settings className="w-4 h-4 text-purple-600" />
-                <span className="text-[10px] font-medium text-slate-700">Props</span>
+                <Layers className="w-4 h-4 text-blue-600" />
+                <span className="text-[10px] font-medium text-slate-700">Assets</span>
               </div>
             ) : (
-              'Props'
+              'Assets'
             )}
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="workspace" className={`flex-1 p-2 md:p-3 lg:p-4 m-0 transition-all duration-200 ${rightSidebarCollapsed ? 'hidden' : ''}`}>
-          <ScrollArea className="h-full">
+        <TabsContent value="workspace" className={`flex-1 p-1.5 sm:p-2 md:p-3 lg:p-4 m-0 transition-all duration-200 overflow-hidden flex flex-col min-h-0 ${rightSidebarCollapsed ? 'hidden' : ''}`}>
+          <ScrollArea className="flex-1 overflow-y-auto min-h-0">
             
             {/* Asset Grid Container with Fixed Height */}
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {/* Asset Grid */}
-              <div className="grid gap-2 grid-cols-2">
-                {filteredAssets.map((asset) => (
-                  <Card 
-                    key={asset.id} 
-                    className="cursor-grab active:cursor-grabbing hover:shadow-lg transition-all duration-200 border-slate-200 hover:border-amber-300 group bg-white shadow-sm hover:shadow-md"
-                    draggable={true}
-                    onDragStart={(e) => {
-                      const payload = JSON.stringify(asset);
-                      e.dataTransfer.setData('application/json', payload);
-                      e.dataTransfer.setData('text/plain', payload);
-                      e.dataTransfer.effectAllowed = 'copy';
-                      // Add visual feedback
-                      e.currentTarget.style.opacity = '0.5';
-                      e.currentTarget.style.transform = 'scale(0.95)';
-                    }}
-                    onDragEnd={(e) => {
-                      // Reset visual feedback
-                      e.currentTarget.style.opacity = '1';
-                      e.currentTarget.style.transform = 'scale(1)';
-                    }}
-                  >
-                    <CardContent 
-                      className="p-2 transition-all duration-200" 
-                      onClick={() => addFeature(asset)}
+              <div className="grid gap-1.5 sm:gap-2 grid-cols-2">
+                {filteredAssets.map((asset) => {
+                  // Check if this asset is an uploaded asset (has cloudinary_url or is in uploadedAssets)
+                  const isUploadedAsset = uploadedAssets.some(ua => ua.id === asset.id);
+                  const uploadedAsset = uploadedAssets.find(ua => ua.id === asset.id);
+                  
+                  return (
+                    <Card 
+                      key={asset.id} 
+                      className="cursor-grab active:cursor-grabbing hover:shadow-lg transition-all duration-200 border-slate-200 hover:border-amber-300 group bg-white shadow-sm hover:shadow-md relative"
+                      draggable={true}
+                      onDragStart={(e) => {
+                        const payload = JSON.stringify(asset);
+                        e.dataTransfer.setData('application/json', payload);
+                        e.dataTransfer.setData('text/plain', payload);
+                        e.dataTransfer.effectAllowed = 'copy';
+                        // Add visual feedback
+                        e.currentTarget.style.opacity = '0.5';
+                        e.currentTarget.style.transform = 'scale(0.95)';
+                      }}
+                      onDragEnd={(e) => {
+                        // Reset visual feedback
+                        e.currentTarget.style.opacity = '1';
+                        e.currentTarget.style.transform = 'scale(1)';
+                      }}
                     >
-                      {/* Compact Asset Thumbnail */}
-                      <div className="aspect-square bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-lg p-1.5 mb-2 flex items-center justify-center shadow-inner group-hover:shadow-md transition-all duration-200">
-                        <img
-                          src={asset.path}
-                          alt={asset.name}
-                          className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200"
-                          loading="lazy"
-                          draggable={false}
-                        />
-                      </div>
-                      
-                      {/* Asset Name */}
-                      <h4 className="font-medium text-slate-900 text-center group-hover:text-amber-600 transition-colors text-xs leading-tight mb-1">
-                        {asset.name}
-                      </h4>
-                      
-                      {/* Asset Tags - Compact Display */}
-                      <div className="flex flex-wrap gap-1 justify-center">
-                        {asset.tags.slice(0, 1).map(tag => (
-                          <Badge 
-                            key={tag} 
-                            variant="secondary" 
-                            className="text-[10px] px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 font-medium"
-                          >
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                      
-                      {/* Drag Indicator */}
-                      <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        <div className="w-2 h-2 bg-amber-400 rounded-full"></div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      <CardContent 
+                        className="p-1.5 sm:p-2 transition-all duration-200" 
+                        onClick={() => addFeature(asset)}
+                      >
+                        {/* Compact Asset Thumbnail - Fixed display */}
+                        <div className="aspect-square bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-lg p-1 sm:p-1.5 mb-1.5 sm:mb-2 flex items-center justify-center shadow-inner group-hover:shadow-md transition-all duration-200 overflow-hidden">
+                          <img
+                            src={asset.path}
+                            alt={asset.name}
+                            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200"
+                            loading="lazy"
+                            draggable={false}
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect width="100" height="100" fill="%23f3f4f6"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" fill="%239ca3af" font-size="12"%3EImage%3C/text%3E%3C/svg%3E';
+                            }}
+                          />
+                        </div>
+                        
+                        {/* Asset Name - Show edit input if editing */}
+                        {isUploadedAsset && editingAsset === asset.id ? (
+                          <div className="mb-1.5 sm:mb-2">
+                            <input
+                              type="text"
+                              value={editName}
+                              onChange={(e) => setEditName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleEditSave();
+                                } else if (e.key === 'Escape') {
+                                  handleEditCancel();
+                                }
+                              }}
+                              className="w-full text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              autoFocus
+                            />
+                            <div className="flex justify-center gap-1 mt-1">
+                              <button
+                                onClick={handleEditSave}
+                                className="h-4 w-4 sm:h-5 sm:w-5 bg-green-500 hover:bg-green-600 text-white rounded flex items-center justify-center"
+                                title="Save"
+                              >
+                                <Check className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
+                              </button>
+                              <button
+                                onClick={handleEditCancel}
+                                className="h-4 w-4 sm:h-5 sm:w-5 bg-red-500 hover:bg-red-600 text-white rounded flex items-center justify-center"
+                                title="Cancel"
+                              >
+                                <X className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <h4 className="font-medium text-slate-900 text-center group-hover:text-amber-600 transition-colors text-[10px] sm:text-xs leading-tight mb-0.5 sm:mb-1 px-0.5 line-clamp-2">
+                            {asset.name}
+                          </h4>
+                        )}
+                        
+                        {/* Asset Tags - Compact Display */}
+                        <div className="flex flex-wrap gap-0.5 sm:gap-1 justify-center mb-1">
+                          {asset.tags.slice(0, 1).map(tag => (
+                            <Badge 
+                              key={tag} 
+                              variant="secondary" 
+                              className="text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 font-medium"
+                            >
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                        
+                        {/* Action Buttons - Only show for uploaded assets */}
+                        {isUploadedAsset && uploadedAsset && (
+                          <div className="flex justify-center space-x-0.5 sm:space-x-1 mb-1">
+                            <button
+                              className="h-5 w-5 sm:h-6 sm:w-6 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                onAssetView?.(uploadedAsset);
+                              }}
+                              title="View Fullscreen"
+                            >
+                              <EyeIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                            </button>
+                            <button
+                              className="h-5 w-5 sm:h-6 sm:w-6 bg-green-500 hover:bg-green-600 text-white rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                handleEditStart(uploadedAsset);
+                              }}
+                              title="Edit Name"
+                            >
+                              <Edit3 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                            </button>
+                            <button
+                              className="h-5 w-5 sm:h-6 sm:w-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                if (window.confirm(`Are you sure you want to delete "${asset.name}"?`)) {
+                                  onAssetDelete?.(asset.id);
+                                }
+                              }}
+                              title="Delete Asset"
+                            >
+                              <Trash2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                            </button>
+                          </div>
+                        )}
+                        
+                        {/* Drag Indicator */}
+                        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          <div className="w-2 h-2 bg-amber-400 rounded-full"></div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
 
               {/* Empty State */}
@@ -427,83 +512,132 @@ const RightPanel: React.FC<RightPanelProps> = ({
                 </div>
               )}
 
-              {/* Uploaded Assets Section */}
+              {/* Uploaded Assets Section - Only show assets not in main grid */}
               {uploadedAssets.length > 0 && (
-                <div className="mt-6 pt-4 border-t border-slate-200">
-                  <h3 className="text-sm font-semibold text-slate-700 mb-3">Uploaded Assets</h3>
-                  <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
-                    {uploadedAssets.map(asset => (
-                      <Card key={asset.id} className="cursor-grab active:cursor-grabbing hover:shadow-lg transition-all duration-200 border-slate-200 hover:border-amber-300 group bg-white shadow-sm hover:shadow-md">
-                        <CardContent className="p-3 transition-all duration-200">
-                          {/* Asset Image */}
-                          <div className="aspect-square bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-lg p-1.5 mb-3 flex items-center justify-center shadow-inner group-hover:shadow-md transition-all duration-200">
-                            <img
-                              src={asset.cloudinary_url}
-                              alt={asset.name}
-                              className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200"
-                              loading="lazy"
-                              draggable={false}
-                            />
-                          </div>
-                          
-                          {/* Asset Name */}
-                          <h4 className="font-medium text-slate-900 text-center group-hover:text-amber-600 transition-colors text-xs leading-tight mb-2">
-                            {asset.name}
-                          </h4>
-                          
-                          {/* Asset Type Badge */}
-                          <div className="flex justify-center mb-3">
-                            <Badge variant="outline" className="text-xs">
-                              {asset.type}
-                            </Badge>
-                          </div>
-                          
-                          {/* Action Buttons - Clean and Aesthetic */}
-                          <div className="flex justify-center space-x-1">
-                            <button
-                              className="h-7 w-7 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onAssetView?.(asset);
-                              }}
-                              title="View Fullscreen"
-                            >
-                              <EyeIcon className="w-3 h-3" />
-                            </button>
-                            <button
-                              className="h-7 w-7 bg-green-500 hover:bg-green-600 text-white rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditStart(asset);
-                              }}
-                              title="Edit Name"
-                            >
-                              <Edit3 className="w-3 h-3" />
-                            </button>
-                            <button
-                              className="h-7 w-7 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onAssetDelete?.(asset.id);
-                              }}
-                              title="Delete Asset"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-slate-200">
+                  <h3 className="text-xs sm:text-sm font-semibold text-slate-700 mb-2 sm:mb-3">Uploaded Assets</h3>
+                  <div className="grid gap-1.5 sm:gap-2 md:gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
+                    {uploadedAssets.map(asset => {
+                      // Check if asset is already in filteredAssets to avoid duplication
+                      const isInMainGrid = filteredAssets.some(a => a.id === asset.id);
+                      if (isInMainGrid) return null;
+                      
+                      return (
+                        <Card key={asset.id} className="cursor-grab active:cursor-grabbing hover:shadow-lg transition-all duration-200 border-slate-200 hover:border-amber-300 group bg-white shadow-sm hover:shadow-md relative">
+                          <CardContent className="p-2 sm:p-3 transition-all duration-200">
+                            {/* Asset Image - Fixed display */}
+                            <div className="aspect-square bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-lg p-1 sm:p-1.5 mb-2 sm:mb-3 flex items-center justify-center shadow-inner group-hover:shadow-md transition-all duration-200 overflow-hidden">
+                              <img
+                                src={asset.cloudinary_url}
+                                alt={asset.name}
+                                className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200"
+                                loading="lazy"
+                                draggable={false}
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect width="100" height="100" fill="%23f3f4f6"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" fill="%239ca3af" font-size="12"%3EImage%3C/text%3E%3C/svg%3E';
+                                }}
+                              />
+                            </div>
+                            
+                            {/* Asset Name - Show edit input if editing */}
+                            {editingAsset === asset.id ? (
+                              <div className="mb-1.5 sm:mb-2">
+                                <input
+                                  type="text"
+                                  value={editName}
+                                  onChange={(e) => setEditName(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      handleEditSave();
+                                    } else if (e.key === 'Escape') {
+                                      handleEditCancel();
+                                    }
+                                  }}
+                                  className="w-full text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  autoFocus
+                                />
+                                <div className="flex justify-center gap-1 mt-1">
+                                  <button
+                                    onClick={handleEditSave}
+                                    className="h-4 w-4 sm:h-5 sm:w-5 bg-green-500 hover:bg-green-600 text-white rounded flex items-center justify-center"
+                                    title="Save"
+                                  >
+                                    <Check className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
+                                  </button>
+                                  <button
+                                    onClick={handleEditCancel}
+                                    className="h-4 w-4 sm:h-5 sm:w-5 bg-red-500 hover:bg-red-600 text-white rounded flex items-center justify-center"
+                                    title="Cancel"
+                                  >
+                                    <X className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <h4 className="font-medium text-slate-900 text-center group-hover:text-amber-600 transition-colors text-[10px] sm:text-xs leading-tight mb-1.5 sm:mb-2 min-h-[1.5rem] sm:min-h-[2rem] flex items-center justify-center px-1">
+                                {asset.name}
+                              </h4>
+                            )}
+                            
+                            {/* Asset Type Badge */}
+                            <div className="flex justify-center mb-1.5 sm:mb-2 md:mb-3">
+                              <Badge variant="outline" className="text-[9px] sm:text-xs">
+                                {asset.type}
+                              </Badge>
+                            </div>
+                            
+                            {/* Action Buttons - Clean and Aesthetic */}
+                            <div className="flex justify-center space-x-0.5 sm:space-x-1">
+                              <button
+                                className="h-6 w-6 sm:h-7 sm:w-7 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  onAssetView?.(asset);
+                                }}
+                                title="View Fullscreen"
+                              >
+                                <EyeIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                              </button>
+                              <button
+                                className="h-6 w-6 sm:h-7 sm:w-7 bg-green-500 hover:bg-green-600 text-white rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  handleEditStart(asset);
+                                }}
+                                title="Edit Name"
+                              >
+                                <Edit3 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                              </button>
+                              <button
+                                className="h-6 w-6 sm:h-7 sm:w-7 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  if (window.confirm(`Are you sure you want to delete "${asset.name}"?`)) {
+                                    onAssetDelete?.(asset.id);
+                                  }
+                                }}
+                                title="Delete Asset"
+                              >
+                                <Trash2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                              </button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 </div>
               )}
 
               {/* Asset Count */}
-              <div className="text-center pt-2 border-t border-slate-100">
-                <span className="text-xs text-slate-500 font-medium">
+              <div className="text-center pt-1.5 sm:pt-2 border-t border-slate-100">
+                <span className="text-[10px] sm:text-xs text-slate-500 font-medium">
                   {filteredAssets.length} built-in asset{filteredAssets.length !== 1 ? 's' : ''} available
                   {uploadedAssets.length > 0 && (
-                    <span className="ml-2 text-green-600">
+                    <span className="ml-1 sm:ml-2 text-green-600">
                       + {uploadedAssets.length} uploaded asset{uploadedAssets.length !== 1 ? 's' : ''}
                     </span>
                   )}
@@ -513,8 +647,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
           </ScrollArea>
         </TabsContent>
 
-        <TabsContent value="layers" className={`flex-1 p-2 md:p-3 lg:p-4 m-0 transition-all duration-200 ${rightSidebarCollapsed ? 'hidden' : ''}`}>
-          <ScrollArea className="h-full">
+        <TabsContent value="layers" className={`flex-1 p-1.5 sm:p-2 md:p-3 lg:p-4 m-0 transition-all duration-200 overflow-hidden flex flex-col min-h-0 ${rightSidebarCollapsed ? 'hidden' : ''}`}>
+          <ScrollArea className="flex-1 overflow-y-auto min-h-0">
             <div className="space-y-2">
               {[...features].sort((a, b) => b.zIndex - a.zIndex).map((feature, index) => (
                 <div
@@ -611,8 +745,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
           </ScrollArea>
         </TabsContent>
 
-        <TabsContent value="properties" className={`flex-1 p-2 md:p-3 lg:p-4 m-0 transition-all duration-200 ${rightSidebarCollapsed ? 'hidden' : ''}`}>
-          <ScrollArea className="h-full">
+        <TabsContent value="properties" className={`flex-1 p-1.5 sm:p-2 md:p-3 lg:p-4 m-0 transition-all duration-200 overflow-hidden flex flex-col min-h-0 ${rightSidebarCollapsed ? 'hidden' : ''}`}>
+          <ScrollArea className="flex-1 overflow-y-auto min-h-0">
             {selectedFeature ? (
               <div className={`space-y-4 md:space-y-6 transition-all duration-200 ${
                 rightSidebarCollapsed ? 'space-y-3 lg:space-y-4' : 'space-y-4 md:space-y-6'

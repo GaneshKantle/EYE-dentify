@@ -69,17 +69,17 @@ const CanvasBoard: React.FC<CanvasBoardProps> = ({
   onCloseFeaturePicker,
 }) => {
   return (
-    <div className="flex-1 flex flex-col bg-gradient-to-br from-amber-100 to-orange-50 order-1 lg:order-2 min-h-0">
+    <div className="flex-1 flex flex-col bg-gradient-to-br from-amber-100 to-orange-50 order-1 lg:order-2 min-h-0 overflow-auto">
       {/* Canvas Container */}
-      <div className="flex-1 flex items-start justify-center p-1 sm:p-2 md:p-3 lg:p-4 overflow-hidden min-h-0">
-        <div className="relative max-w-full max-h-full flex items-center justify-center">
+      <div className="flex items-start justify-center p-1 sm:p-2 md:p-3 lg:p-4 xl:p-6 min-h-full">
+        <div className="relative w-full h-full flex items-center justify-center min-h-[400px] sm:min-h-[500px] md:min-h-[600px]">
           {/* Canvas with responsive scaling */}
-          <div className="relative">
+          <div className="relative" style={{ maxWidth: '100%', maxHeight: '100%' }}>
             <canvas
               ref={canvasRef}
               width={600}
               height={700}
-              className="border-2 border-slate-300 bg-white shadow-xl cursor-crosshair rounded-lg transition-all duration-200 hover:shadow-2xl"
+              className="border-2 border-slate-300 bg-white shadow-xl cursor-crosshair rounded-lg transition-all duration-200 hover:shadow-2xl max-w-full max-h-full"
               onMouseDown={handleCanvasMouseDown}
               onMouseMove={handleCanvasMouseMove}
               onMouseUp={handleCanvasMouseUp}
@@ -91,21 +91,24 @@ const CanvasBoard: React.FC<CanvasBoardProps> = ({
                 maxWidth: '100%',
                 maxHeight: '100%',
                 width: 'auto',
-                height: 'auto'
+                height: 'auto',
+                display: 'block'
               }}
             />
             
-            {/* Zoom level indicator */}
-            <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md border border-slate-200 shadow-sm">
-              <span className="text-xs font-mono text-slate-600">{zoom}%</span>
-            </div>
-
-            {/* Grid size indicator */}
-            {showGrid && (
-              <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md border border-slate-200 shadow-sm">
-                <span className="text-xs font-mono text-slate-600">Grid: {gridSize}px</span>
+            {/* Canvas Info Indicators - Reorganized */}
+            <div className="absolute top-1 left-1 sm:top-2 sm:left-2 flex flex-col gap-1 sm:gap-1.5">
+              {/* Zoom level indicator */}
+              <div className="bg-white/90 backdrop-blur-sm px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md border border-slate-200 shadow-sm">
+                <span className="text-[10px] sm:text-xs font-mono text-slate-600">{zoom}%</span>
               </div>
-            )}
+              {/* Grid size indicator */}
+              {showGrid && (
+                <div className="bg-white/90 backdrop-blur-sm px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md border border-slate-200 shadow-sm">
+                  <span className="text-[10px] sm:text-xs font-mono text-slate-600">Grid: {gridSize}px</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

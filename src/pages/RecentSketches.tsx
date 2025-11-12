@@ -117,66 +117,68 @@ const RecentSketches: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-10 xl:px-16 2xl:px-24 py-6 space-y-6">
-        <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-white/80 backdrop-blur-sm border border-amber-200/60 rounded-3xl p-4 sm:p-6 shadow-sm">
-          <div className="flex items-start gap-3">
-            <div className="mt-1 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-red-600 shadow-lg text-white">
-              <Shield className="h-5 w-5" />
+    <div className="min-h-screen bg-white">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12 py-3 sm:py-4 md:py-5 lg:py-6 space-y-3 sm:space-y-4 md:space-y-5 lg:space-y-6">
+        <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4 bg-white rounded-xl sm:rounded-2xl lg:rounded-3xl p-3 sm:p-4 md:p-5 lg:p-6 shadow-[0_2px_8px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.1)]">
+          <div className="flex items-start gap-2 sm:gap-3">
+            <div className="mt-0.5 sm:mt-1 inline-flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-red-500 to-red-600 shadow-lg text-white flex-shrink-0">
+              <Shield className="h-4 w-4 sm:h-4 sm:w-4 md:h-5 md:w-5" />
             </div>
-            <div>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-col gap-1.5 sm:gap-2 sm:flex-row sm:items-center sm:gap-3">
+                <h1 className="text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl font-bold text-slate-900">
                   Recent Sketches
                 </h1>
-                <Badge variant="secondary" className="w-fit bg-emerald-100 text-emerald-700 border border-emerald-200/60">
+                <Badge variant="secondary" className="w-fit bg-emerald-100 text-emerald-700 border border-emerald-200/60 text-xs">
                   Auto sync every 30s
                 </Badge>
               </div>
-              <p className="text-sm text-slate-600 max-w-2xl leading-relaxed">
+              <p className="text-xs sm:text-sm text-slate-600 max-w-2xl leading-relaxed mt-1 sm:mt-1.5">
                 Access saved forensic sketches instantly, resume unfinished work from any device,
                 and keep global collaboration smooth with real-time syncing.
               </p>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+          <div className="flex flex-col sm:flex-row gap-2 sm:items-center flex-shrink-0">
             <Button
               onClick={() => refresh()}
               variant="outline"
-              className="flex items-center justify-center gap-2 border-amber-200 text-amber-700 hover:text-amber-800 hover:bg-amber-100/70"
+              size="sm"
+              className="flex items-center justify-center gap-1.5 sm:gap-2 border-amber-200 text-amber-700 hover:text-amber-800 hover:bg-amber-100/70 text-xs sm:text-sm"
               disabled={loading && sketches.length === 0}
             >
-              {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-              <span className="text-sm font-medium">Refresh</span>
+              {isRefreshing ? <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" /> : <RefreshCcw className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
+              <span className="font-medium">Refresh</span>
             </Button>
             <Button
               onClick={handleCreateNew}
-              className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg"
+              size="sm"
+              className="flex items-center justify-center gap-1.5 sm:gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg text-xs sm:text-sm"
             >
-              <Sparkles className="h-4 w-4" />
+              <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               New Sketch
             </Button>
           </div>
         </header>
 
-        <section className="bg-white/85 backdrop-blur-sm border border-amber-200/60 rounded-3xl p-4 sm:p-6 shadow-sm space-y-4">
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-3 xl:grid-cols-4">
+        <section className="bg-white rounded-xl sm:rounded-2xl lg:rounded-3xl p-3 sm:p-4 md:p-5 lg:p-6 shadow-[0_2px_8px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.1)] space-y-3 sm:space-y-4">
+          <div className="grid grid-cols-1 gap-2 sm:gap-3 lg:grid-cols-3 xl:grid-cols-4">
             <div className="lg:col-span-2 xl:col-span-2">
               <label className="sr-only" htmlFor="sketch-search">
                 Search sketches
               </label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Search className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-400" />
                 <Input
                   id="sketch-search"
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder="Search by sketch name, suspect, officer or description…"
-                  className="pl-9 h-11 text-sm border-slate-200 focus:border-blue-300 focus:ring-blue-200"
+                  className="pl-8 sm:pl-9 h-9 sm:h-10 md:h-11 text-xs sm:text-sm border-slate-200 focus:border-blue-300 focus:ring-blue-200"
                 />
               </div>
             </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:col-span-1">
+            <div className="grid grid-cols-1 gap-2 sm:gap-3 sm:grid-cols-2 lg:col-span-1">
               <div>
                 <label className="sr-only" htmlFor="status-filter">
                   Filter by status
@@ -187,7 +189,7 @@ const RecentSketches: React.FC = () => {
                   onChange={(event) =>
                     setStatusFilter(event.target.value as SketchStatus | 'all')
                   }
-                  className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+                  className="w-full h-9 sm:h-10 md:h-11 rounded-lg sm:rounded-xl border border-slate-200 bg-white px-2.5 sm:px-3 text-xs sm:text-sm text-slate-700 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
                   aria-label="Filter sketches by status"
                 >
                   {statusOptions.map((option) => (
@@ -207,7 +209,7 @@ const RecentSketches: React.FC = () => {
                   onChange={(event) =>
                     setPriorityFilter(event.target.value as SketchPriority | 'all')
                   }
-                  className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+                  className="w-full h-9 sm:h-10 md:h-11 rounded-lg sm:rounded-xl border border-slate-200 bg-white px-2.5 sm:px-3 text-xs sm:text-sm text-slate-700 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
                   aria-label="Filter sketches by priority"
                 >
                   {priorityOptions.map((option) => (
@@ -220,19 +222,19 @@ const RecentSketches: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
             {stats.map((stat) => (
               <Card
                 key={stat.label}
-                className={`bg-gradient-to-br ${stat.accent} shadow-sm border p-4 sm:p-5 rounded-2xl flex flex-col gap-2 transition-transform duration-200 hover:translate-y-[-2px]`}
+                className={`bg-gradient-to-br ${stat.accent} p-2.5 sm:p-3 md:p-4 lg:p-5 rounded-lg sm:rounded-xl md:rounded-2xl flex flex-col gap-1 sm:gap-1.5 md:gap-2 transition-transform duration-200 hover:translate-y-[-2px] shadow-[0_2px_6px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.12)]`}
               >
-                <span className="text-xs uppercase tracking-wide font-semibold">
+                <span className="text-[10px] sm:text-xs uppercase tracking-wide font-semibold">
                   {stat.label}
                 </span>
-                <span className="text-2xl font-bold">
+                <span className="text-lg sm:text-xl md:text-2xl font-bold">
                   {stat.value}
                 </span>
-                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                <span className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wide">
                   {stat.badge}
                 </span>
               </Card>
@@ -240,16 +242,17 @@ const RecentSketches: React.FC = () => {
           </div>
         </section>
 
-        <section className="space-y-4">
+        <section className="space-y-3 sm:space-y-4">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 rounded-3xl p-4 sm:p-5">
-              <p className="font-semibold">Unable to load sketches</p>
-              <p className="text-sm mt-1 text-red-600">
+            <div className="bg-red-50 text-red-700 rounded-xl sm:rounded-2xl lg:rounded-3xl p-3 sm:p-4 md:p-5 shadow-[0_2px_8px_rgba(239,68,68,0.15),0_0_0_1px_rgba(239,68,68,0.2)]">
+              <p className="font-semibold text-sm sm:text-base">Unable to load sketches</p>
+              <p className="text-xs sm:text-sm mt-1 text-red-600">
                 {error.message || 'Please check your connection and try again.'}
               </p>
               <Button
                 onClick={() => refresh()}
-                className="mt-3 bg-red-600 hover:bg-red-700 text-white"
+                size="sm"
+                className="mt-2 sm:mt-3 bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm"
               >
                 Try again
               </Button>
@@ -257,72 +260,72 @@ const RecentSketches: React.FC = () => {
           )}
 
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
               {Array.from({ length: 6 }).map((_, index) => (
                 <Card
                   key={`sketch-skeleton-${index}`}
-                  className="border-amber-100/70 bg-white/70 backdrop-blur-sm rounded-3xl p-4 sm:p-5 space-y-4"
+                  className="border-amber-100/70 bg-white/70 backdrop-blur-sm rounded-xl sm:rounded-2xl lg:rounded-3xl p-3 sm:p-4 md:p-5 space-y-3 sm:space-y-4"
                 >
-                  <Skeleton className="h-40 w-full rounded-2xl" />
-                  <div className="space-y-2">
-                    <Skeleton className="h-5 w-2/3 rounded-full" />
-                    <Skeleton className="h-4 w-1/2 rounded-full" />
-                    <Skeleton className="h-4 w-1/3 rounded-full" />
+                  <Skeleton className="h-32 sm:h-36 md:h-40 w-full rounded-lg sm:rounded-xl" />
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Skeleton className="h-4 sm:h-5 w-2/3 rounded-full" />
+                    <Skeleton className="h-3 sm:h-4 w-1/2 rounded-full" />
+                    <Skeleton className="h-3 sm:h-4 w-1/3 rounded-full" />
                   </div>
                   <div className="flex gap-2">
-                    <Skeleton className="h-9 w-24 rounded-full" />
-                    <Skeleton className="h-9 flex-1 rounded-full" />
+                    <Skeleton className="h-8 sm:h-9 w-20 sm:w-24 rounded-full" />
+                    <Skeleton className="h-8 sm:h-9 flex-1 rounded-full" />
                   </div>
                 </Card>
               ))}
             </div>
           ) : filteredSketches.length === 0 ? (
-            <div className="bg-white/85 backdrop-blur-sm border border-amber-200/60 rounded-3xl p-8 text-center shadow-sm">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 text-amber-600">
-                <PenTool className="h-8 w-8" />
+            <div className="bg-white rounded-xl sm:rounded-2xl lg:rounded-3xl p-6 sm:p-8 text-center shadow-[0_2px_8px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.1)]">
+              <div className="mx-auto mb-3 sm:mb-4 flex h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+                <PenTool className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8" />
               </div>
-              <h2 className="text-lg font-semibold text-slate-900">No sketches found</h2>
-              <p className="text-sm text-slate-600 mt-2">
+              <h2 className="text-base sm:text-lg font-semibold text-slate-900">No sketches found</h2>
+              <p className="text-xs sm:text-sm text-slate-600 mt-1.5 sm:mt-2">
                 {sketches.length === 0
                   ? 'Create your first forensic sketch to get started.'
                   : 'Try a different search or adjust your filters.'}
               </p>
-              <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-2">
-                <Button onClick={handleCreateNew} className="bg-blue-600 hover:bg-blue-700 text-white">
+              <div className="mt-3 sm:mt-4 flex flex-col sm:flex-row items-center justify-center gap-2">
+                <Button onClick={handleCreateNew} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm">
                   Start a new sketch
                 </Button>
                 {sketches.length > 0 && (
-                  <Button onClick={() => refresh()} variant="outline" className="border-amber-200 text-amber-700">
+                  <Button onClick={() => refresh()} size="sm" variant="outline" className="border-amber-200 text-amber-700 text-xs sm:text-sm">
                     Reset filters
                   </Button>
                 )}
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
               {filteredSketches.map((sketch) => (
                 <Card
                   key={sketch._id}
-                  className="group relative border-amber-200/60 bg-white/85 backdrop-blur-sm rounded-3xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow"
+                  className="group relative bg-white rounded-xl sm:rounded-2xl lg:rounded-3xl overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.1)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12),0_0_0_1px_rgba(148,163,184,0.15)] transition-all duration-300"
                 >
                   <div className="relative">
                     {sketch.cloudinary_url ? (
                       <img
                         src={sketch.cloudinary_url}
                         alt={sketch.name}
-                        className="w-full h-52 object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                        className="w-full h-32 sm:h-36 md:h-40 lg:h-44 xl:h-48 object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                         loading="lazy"
                       />
                     ) : (
-                      <div className="w-full h-52 bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
-                        <PenTool className="h-10 w-10 text-slate-400" />
+                      <div className="w-full h-32 sm:h-36 md:h-40 lg:h-44 xl:h-48 bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
+                        <PenTool className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 text-slate-400" />
                       </div>
                     )}
-                    <div className="absolute top-3 left-3 flex gap-2 flex-wrap">
+                    <div className="absolute top-2 left-2 sm:top-3 sm:left-3 flex gap-1.5 sm:gap-2 flex-wrap">
                       {sketch.status && (
                         <Badge
                           variant="secondary"
-                          className={`text-xs font-semibold rounded-full px-3 py-1 ${statusBadgeClasses[sketch.status] || ''}`}
+                          className={`text-[10px] sm:text-xs font-semibold rounded-full px-2 py-0.5 sm:px-2.5 sm:py-1 ${statusBadgeClasses[sketch.status] || ''}`}
                         >
                           {sketch.status}
                         </Badge>
@@ -330,66 +333,70 @@ const RecentSketches: React.FC = () => {
                       {sketch.priority && (
                         <Badge
                           variant="secondary"
-                          className={`text-xs font-semibold rounded-full px-3 py-1 ${priorityBadgeClasses[sketch.priority] || ''}`}
+                          className={`text-[10px] sm:text-xs font-semibold rounded-full px-2 py-0.5 sm:px-2.5 sm:py-1 ${priorityBadgeClasses[sketch.priority] || ''}`}
                         >
                           {sketch.priority} priority
                         </Badge>
                       )}
                     </div>
                   </div>
-                  <div className="p-5 space-y-4">
+                  <div className="p-3 sm:p-4 md:p-5 space-y-2 sm:space-y-3 md:space-y-4">
                     <div>
-                      <h3 className="text-lg font-semibold text-slate-900 truncate">{sketch.name}</h3>
-                      <div className="mt-2 space-y-1 text-sm text-slate-600">
+                      <h3 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 truncate">{sketch.name}</h3>
+                      <div className="mt-1.5 sm:mt-2 space-y-0.5 sm:space-y-1 text-xs sm:text-sm text-slate-600">
                         {sketch.suspect && (
-                          <p>
+                          <p className="truncate">
                             <span className="text-slate-500">Suspect:</span>{' '}
                             <span className="font-medium text-slate-700">{sketch.suspect}</span>
                           </p>
                         )}
                         {sketch.officer && (
-                          <p>
+                          <p className="truncate">
                             <span className="text-slate-500">Officer:</span>{' '}
                             <span className="font-medium text-slate-700">{sketch.officer}</span>
                           </p>
                         )}
                       </div>
                       {sketch.description && (
-                        <p className="mt-3 text-sm text-slate-600 line-clamp-3">
+                        <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-slate-600 line-clamp-2 sm:line-clamp-3">
                           {sketch.description}
                         </p>
                       )}
                     </div>
-                    <div className="flex items-center justify-between text-xs text-slate-500">
-                      <span className="inline-flex items-center gap-1">
-                        <Calendar className="h-3.5 w-3.5" />
-                        {sketch.updated_at
-                          ? new Date(sketch.updated_at).toLocaleString()
-                          : sketch.date
-                          ? new Date(sketch.date).toLocaleDateString()
-                          : 'No timestamp'}
+                    <div className="flex items-center justify-between text-[10px] sm:text-xs text-slate-500">
+                      <span className="inline-flex items-center gap-0.5 sm:gap-1 truncate flex-1 min-w-0">
+                        <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
+                        <span className="truncate">
+                          {sketch.updated_at
+                            ? new Date(sketch.updated_at).toLocaleString()
+                            : sketch.date
+                            ? new Date(sketch.date).toLocaleDateString()
+                            : 'No timestamp'}
+                        </span>
                       </span>
-                      <span className="text-slate-400 font-mono text-[11px]">
+                      <span className="text-slate-400 font-mono text-[10px] sm:text-[11px] flex-shrink-0 ml-1">
                         #{sketch._id.slice(-6).toUpperCase()}
                       </span>
                     </div>
-                    <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-2">
                       <Button
                         onClick={() => handleResume(sketch._id)}
-                        className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                        size="sm"
+                        className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs sm:text-sm"
                       >
                         Resume sketch
                       </Button>
                       <Button
                         onClick={handleCreateNew}
+                        size="sm"
                         variant="outline"
-                        className="flex-1 border-amber-200 text-amber-700 hover:text-amber-800 hover:bg-amber-100/70"
+                        className="flex-1 border-amber-200 text-amber-700 hover:text-amber-800 hover:bg-amber-100/70 text-xs sm:text-sm"
                       >
                         New sketch
                       </Button>
                     </div>
                   </div>
-                  <div className="absolute -right-10 -bottom-10 h-32 w-32 rounded-full bg-amber-100 opacity-0 group-hover:opacity-60 transition-opacity pointer-events-none" />
+                  <div className="absolute -right-8 -bottom-8 sm:-right-10 sm:-bottom-10 h-24 w-24 sm:h-32 sm:w-32 rounded-full bg-amber-100 opacity-0 group-hover:opacity-60 transition-opacity pointer-events-none" />
                 </Card>
               ))}
             </div>
@@ -397,9 +404,10 @@ const RecentSketches: React.FC = () => {
         </section>
 
         {loading && (
-          <div className="fixed bottom-6 right-6 sm:right-8 flex items-center gap-2 rounded-full bg-white/90 backdrop-blur shadow-lg border border-amber-200 px-3 py-1.5 text-sm text-amber-700">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Syncing latest sketches…
+          <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 md:right-8 flex items-center gap-1.5 sm:gap-2 rounded-full bg-white px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm text-slate-700 shadow-[0_4px_12px_rgba(0,0,0,0.15),0_0_0_1px_rgba(148,163,184,0.2)]">
+            <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
+            <span className="hidden sm:inline">Syncing latest sketches…</span>
+            <span className="sm:hidden">Syncing…</span>
           </div>
         )}
       </div>
