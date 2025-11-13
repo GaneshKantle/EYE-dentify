@@ -59,6 +59,9 @@ REQUIRED_ENV_VARS = [
     "CLOUDINARY_CLOUD_NAME",
     "CLOUDINARY_API_KEY",
     "CLOUDINARY_API_SECRET",
+    "MOJOAUTH_API_KEY",
+    "MOJOAUTH_API_SECRET",
+    "MOJOAUTH_BASE_URL",
 ]
 
 missing_env = [var for var in REQUIRED_ENV_VARS if not os.getenv(var)]

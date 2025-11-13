@@ -286,6 +286,24 @@ class APIClient {
     return { token: response.token, user: response.user };
   }
 
+  // MojoAuth registration with OTP verification
+  async registerWithMojoAuth(
+    email: string,
+    username: string,
+    password: string,
+    secretKey: string,
+    mojoAuthStateId: string
+  ): Promise<{ token: string; user: any }> {
+    const response = await this.directPost<{ status: string; token: string; user: any }>('/auth/register-mojoauth', {
+      email,
+      username,
+      password,
+      secret_key: secretKey,
+      mojo_auth_state_id: mojoAuthStateId
+    });
+    return { token: response.token, user: response.user };
+  }
+
   // OTP methods commented out - OTP verification is temporarily disabled
   /*
   async sendOtp(email: string): Promise<{ message: string }> {

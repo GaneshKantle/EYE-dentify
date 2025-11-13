@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
@@ -5,7 +6,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { useAuthStore } from '../../store/authStore';
-import { apiClient } from '../../lib/api';
+import { mojoAuthService } from '../../lib/mojoauth';
 import { Eye, EyeOff, Lock, Mail, User, Key } from 'lucide-react';
 
 // OTP-related code commented out for future reference
@@ -126,27 +127,22 @@ const Register: React.FC = () => {
     setLoading(true);
 
     try {
-      // Direct registration without OTP - OTP code commented out
-      // OTP flow commented out:
-      // await apiClient.sendOtp(formData.email);
-      // setOtpSent(true);
-      // setStep('otp');
+      // Initiate MojoAuth OTP flow
+      const mojoAuthResponse = await mojoAuthService.initiateOTP(formData.email);
       
-      // Direct registration
-      const { token, user } = await apiClient.register(
-        formData.email,
-        formData.username,
-        formData.password,
-        formData.secretKey,
-        '' // OTP parameter - empty string since OTP is disabled
-      );
-      apiClient.setAuthToken(token);
-      setAuth(user, token);
-      navigate('/');
+      // Navigate to OTP verification page with registration data
+      navigate('/register/verify-otp', {
+        state: {
+          email: formData.email,
+          username: formData.username,
+          password: formData.password,
+          secretKey: formData.secretKey,
+          stateId: mojoAuthResponse.state_id,
+        },
+      });
     } catch (err: any) {
-      const errorMessage = err?.response?.data?.detail || err?.message || 'Registration failed. Please try again.';
+      const errorMessage = err?.message || 'Failed to send verification code. Please try again.';
       setError(errorMessage);
-    } finally {
       setIsLoading(false);
       setLoading(false);
     }

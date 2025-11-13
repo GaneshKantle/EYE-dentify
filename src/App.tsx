@@ -11,6 +11,7 @@ import FaceSketch from "./components/facesketch/FaceSketch";
 import RecentSketches from "./pages/RecentSketches";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
+import VerifyOTP from "./pages/auth/VerifyOTP";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { LoadingProvider, GlobalLoading } from "./contexts/LoadingContext";
@@ -34,6 +35,7 @@ const AppContent: React.FC = () => {
       {/* Public routes */}
       <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
       <Route path="/register" element={isAuthenticated ? <Navigate to="/" replace /> : <Register />} />
+      <Route path="/register/verify-otp" element={isAuthenticated ? <Navigate to="/" replace /> : <VerifyOTP />} />
       
       {/* Protected routes */}
       <Route
