@@ -8,16 +8,32 @@ import cloudinary.uploader
 import json
 import os
 
-# Database connection (following existing pattern)
-MONGO_URI = "mongodb+srv://MANJU-A-R:Atlas%401708@cluster0.w3p8plb.mongodb.net/?retryWrites=true&w=majority"
+# Database connection - require MONGO_URI environment variable
+MONGO_URI = os.getenv('MONGO_URI')
+if not MONGO_URI:
+    raise RuntimeError(
+        "MONGO_URI environment variable is required. "
+        "Copy backend/env.example to backend/.env and set MONGO_URI before starting the server."
+    )
 client = MongoClient(MONGO_URI)
 db = client["face_recognition_db"]
 
-# Cloudinary config (following existing pattern)
+# Cloudinary config - load from environment variables
+cloudinary_cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME')
+cloudinary_api_key = os.getenv('CLOUDINARY_API_KEY')
+cloudinary_api_secret = os.getenv('CLOUDINARY_API_SECRET')
+
+if not cloudinary_cloud_name or not cloudinary_api_key or not cloudinary_api_secret:
+    raise RuntimeError(
+        "Cloudinary configuration is required. "
+        "Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in your .env file."
+    )
+
 cloudinary.config(
-    cloud_name="dqkhdusc4",
-    api_key="249697193332389",
-    api_secret="iiN3cjMrzMXGKQew61kAH5lIIXE"
+    cloud_name=cloudinary_cloud_name,
+    api_key=cloudinary_api_key,
+    api_secret=cloudinary_api_secret,
+    secure=True
 )
 
 router = APIRouter(prefix="/sketches", tags=["sketches"])

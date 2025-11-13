@@ -42,15 +42,25 @@ class VerifyMojoAuthOTPRequest(BaseModel):
     state_id: str
     otp: str
 
-# Database connection
-MONGO_URI = os.getenv('MONGO_URI', 'mongodb+srv://MANJU-A-R:Atlas%401708@cluster0.w3p8plb.mongodb.net/?retryWrites=true&w=majority')
+# Database connection - require MONGO_URI environment variable
+MONGO_URI = os.getenv('MONGO_URI')
+if not MONGO_URI:
+    raise RuntimeError(
+        "MONGO_URI environment variable is required. "
+        "Copy backend/env.example to backend/.env and set MONGO_URI before starting the server."
+    )
 client = MongoClient(MONGO_URI)
 db = client["face_recognition_db"]
 users_collection = db["users"]
 otps_collection = db["otps"]
 
-# Environment variables
-REGISTRATION_SECRET_KEY = os.getenv('REGISTRATION_SECRET_KEY', 'Eyedentify@#25')
+# Environment variables - require REGISTRATION_SECRET_KEY
+REGISTRATION_SECRET_KEY = os.getenv('REGISTRATION_SECRET_KEY')
+if not REGISTRATION_SECRET_KEY:
+    raise RuntimeError(
+        "REGISTRATION_SECRET_KEY environment variable is required. "
+        "Copy backend/env.example to backend/.env and set REGISTRATION_SECRET_KEY before starting the server."
+    )
 OTP_EXPIRATION_MINUTES = 10
 
 # MojoAuth configuration

@@ -16,6 +16,23 @@ from PIL import Image
 from dotenv import load_dotenv
 import os
 import gc
+
+# Resolve backend/.env explicitly so we don't pick up the frontend root file
+# Load environment variables BEFORE importing routes that depend on them
+BASE_DIR = Path(__file__).resolve().parent
+DOTENV_PATH = BASE_DIR / ".env"
+
+# Load environment variables with error handling
+try:
+    if DOTENV_PATH.exists():
+        load_dotenv(dotenv_path=DOTENV_PATH)
+    else:
+        load_dotenv()
+except Exception as e:
+    print(f"⚠️ Warning: Could not load .env file: {e}")
+    print("Continuing with environment variables from system...")
+
+# Now import routes after .env is loaded
 from routes.assets import router as assets_router
 from routes.sketches import router as sketches_router
 
@@ -39,20 +56,6 @@ except Exception as e:
     traceback.print_exc()
     auth_router = None
 
-# Resolve backend/.env explicitly so we don't pick up the frontend root file
-BASE_DIR = Path(__file__).resolve().parent
-DOTENV_PATH = BASE_DIR / ".env"
-
-# Load environment variables with error handling
-try:
-    if DOTENV_PATH.exists():
-        load_dotenv(dotenv_path=DOTENV_PATH)
-    else:
-        load_dotenv()
-except Exception as e:
-    print(f"⚠️ Warning: Could not load .env file: {e}")
-    print("Continuing with environment variables from system...")
-
 # Validate required environment variables
 REQUIRED_ENV_VARS = [
     "MONGO_URI",
@@ -62,6 +65,9 @@ REQUIRED_ENV_VARS = [
     "MOJOAUTH_API_KEY",
     "MOJOAUTH_API_SECRET",
     "MOJOAUTH_BASE_URL",
+    "REGISTRATION_SECRET_KEY",
+    "RESEND_API_KEY",
+    "RESEND_TEST_EMAIL",
 ]
 
 missing_env = [var for var in REQUIRED_ENV_VARS if not os.getenv(var)]

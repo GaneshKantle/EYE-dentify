@@ -12,8 +12,13 @@ except ImportError:
 
 class EmailService:
     def __init__(self):
-        # Load from environment variables
-        self.api_key = os.getenv('RESEND_API_KEY', 're_dGRPT8mR_HaN7mPPwfy7oXNETssmVa3Un')
+        # Load from environment variables - require RESEND_API_KEY
+        self.api_key = os.getenv('RESEND_API_KEY')
+        if not self.api_key:
+            raise RuntimeError(
+                "RESEND_API_KEY environment variable is required. "
+                "Copy backend/env.example to backend/.env and set RESEND_API_KEY before starting the server."
+            )
         self.from_email = os.getenv('RESEND_FROM_EMAIL', 'onboarding@resend.dev')
         
         # Initialize Resend - version 2.1.0 uses module-level API
@@ -46,7 +51,12 @@ class EmailService:
         
         # Resend testing limitation: In testing mode, can only send to verified email
         # For production, need to verify domain at resend.com/domains
-        test_email = os.getenv('RESEND_TEST_EMAIL', 'ganeshkantle@gmail.com')
+        test_email = os.getenv('RESEND_TEST_EMAIL')
+        if not test_email:
+            raise RuntimeError(
+                "RESEND_TEST_EMAIL environment variable is required. "
+                "Set RESEND_TEST_EMAIL in your .env file."
+            )
         is_production = os.getenv('RESEND_PRODUCTION', 'false').lower() == 'true'
         
         # In testing mode, check if email matches test email
