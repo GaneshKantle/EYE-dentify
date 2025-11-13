@@ -24,9 +24,9 @@
 # ENVIRONMENT VARIABLES:
 # ======================
 # Make sure backend/.env file exists with:
-# - RESEND_API_KEY=re_dGRPT8mR_HaN7mPPwfy7oXNETssmVa3Un
-# - REGISTRATION_SECRET_KEY=Eyedentify@#25
-# - JWT_SECRET_KEY=your-secret-key-here
+# - RESEND_API_KEY=your_resend_api_key_here
+# - REGISTRATION_SECRET_KEY=your_registration_secret_key_here
+# - JWT_SECRET_KEY=your_jwt_secret_key_here
 #
 # The .env file should already be created in the backend directory.
 

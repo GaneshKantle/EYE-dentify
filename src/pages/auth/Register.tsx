@@ -118,7 +118,14 @@ const Register: React.FC = () => {
       return;
     }
 
-    if (formData.secretKey !== 'Eyedentify@#25') {
+    // Get registration secret key from environment
+    const expectedSecretKey = process.env.REACT_APP_REGISTRATION_SECRET_KEY;
+    if (!expectedSecretKey) {
+      setError('Registration secret key is not configured on the server');
+      return;
+    }
+    
+    if (formData.secretKey !== expectedSecretKey) {
       setError('Invalid registration secret key');
       return;
     }

@@ -33,8 +33,12 @@ class MojoAuthService {
   private isInitialized: boolean = false;
 
   constructor() {
-    // Get API key from environment or use default (test mode)
-    this.apiKey = process.env.REACT_APP_MOJOAUTH_API_KEY || 'test-d3f1390e-7792-40cb-9429-ae3445da332f';
+    // Get API key from environment - required
+    this.apiKey = process.env.REACT_APP_MOJOAUTH_API_KEY || '';
+    if (!this.apiKey) {
+      console.error('REACT_APP_MOJOAUTH_API_KEY is required. Set it in your .env file.');
+      throw new Error('MojoAuth API key is not configured. Please set REACT_APP_MOJOAUTH_API_KEY in your environment variables.');
+    }
     
     // Determine redirect URL based on environment
     const getRedirectUrl = () => {
