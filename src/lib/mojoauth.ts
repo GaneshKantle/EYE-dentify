@@ -27,31 +27,43 @@ export interface MojoAuthError {
 }
 
 class MojoAuthService {
-  private apiKey: string;
-  private redirectUrl: string;
+  private apiKey: string | null = null;
+  private redirectUrl: string | null = null;
   private mojoAuthInstance: any = null;
   private isInitialized: boolean = false;
 
   constructor() {
-    // Get API key from environment - required
-    this.apiKey = process.env.REACT_APP_MOJOAUTH_API_KEY || '';
-    if (!this.apiKey) {
-      console.error('REACT_APP_MOJOAUTH_API_KEY is required. Set it in your .env file.');
-      throw new Error('MojoAuth API key is not configured. Please set REACT_APP_MOJOAUTH_API_KEY in your environment variables.');
+    // Lazy initialization - don't validate until actually used
+    // This allows the app to load even if env vars aren't set
+  }
+
+  /**
+   * Get API key - lazy loaded from environment
+   */
+  private getApiKey(): string {
+    if (this.apiKey === null) {
+      this.apiKey = process.env.REACT_APP_MOJOAUTH_API_KEY || '';
+      if (!this.apiKey) {
+        console.warn('REACT_APP_MOJOAUTH_API_KEY is not set. MojoAuth features may not work.');
+      }
     }
-    
-    // Determine redirect URL based on environment
-    const getRedirectUrl = () => {
+    return this.apiKey;
+  }
+
+  /**
+   * Get redirect URL - lazy loaded from environment
+   */
+  private getRedirectUrl(): string {
+    if (this.redirectUrl === null) {
       if (process.env.REACT_APP_MOJOAUTH_REDIRECT_URL) {
-        return process.env.REACT_APP_MOJOAUTH_REDIRECT_URL;
+        this.redirectUrl = process.env.REACT_APP_MOJOAUTH_REDIRECT_URL;
+      } else if (process.env.NODE_ENV === 'production') {
+        this.redirectUrl = 'https://eye-dentify.vercel.app/register/verify-otp';
+      } else {
+        this.redirectUrl = `${window.location.origin}/register/verify-otp`;
       }
-      if (process.env.NODE_ENV === 'production') {
-        return 'https://eye-dentify.vercel.app/register/verify-otp';
-      }
-      return `${window.location.origin}/register/verify-otp`;
-    };
-    
-    this.redirectUrl = getRedirectUrl();
+    }
+    return this.redirectUrl;
   }
 
   /**
@@ -98,9 +110,13 @@ class MojoAuthService {
     try {
       // Initialize MojoAuth SDK
       // Note: MojoAuth SDK may require container to be specified during signIn, not initialization
-      this.mojoAuthInstance = new window.MojoAuth(this.apiKey, {
+      const apiKey = this.getApiKey();
+      if (!apiKey) {
+        throw new Error('MojoAuth API key is not configured. Please set REACT_APP_MOJOAUTH_API_KEY in your environment variables.');
+      }
+      this.mojoAuthInstance = new window.MojoAuth(apiKey, {
         language: 'en',
-        redirect_url: this.redirectUrl,
+        redirect_url: this.getRedirectUrl(),
         source: [{ type: 'email', feature: 'otp' }],
       });
       this.isInitialized = true;

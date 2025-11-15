@@ -3,6 +3,10 @@
 .env.local
 .env.production
 .env.development
+backend/.env
+backend/.env.local
+backend/.env.production
+backend/.env.development
 
 # Dependencies
 node_modules/
