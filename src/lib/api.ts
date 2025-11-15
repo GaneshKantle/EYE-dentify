@@ -231,6 +231,12 @@ class APIClient {
     return response.data;
   }
 
+  async directPatch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+    const client = this.getDirectClient();
+    const response = await client.patch<T>(url, data, config);
+    return response.data;
+  }
+
   async directDelete<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
     const client = this.getDirectClient();
     const response = await client.delete<T>(url, config);

@@ -13,7 +13,7 @@ const Header = () => {
         {/* Full-Width Header Image - Super Responsive */}
         <div className="w-full h-[40vh] sm:h-[50vh] md:h-[60vh] lg:h-[70vh] xl:h-[75vh] 2xl:h-[80vh] flex items-center justify-center overflow-hidden">
           <img 
-            src={process.env.REACT_APP_HEADER_IMAGE_URL || `https://res.cloudinary.com/${process.env.REACT_APP_CLOUDINARY_CLOUD_NAME || 'your_cloud_name'}/image/upload/v1761245722/1761245640400_1_p2stqx.png`}
+            src={"https://res.cloudinary.com/dqkhdusc4/image/upload/v1761245722/1761245640400_1_p2stqx.png"}
             alt="Forensic Investigation Header"
             className="w-full h-full object-cover object-center"
             style={{

@@ -2185,14 +2185,6 @@ const FaceSketch: React.FC = () => {
                     <FileText className="mr-2 h-4 w-4" />
                     PNG Image
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowSaveModal(true)}>
-                    <Save className="mr-2 h-4 w-4" />
-                    Save to Database
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={saveProject}>
-                    <FileText className="mr-2 h-4 w-4" />
-                    FFB Project
-                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={exportMetadata}>
                     <FileText className="mr-2 h-4 w-4" />
                     JSON Metadata

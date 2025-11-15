@@ -15,6 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "./components/ui/alert-dialog";
+import EditFaceModal from "./components/Gallery/EditFaceModal";
 
 interface Sketch {
   _id: string;
@@ -46,6 +47,8 @@ const Gallery: React.FC = () => {
   const [replaceTargetName, setReplaceTargetName] = useState<string>("");
   const [deleteSketchId, setDeleteSketchId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [editingFace, setEditingFace] = useState<Face | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   // Load criminals
   useEffect(() => {
@@ -161,18 +164,21 @@ const Gallery: React.FC = () => {
     }
   };
 
-  const handleEdit = async (face: Face) => {
-    const nextName = window.prompt("Name", face.name) ?? face.name;
-    const nextAge = window.prompt("Age", face.age || "") ?? face.age;
-    const nextCrime = window.prompt("Crime", face.crime || "") ?? face.crime;
-    const nextDesc = window.prompt("Description", face.description || "") ?? face.description;
-    const payload: any = { name: nextName, age: nextAge, crime: nextCrime, description: nextDesc };
+  const handleEdit = (face: Face) => {
+    setEditingFace(face);
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = async (data: { name: string; age?: string; crime?: string; description?: string }) => {
+    if (!editingFace) return;
+    const payload: any = { name: data.name, age: data.age, crime: data.crime, description: data.description };
     try {
-      await apiClient.directPut(`/face/${encodeURIComponent(face.name)}`, payload);
-      setFaces(prev => prev.map(f => f.name === face.name ? { ...f, ...payload } : f));
+      await apiClient.directPatch(`/face/${encodeURIComponent(editingFace.name)}`, payload);
+      setFaces(prev => prev.map(f => f.name === editingFace.name ? { ...f, ...payload } : f));
     } catch (e) {
       console.error(e);
       alert("Update failed");
+      throw e;
     }
   };
 
@@ -203,14 +209,14 @@ const Gallery: React.FC = () => {
     <div className="min-h-screen bg-white">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12 py-3 sm:py-4 md:py-5 lg:py-6 space-y-3 sm:space-y-4 md:space-y-5 lg:space-y-6">
         {/* Header */}
-        <div className="bg-white rounded-xl sm:rounded-2xl lg:rounded-3xl p-3 sm:p-4 md:p-5 lg:p-6 shadow-[0_2px_8px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.1)]">
-          <h1 className="text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl font-bold text-slate-900">Criminal Database</h1>
-          <p className="text-xs sm:text-sm text-slate-600 max-w-2xl leading-relaxed mt-1 sm:mt-1.5">Browse and manage suspects and sketches from the database</p>
+        <div className="bg-white rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-5 shadow-sm border border-slate-200/60">
+          <h1 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-slate-900">Criminal Database</h1>
+          <p className="text-xs sm:text-sm text-slate-600 max-w-xl leading-snug mt-1">Browse and manage suspects and sketches</p>
         </div>
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-3 sm:mb-4 bg-white rounded-lg sm:rounded-xl shadow-[0_2px_6px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.1)]">
+          <TabsList className="grid w-full grid-cols-2 mb-3 bg-white rounded-lg border border-slate-200/60 shadow-sm">
             <TabsTrigger value="criminals" className="text-xs sm:text-sm">Criminals</TabsTrigger>
             <TabsTrigger value="sketches" className="text-xs sm:text-sm">Sketches</TabsTrigger>
           </TabsList>
@@ -219,22 +225,22 @@ const Gallery: React.FC = () => {
           <TabsContent value="criminals" className="mt-0 space-y-3 sm:space-y-4">
 
         {/* Controls */}
-        <div className="bg-white rounded-lg sm:rounded-xl p-3 sm:p-4 shadow-[0_2px_6px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.1)]">
+        <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm border border-slate-200/60">
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
             <div className="flex-1">
               <input
                 type="text"
-                placeholder="Search..."
+                placeholder="Search suspects..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-2 text-xs sm:text-sm border border-slate-200 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-300 transition-all"
+                className="w-full px-3 py-2 h-9 sm:h-10 text-xs sm:text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300 focus:border-blue-300 transition-all"
               />
             </div>
             <div className="sm:w-40">
               <select
                 value={filterCrime}
                 onChange={(e) => setFilterCrime(e.target.value)}
-                className="w-full px-3 py-2 text-xs sm:text-sm border border-slate-200 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-300 bg-white transition-all"
+                className="w-full px-3 py-2 h-9 sm:h-10 text-xs sm:text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300 focus:border-blue-300 bg-white transition-all"
                 aria-label="Filter by crime type"
               >
                 <option value="">All Crimes</option>
@@ -248,16 +254,16 @@ const Gallery: React.FC = () => {
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
-          <div className="bg-white rounded-lg sm:rounded-xl p-2 sm:p-3 text-center shadow-[0_2px_6px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.12)]">
-            <div className="text-base sm:text-lg md:text-xl font-semibold text-blue-600">{faces.length}</div>
+          <div className="bg-white rounded-lg p-3 text-center border border-slate-200/60 shadow-sm">
+            <div className="text-lg sm:text-xl font-semibold text-blue-600">{faces.length}</div>
             <div className="text-xs text-slate-600">Total</div>
           </div>
-          <div className="bg-white rounded-lg sm:rounded-xl p-2 sm:p-3 text-center shadow-[0_2px_6px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.12)]">
-            <div className="text-base sm:text-lg md:text-xl font-semibold text-emerald-600">{filteredFaces.length}</div>
+          <div className="bg-white rounded-lg p-3 text-center border border-slate-200/60 shadow-sm">
+            <div className="text-lg sm:text-xl font-semibold text-emerald-600">{filteredFaces.length}</div>
             <div className="text-xs text-slate-600">Filtered</div>
           </div>
-          <div className="bg-white rounded-lg sm:rounded-xl p-2 sm:p-3 text-center shadow-[0_2px_6px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.12)]">
-            <div className="text-base sm:text-lg md:text-xl font-semibold text-purple-600">{uniqueCrimes.length}</div>
+          <div className="bg-white rounded-lg p-3 text-center border border-slate-200/60 shadow-sm">
+            <div className="text-lg sm:text-xl font-semibold text-purple-600">{uniqueCrimes.length}</div>
             <div className="text-xs text-slate-600">Crimes</div>
           </div>
         </div>
@@ -280,7 +286,7 @@ const Gallery: React.FC = () => {
             <span className="ml-2 text-xs sm:text-sm text-slate-600">Loading...</span>
           </div>
         ) : filteredFaces.length === 0 ? (
-          <div className="bg-white rounded-lg sm:rounded-xl p-6 sm:p-8 text-center shadow-[0_2px_8px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.1)]">
+          <div className="bg-white rounded-lg p-6 sm:p-8 text-center border border-slate-200/60">
             <div className="text-3xl sm:text-4xl mb-2 opacity-50">📋</div>
             <h3 className="text-base sm:text-lg font-medium text-slate-900 mb-1">No Suspects Found</h3>
             <p className="text-xs sm:text-sm text-slate-600">
@@ -291,38 +297,38 @@ const Gallery: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 sm:gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3">
             {filteredFaces.map((face, idx) => (
-              <div className="bg-white rounded-lg sm:rounded-xl overflow-hidden transition-all duration-200 shadow-[0_2px_6px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.1)] hover:shadow-[0_8px_20px_rgba(0,0,0,0.12),0_0_0_1px_rgba(148,163,184,0.15)]" key={idx}>
+              <div className="bg-white rounded-lg overflow-hidden transition-all duration-200 border border-slate-200/60 hover:border-slate-300 hover:shadow-md" key={idx}>
                 <div className="relative">
                   <img 
                     src={face.image_urls[0]} 
                     alt={face.name} 
-                    className="w-full h-20 sm:h-24 md:h-28 lg:h-32 object-cover" 
+                    className="w-full h-24 sm:h-28 md:h-32 object-cover" 
                     loading="lazy"
                   />
-                  <div className="absolute top-1 right-1 flex gap-0.5 sm:gap-1">
+                  <div className="absolute top-1 right-1 flex gap-1">
                     <button
                       onClick={() => handleEdit(face)}
-                      className="px-1 sm:px-1.5 py-0.5 text-[9px] sm:text-[10px] bg-white/95 backdrop-blur-sm border border-slate-200 rounded hover:bg-white transition-colors"
+                      className="px-1.5 py-0.5 text-[10px] bg-white/95 backdrop-blur-sm border border-slate-200 rounded hover:bg-white transition-colors shadow-sm"
                       aria-label="Edit"
                       title="Edit"
                     >Edit</button>
                     <button
                       onClick={() => handleReplaceClick(face.name)}
-                      className="px-1 sm:px-1.5 py-0.5 text-[9px] sm:text-[10px] bg-white/95 backdrop-blur-sm border border-slate-200 rounded hover:bg-white transition-colors"
+                      className="px-1.5 py-0.5 text-[10px] bg-white/95 backdrop-blur-sm border border-slate-200 rounded hover:bg-white transition-colors shadow-sm"
                       aria-label="Replace image"
                       title="Replace image"
                     >Img</button>
                     <button
                       onClick={() => handleDelete(face.name)}
-                      className="px-1 sm:px-1.5 py-0.5 text-[9px] sm:text-[10px] bg-red-50 border border-red-200 text-red-700 rounded hover:bg-red-100 transition-colors"
+                      className="px-1.5 py-0.5 text-[10px] bg-red-50 border border-red-200 text-red-700 rounded hover:bg-red-100 transition-colors shadow-sm"
                       aria-label="Delete"
                       title="Delete"
                     >Del</button>
                   </div>
                 </div>
-                <div className="p-1.5 sm:p-2">
+                <div className="p-2">
                   <h3 className="text-xs sm:text-sm font-medium text-slate-900 truncate mb-1">{face.name}</h3>
                   <div className="space-y-0.5 mb-1">
                     <div className="flex justify-between text-[10px] sm:text-xs">
@@ -335,7 +341,6 @@ const Gallery: React.FC = () => {
                     </div>
                   </div>
                   <p className="text-[10px] sm:text-xs text-slate-600 line-clamp-2 mb-1">{face.description || 'No description'}</p>
-                  <div className="text-[9px] text-slate-400">ID: #{String(idx + 1).padStart(3, '0')}</div>
                 </div>
               </div>
             ))}
@@ -346,28 +351,28 @@ const Gallery: React.FC = () => {
           {/* Sketches Tab */}
           <TabsContent value="sketches" className="mt-0 space-y-3 sm:space-y-4">
             {/* Controls */}
-            <div className="bg-white rounded-lg sm:rounded-xl p-3 sm:p-4 shadow-[0_2px_6px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.1)]">
+            <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm border border-slate-200/60">
               <input
                 type="text"
-                placeholder="Search sketches by name, suspect, or officer..."
+                placeholder="Search sketches..."
                 value={sketchSearchTerm}
                 onChange={(e) => setSketchSearchTerm(e.target.value)}
-                className="w-full px-3 py-2 text-xs sm:text-sm border border-slate-200 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-300 transition-all"
+                className="w-full px-3 py-2 h-9 sm:h-10 text-xs sm:text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300 focus:border-blue-300 transition-all"
               />
             </div>
 
             {/* Stats */}
             <div className="grid grid-cols-3 gap-2 sm:gap-3">
-              <div className="bg-white rounded-lg sm:rounded-xl p-2 sm:p-3 text-center shadow-[0_2px_6px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.12)]">
-                <div className="text-base sm:text-lg md:text-xl font-semibold text-blue-600">{sketches.length}</div>
+              <div className="bg-white rounded-lg p-3 text-center border border-slate-200/60 shadow-sm">
+                <div className="text-lg sm:text-xl font-semibold text-blue-600">{sketches.length}</div>
                 <div className="text-xs text-slate-600">Total</div>
               </div>
-              <div className="bg-white rounded-lg sm:rounded-xl p-2 sm:p-3 text-center shadow-[0_2px_6px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.12)]">
-                <div className="text-base sm:text-lg md:text-xl font-semibold text-emerald-600">{filteredSketches.length}</div>
+              <div className="bg-white rounded-lg p-3 text-center border border-slate-200/60 shadow-sm">
+                <div className="text-lg sm:text-xl font-semibold text-emerald-600">{filteredSketches.length}</div>
                 <div className="text-xs text-slate-600">Filtered</div>
               </div>
-              <div className="bg-white rounded-lg sm:rounded-xl p-2 sm:p-3 text-center shadow-[0_2px_6px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.12)]">
-                <div className="text-base sm:text-lg md:text-xl font-semibold text-purple-600">
+              <div className="bg-white rounded-lg p-3 text-center border border-slate-200/60 shadow-sm">
+                <div className="text-lg sm:text-xl font-semibold text-purple-600">
                   {sketches.filter(s => s.status === 'completed').length}
                 </div>
                 <div className="text-xs text-slate-600">Completed</div>
@@ -381,7 +386,7 @@ const Gallery: React.FC = () => {
                 <span className="ml-2 text-xs sm:text-sm text-slate-600">Loading sketches...</span>
               </div>
             ) : filteredSketches.length === 0 ? (
-              <div className="bg-white rounded-lg sm:rounded-xl p-6 sm:p-8 text-center shadow-[0_2px_8px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.1)]">
+              <div className="bg-white rounded-lg p-6 sm:p-8 text-center border border-slate-200/60">
                 <div className="text-3xl sm:text-4xl mb-2 opacity-50">🎨</div>
                 <h3 className="text-base sm:text-lg font-medium text-slate-900 mb-1">No Sketches Found</h3>
                 <p className="text-xs sm:text-sm text-slate-600">
@@ -392,27 +397,27 @@ const Gallery: React.FC = () => {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                 {filteredSketches.map((sketch) => (
                   <div 
                     key={sketch._id} 
-                    className="bg-white rounded-lg sm:rounded-xl overflow-hidden transition-all duration-200 shadow-[0_2px_8px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.1)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12),0_0_0_1px_rgba(148,163,184,0.15)]"
+                    className="bg-white rounded-lg overflow-hidden border border-slate-200/60 hover:border-slate-300 hover:shadow-md transition-all duration-200"
                   >
                     <div className="relative">
                       {sketch.cloudinary_url ? (
                         <img 
                           src={sketch.cloudinary_url} 
                           alt={sketch.name} 
-                          className="w-full h-40 sm:h-44 md:h-48 object-cover"
+                          className="w-full h-36 sm:h-40 object-cover"
                           loading="lazy"
                         />
                       ) : (
-                        <div className="w-full h-40 sm:h-44 md:h-48 bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center">
-                          <PenTool className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 text-amber-600 opacity-50" />
+                        <div className="w-full h-36 sm:h-40 bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center">
+                          <PenTool className="w-12 h-12 text-amber-600 opacity-50" />
                         </div>
                       )}
                       <div className="absolute top-2 right-2">
-                        <span className={`px-2 py-1 text-[10px] sm:text-xs rounded-full ${
+                        <span className={`px-2 py-1 text-[10px] rounded-full ${
                           sketch.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
                           sketch.status === 'in-progress' ? 'bg-blue-100 text-blue-700' :
                           sketch.status === 'review' ? 'bg-purple-100 text-purple-700' :
@@ -425,7 +430,7 @@ const Gallery: React.FC = () => {
                         <Button
                           size="sm"
                           variant="secondary"
-                          className="flex-1 h-7 text-[10px] sm:text-xs"
+                          className="flex-1 h-7 text-[10px]"
                           onClick={() => handleSketchView(sketch._id)}
                         >
                           <Eye className="w-3 h-3 mr-1" />
@@ -434,7 +439,7 @@ const Gallery: React.FC = () => {
                         <Button
                           size="sm"
                           variant="secondary"
-                          className="flex-1 h-7 text-[10px] sm:text-xs"
+                          className="flex-1 h-7 text-[10px]"
                           onClick={() => handleSketchEdit(sketch._id)}
                         >
                           <Edit className="w-3 h-3 mr-1" />
@@ -453,9 +458,9 @@ const Gallery: React.FC = () => {
                         </Button>
                       </div>
                     </div>
-                    <div className="p-2 sm:p-3">
-                      <h3 className="text-xs sm:text-sm font-semibold text-slate-900 mb-1.5 sm:mb-2 truncate">{sketch.name}</h3>
-                      <div className="space-y-1 text-[10px] sm:text-xs text-slate-600">
+                    <div className="p-3">
+                      <h3 className="text-sm font-semibold text-slate-900 mb-2 truncate">{sketch.name}</h3>
+                      <div className="space-y-1 text-xs text-slate-600">
                         {sketch.suspect && (
                           <div className="flex justify-between">
                             <span className="text-slate-500">Suspect:</span>
@@ -466,14 +471,6 @@ const Gallery: React.FC = () => {
                           <div className="flex justify-between">
                             <span className="text-slate-500">Officer:</span>
                             <span className="font-medium text-slate-900">{sketch.officer}</span>
-                          </div>
-                        )}
-                        {sketch.date && (
-                          <div className="flex justify-between">
-                            <span className="text-slate-500">Date:</span>
-                            <span className="font-medium text-slate-900">
-                              {new Date(sketch.date).toLocaleDateString()}
-                            </span>
                           </div>
                         )}
                         {sketch.priority && (
@@ -490,9 +487,6 @@ const Gallery: React.FC = () => {
                           </div>
                         )}
                       </div>
-                      {sketch.description && (
-                        <p className="text-[10px] sm:text-xs text-slate-600 mt-2 line-clamp-2">{sketch.description}</p>
-                      )}
                     </div>
                   </div>
                 ))}
@@ -526,6 +520,14 @@ const Gallery: React.FC = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Edit Face Modal */}
+        <EditFaceModal
+          open={showEditModal}
+          onOpenChange={setShowEditModal}
+          face={editingFace}
+          onSave={handleSaveEdit}
+        />
       </div>
     </div>
   );

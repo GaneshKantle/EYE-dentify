@@ -1,6 +1,6 @@
 /*eslint-disable*/
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, User, LogOut, Settings, Shield } from 'lucide-react';
+import { Menu, X, User, LogOut, Settings } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useAuthStore } from '../../store/authStore';
 import {
@@ -33,28 +33,11 @@ export const Navbar = () => {
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link to="/login" className="flex items-center space-x-2 sm:space-x-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center">
-                <div className="w-full h-full bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center">
-                  <Shield className="w-5 h-5 text-white" />
-                </div>
+              <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center flex-shrink-0">
+                <img src="/favicon.png" alt="EYE'dentify" className="w-full h-full object-contain" />
               </div>
               <span className="font-bold text-lg sm:text-xl lg:text-2xl text-gray-800">EYE'dentify</span>
             </Link>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                onClick={() => navigate('/login')}
-                className="text-slate-700 hover:bg-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.08),0_0_0_1px_rgba(148,163,184,0.12)]"
-              >
-                Sign In
-              </Button>
-              <Button
-                onClick={() => navigate('/register')}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-[0_2px_8px_rgba(59,130,246,0.3),0_0_0_1px_rgba(59,130,246,0.2)]"
-              >
-                Sign Up
-              </Button>
-            </div>
           </div>
         </div>
       </nav>
@@ -88,9 +71,7 @@ export const Navbar = () => {
             <div className="flex items-center justify-center flex-1 min-w-0">
               <Link to="/" className="flex items-center space-x-2 sm:space-x-3 group">
                 <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform duration-200">
-                  <div className="w-full h-full bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center">
-                    <Shield className="w-5 h-5 text-white" />
-                  </div>
+                  <img src="/favicon.png" alt="EYE'dentify" className="w-full h-full object-contain" />
                 </div>
                 <span className="font-bold text-lg sm:text-xl lg:text-2xl text-gray-800 truncate group-hover:text-red-600 transition-colors duration-200">EYE'dentify</span>
               </Link>

@@ -1,6 +1,6 @@
 /*eslint-disable*/
-import { useNavigate } from 'react-router-dom';
-import { Scan, PenTool, Database, ArrowRight, Shield, FileText, UserPlus } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Scan, PenTool, Database, ArrowRight, Shield, FileText, UserPlus, Target, Zap, Brain, Search, Cloud, Lock, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from './components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
@@ -10,6 +10,8 @@ import Header from './pages/dashboard/Header';
 import { Footer } from './pages/dashboard/Footer';
 import { useEffect, useState } from 'react';
 import { apiClient } from './lib/api';
+import { useAuthStore } from './store/authStore';
+import { WelcomeModal } from './components/WelcomeModal';
 
 interface FeatureCard {
   id: string;
@@ -65,8 +67,11 @@ interface FeatureCard {
 
 export const Dashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuthStore();
   const [faces, setFaces] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [showWelcome, setShowWelcome] = useState<boolean>(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -86,6 +91,16 @@ export const Dashboard = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const locationState = location.state as { showWelcome?: boolean } | null;
+    if (locationState?.showWelcome && user?.username) {
+      const hasShown = localStorage.getItem('welcomeShown');
+      if (!hasShown) {
+        setShowWelcome(true);
+      }
+    }
+  }, [location.state, user]);
+
   const totalRecords = faces.length;
   const totalImages = faces.reduce((sum, f) => sum + (f.image_urls?.length || 0), 0);
   const uniqueCrimes = Array.from(new Set((faces || []).map((f) => (f.crime || '').trim()).filter(Boolean))).length;
@@ -96,6 +111,13 @@ export const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-white text-gray-800 relative overflow-hidden">
+      {user?.username && (
+        <WelcomeModal
+          open={showWelcome}
+          onOpenChange={setShowWelcome}
+          username={user.username}
+        />
+      )}
 
       {/* Background Pattern - Subtle Investigation Board Effect */}
       <div className="absolute inset-0 opacity-3">
@@ -108,6 +130,63 @@ export const Dashboard = () => {
 
       {/* Header Component */}
       <Header />
+
+      {/* Informational Section */}
+      <div className="relative z-10 px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12 py-4 sm:py-6 md:py-8 lg:py-10">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+            {/* What We Are */}
+            <Card className="bg-white border border-slate-200/60 shadow-sm rounded-lg p-4 sm:p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Target className="w-5 h-5 text-blue-600" />
+                <h3 className="text-base sm:text-lg font-semibold text-slate-900">What We Are</h3>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                Advanced forensic face recognition system for law enforcement. AI-powered platform combining deep learning 
+                with intuitive tools to identify suspects and manage criminal databases efficiently.
+              </p>
+            </Card>
+
+            {/* What We're Trying to Solve */}
+            <Card className="bg-white border border-slate-200/60 shadow-sm rounded-lg p-4 sm:p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Zap className="w-5 h-5 text-emerald-600" />
+                <h3 className="text-base sm:text-lg font-semibold text-slate-900">Problem We Solve</h3>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                Rapid suspect identification from witness descriptions, surveillance footage, or partial images. 
+                Replaces time-consuming manual methods with instant AI-powered matching across large databases.
+              </p>
+            </Card>
+
+            {/* What We Provide */}
+            <Card className="bg-white border border-slate-200/60 shadow-sm rounded-lg p-4 sm:p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Shield className="w-5 h-5 text-indigo-600" />
+                <h3 className="text-base sm:text-lg font-semibold text-slate-900">What We Provide</h3>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-start gap-2">
+                  <Search className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm text-slate-600">Face recognition & matching</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <PenTool className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm text-slate-600">Forensic sketch creation</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Cloud className="w-4 h-4 text-indigo-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm text-slate-600">Secure cloud storage</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Brain className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm text-slate-600">98.5% AI accuracy</span>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+      </div>
 
       {/* Main Content */}
       <div className="relative z-10 px-2 sm:px-3 md:px-5 lg:px-7 xl:px-9 2xl:px-12 3xl:px-14 py-3 sm:py-5 md:py-8 lg:py-10 xl:py-12 2xl:py-14 3xl:py-16">

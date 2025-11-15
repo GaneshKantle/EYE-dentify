@@ -118,17 +118,8 @@ const Register: React.FC = () => {
       return;
     }
 
-    // Get registration secret key from environment
-    const expectedSecretKey = process.env.REACT_APP_REGISTRATION_SECRET_KEY;
-    if (!expectedSecretKey) {
-      setError('Registration secret key is not configured on the server');
-      return;
-    }
-    
-    if (formData.secretKey !== expectedSecretKey) {
-      setError('Invalid registration secret key');
-      return;
-    }
+    // Note: Secret key validation is handled by the backend for security
+    // Frontend validation removed to avoid exposing the key in the browser bundle
 
     setIsLoading(true);
     setLoading(true);

@@ -134,7 +134,11 @@ class MojoAuthService {
     try {
       // Use backend API to send OTP - backend will call MojoAuth REST API
       const apiUrl = this.getApiBaseUrl();
-      const response = await fetch(`${apiUrl}/auth/send-mojoauth-otp`, {
+      const url = `${apiUrl}/auth/send-mojoauth-otp`;
+      
+      console.log(`📤 Sending OTP request to: ${url}`);
+      
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -143,8 +147,19 @@ class MojoAuthService {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.detail || errorData.message || 'Failed to send OTP';
+        let errorMessage = 'Failed to send OTP';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.detail || errorData.message || errorMessage;
+        } catch (e) {
+          // If response is not JSON, try to get text
+          try {
+            const text = await response.text();
+            errorMessage = text || errorMessage;
+          } catch (e2) {
+            // Ignore
+          }
+        }
         throw new Error(errorMessage);
       }
 
@@ -160,7 +175,27 @@ class MojoAuthService {
       throw new Error('Invalid response from server - no state_id found');
     } catch (error: any) {
       console.error('MojoAuth initiateOTP error:', error);
-      throw new Error(error?.message || 'Failed to initiate OTP');
+      
+      // Handle network errors with more helpful messages
+      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        const apiUrl = this.getApiBaseUrl();
+        throw new Error(
+          `Cannot connect to backend server at ${apiUrl}. ` +
+          `Please ensure the backend is running. ` +
+          `If running locally, start the backend server on port 8000.`
+        );
+      }
+      
+      // Handle other fetch errors
+      if (error.name === 'NetworkError' || error.message.includes('NetworkError')) {
+        const apiUrl = this.getApiBaseUrl();
+        throw new Error(
+          `Network error: Cannot reach backend server at ${apiUrl}. ` +
+          `Please check your internet connection and ensure the backend is running.`
+        );
+      }
+      
+      throw new Error(error?.message || 'Failed to initiate OTP. Please try again.');
     }
   }
 
