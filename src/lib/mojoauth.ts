@@ -134,7 +134,8 @@ class MojoAuthService {
     try {
       // Use backend API to send OTP - backend will call MojoAuth REST API
       const apiUrl = this.getApiBaseUrl();
-      const url = `${apiUrl}/auth/send-mojoauth-otp`;
+      // Ensure no double slashes in URL
+      const url = `${apiUrl}/auth/send-mojoauth-otp`.replace(/([^:]\/)\/+/g, '$1');
       
       console.log(`📤 Sending OTP request to: ${url}`);
       
@@ -203,13 +204,13 @@ class MojoAuthService {
    * Get API base URL
    */
   private getApiBaseUrl(): string {
+    // Always use REACT_APP_API_URL if set, otherwise use production backend
     if (process.env.REACT_APP_API_URL) {
-      return process.env.REACT_APP_API_URL;
+      const url = process.env.REACT_APP_API_URL.trim();
+      return url.endsWith('/') ? url.slice(0, -1) : url;
     }
-    if (process.env.NODE_ENV === 'production') {
-      return 'https://eye-dentify.onrender.com';
-    }
-    return 'http://localhost:8000';
+    // Default to production backend URL
+    return 'https://eye-dentify.onrender.com';
   }
 
   /**

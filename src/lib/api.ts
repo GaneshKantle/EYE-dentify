@@ -1,20 +1,16 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 // Environment configuration
-// Automatically detect production vs development
+// Always use REACT_APP_API_URL if set, otherwise use production backend
 const getApiUrl = () => {
-  // If explicitly set via environment variable, use it
+  // If explicitly set via environment variable, use it (remove trailing slash if present)
   if (process.env.REACT_APP_API_URL) {
-    return process.env.REACT_APP_API_URL;
+    const url = process.env.REACT_APP_API_URL.trim();
+    return url.endsWith('/') ? url.slice(0, -1) : url;
   }
   
-  // If running in production, use production backend
-  if (process.env.NODE_ENV === 'production') {
-    return 'https://eye-dentify.onrender.com';
-  }
-  
-  // Default to localhost for development
-  return 'http://localhost:8000';
+  // Default to production backend URL
+  return 'https://eye-dentify.onrender.com';
 };
 
 const config = {

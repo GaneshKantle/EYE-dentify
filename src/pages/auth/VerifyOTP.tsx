@@ -10,13 +10,13 @@ import { OTPVerification } from '../../components/ui/otp-input';
 
 // Helper function to get API base URL
 const getApiBaseUrl = () => {
+  // Always use REACT_APP_API_URL if set, otherwise use production backend
   if (process.env.REACT_APP_API_URL) {
-    return process.env.REACT_APP_API_URL;
+    const url = process.env.REACT_APP_API_URL.trim();
+    return url.endsWith('/') ? url.slice(0, -1) : url;
   }
-  if (process.env.NODE_ENV === 'production') {
-    return 'https://eye-dentify.onrender.com';
-  }
-  return 'http://localhost:8000';
+  // Default to production backend URL
+  return 'https://eye-dentify.onrender.com';
 };
 
 interface LocationState {
