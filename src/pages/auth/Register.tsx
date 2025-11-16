@@ -28,6 +28,7 @@ const Register: React.FC = () => {
   // const [otp, setOtp] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showSecretKey, setShowSecretKey] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   // OTP state variables commented out
@@ -121,12 +122,19 @@ const Register: React.FC = () => {
     // Note: Secret key validation is handled by the backend for security
     // Frontend validation removed to avoid exposing the key in the browser bundle
 
-    setIsLoading(true);
-    setLoading(true);
-
     try {
-      // Initiate MojoAuth OTP flow
-      const mojoAuthResponse = await mojoAuthService.initiateOTP(formData.email);
+      setIsLoading(true);
+      setLoading(true);
+
+      // Backend pre-check: validate email, username, and secret key before sending OTP
+      await apiClient.precheckRegister(
+        formData.email.trim(),
+        formData.username.trim(),
+        formData.secretKey
+      );
+
+      // Initiate MojoAuth OTP flow only if pre-check passes
+      const mojoAuthResponse = await mojoAuthService.initiateOTP(formData.email.trim());
       
       // Navigate to OTP verification page with registration data
       navigate('/register/verify-otp', {
@@ -139,8 +147,13 @@ const Register: React.FC = () => {
         },
       });
     } catch (err: any) {
-      const errorMessage = err?.message || 'Failed to send verification code. Please try again.';
+      // Show clear inline error (without proceeding to OTP screen)
+      const errorMessage =
+        err?.response?.data?.detail ||
+        err?.message ||
+        'Failed to send verification code. Please try again.';
       setError(errorMessage);
+    } finally {
       setIsLoading(false);
       setLoading(false);
     }
@@ -338,7 +351,7 @@ const Register: React.FC = () => {
                 <Key className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   id="secretKey"
-                  type="password"
+                  type={showSecretKey ? 'text' : 'password'}
                   placeholder="Enter registration secret key"
                   value={formData.secretKey}
                   onChange={(e) => {
@@ -346,9 +359,17 @@ const Register: React.FC = () => {
                     setError('');
                   }}
                   required
-                  className="pl-10 h-11 border-gray-300 focus:border-amber-500 focus:ring-amber-500"
+                  className="pl-10 pr-10 h-11 border-gray-300 focus:border-amber-500 focus:ring-amber-500"
                   disabled={isLoading}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowSecretKey(!showSecretKey)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  tabIndex={-1}
+                >
+                  {showSecretKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
               <p className="text-xs text-gray-500">
                 Only authorized personnel can register

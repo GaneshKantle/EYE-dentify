@@ -306,6 +306,20 @@ class APIClient {
     return { token: response.token, user: response.user };
   }
 
+  // Pre-check registration before sending OTP (validates email, username, and secret key)
+  async precheckRegister(
+    email: string,
+    username: string,
+    secretKey: string
+  ): Promise<{ status: string; message: string }> {
+    const response = await this.directPost<{ status: string; message: string }>('/auth/precheck-register', {
+      email,
+      username,
+      secret_key: secretKey,
+    });
+    return response;
+  }
+
   // OTP methods commented out - OTP verification is temporarily disabled
   /*
   async sendOtp(email: string): Promise<{ message: string }> {

@@ -75,6 +75,13 @@ email_service = EmailService()
 router = APIRouter(prefix="/auth", tags=["auth"])
 security = HTTPBearer()
 
+
+class PrecheckRegisterRequest(BaseModel):
+    """Request model for validating registration inputs before sending OTP."""
+    email: str
+    username: str
+    secret_key: str
+
 # Test endpoint to verify router is working
 @router.get("/test")
 async def test_auth_router():
@@ -200,6 +207,57 @@ def hash_otp(otp: str) -> str:
 #         raise
 #     except Exception as e:
 #         raise HTTPException(status_code=500, detail=f"Failed to verify OTP: {str(e)}")
+
+
+@router.post("/precheck-register")
+async def precheck_register(request: PrecheckRegisterRequest):
+    """
+    Validate registration inputs (email, username, secret key) before sending OTP.
+    This prevents sending OTP when registration would fail later.
+    """
+    try:
+        email = request.email
+        username = request.username
+        secret_key = request.secret_key
+
+        # Validate secret key
+        if secret_key != REGISTRATION_SECRET_KEY:
+            raise HTTPException(status_code=403, detail="Invalid registration secret key")
+
+        # Basic field presence
+        if not email or not username:
+            raise HTTPException(status_code=400, detail="Email and username are required")
+
+        # Email format validation (same as register_mojoauth)
+        if '@' not in email or '.' not in email.split('@')[1]:
+            raise HTTPException(status_code=400, detail="Invalid email format")
+
+        # Username validation (same rules as register_mojoauth)
+        if len(username) < 3:
+            raise HTTPException(status_code=400, detail="Username must be at least 3 characters")
+        if len(username) > 20:
+            raise HTTPException(status_code=400, detail="Username must be less than 20 characters")
+        if not username.replace('_', '').isalnum():
+            raise HTTPException(status_code=400, detail="Username can only contain letters, numbers, and underscores")
+
+        # Check if email already exists
+        existing_user = users_collection.find_one({"email": email.lower()})
+        if existing_user:
+            raise HTTPException(status_code=400, detail="Email already registered")
+
+        # Check if username already exists
+        existing_username = users_collection.find_one({"username": username})
+        if existing_username:
+            raise HTTPException(status_code=400, detail="Username already taken")
+
+        return {
+            "status": "ok",
+            "message": "Registration data is valid"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to validate registration: {str(e)}")
 
 @router.post("/register")
 async def register(request: RegisterRequest):
