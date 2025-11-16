@@ -22,7 +22,7 @@ const config = {
 };
 
 const apiTimeoutMs =
-  Number(process.env.REACT_APP_API_TIMEOUT_MS || '') || 30000;
+  Number(process.env.REACT_APP_API_TIMEOUT_MS || '') || 60000;
 
 // API Client configuration
 class APIClient {

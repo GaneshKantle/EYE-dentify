@@ -375,12 +375,17 @@ async def login(request: LoginRequest):
         user = users_collection.find_one({"email": email.lower()})
         
         if not user:
+            # Do not reveal whether email exists
             raise HTTPException(status_code=401, detail="Invalid email or password")
         
         # Verify password
         try:
             if not verify_password(password, user.get("password", "")):
+                # Wrong password or invalid hash gets the same generic error
                 raise HTTPException(status_code=401, detail="Invalid email or password")
+        except HTTPException:
+            # Already normalized above
+            raise
         except Exception as e:
             # Catch any unexpected bcrypt or encoding errors and treat as auth failure
             print(f"⚠️ Error while verifying password for user {user.get('_id')}: {e}")
@@ -400,9 +405,12 @@ async def login(request: LoginRequest):
             }
         }
     except HTTPException:
+        # Return normalized auth / client errors as-is
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Login failed: {str(e)}")
+        # Log and return a generic server error without leaking internals
+        print(f"✗ Unexpected error during login: {e}")
+        raise HTTPException(status_code=500, detail="Login failed due to a server error")
 
 @router.post("/logout")
 async def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
