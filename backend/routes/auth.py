@@ -1,4 +1,3 @@
-/*eslint-disable */
 from fastapi import APIRouter, HTTPException, Body, Depends, Request
 from fastapi.responses import Response
 from pymongo import MongoClient
