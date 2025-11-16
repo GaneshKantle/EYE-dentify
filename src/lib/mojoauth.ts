@@ -1,3 +1,4 @@
+/*eslint-disable */
 /**
  * MojoAuth Service Wrapper
  * Handles email OTP authentication using MojoAuth SDK

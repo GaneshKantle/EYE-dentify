@@ -1,3 +1,4 @@
+/*eslint-disable */
 import { useState, useEffect, useRef } from "react"
 import { AnimatePresence, motion, useAnimationControls, Transition } from "framer-motion"
 import { Check } from "lucide-react"

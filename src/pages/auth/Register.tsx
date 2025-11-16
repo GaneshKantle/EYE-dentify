@@ -7,6 +7,7 @@ import { Label } from '../../components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { useAuthStore } from '../../store/authStore';
 import { mojoAuthService } from '../../lib/mojoauth';
+import { apiClient } from '../../lib/api';
 import { Eye, EyeOff, Lock, Mail, User, Key } from 'lucide-react';
 
 // OTP-related code commented out for future reference
