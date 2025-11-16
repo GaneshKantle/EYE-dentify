@@ -118,7 +118,10 @@ facenet: Optional[InceptionResnetV1] = None
 models_ready = False
 recognition_threshold = _float_env("RECOGNITION_THRESHOLD", 0.50)
 rejection_threshold = _float_env("REJECTION_THRESHOLD", 0.30)
-model_auto_load = _bool_env("MODEL_AUTO_LOAD", "true")
+# In memory-constrained or cold-start-prone environments (e.g. free tiers),
+# loading ML models at startup can make every first request very slow.
+# Default to lazy loading unless explicitly overridden via MODEL_AUTO_LOAD.
+model_auto_load = _bool_env("MODEL_AUTO_LOAD", "false")
 
 # ---------------- Utils ----------------
 def _fixed_image_standardization(x):

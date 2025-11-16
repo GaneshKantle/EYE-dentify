@@ -86,6 +86,10 @@ const Gallery: React.FC = () => {
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
+        // Skip polling when tab is not visible to reduce unnecessary load
+        if (document.hidden) {
+          return;
+        }
         const data = await apiClient.directGet<GalleryResponse>("/gallery");
         const next = data.faces || [];
         if (JSON.stringify(next) !== JSON.stringify(faces)) {
@@ -94,7 +98,7 @@ const Gallery: React.FC = () => {
       } catch (err) {
         // Silently fail on polling errors
       }
-    }, 5000);
+    }, 15000);
     return () => clearInterval(interval);
   }, [faces]);
 

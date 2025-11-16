@@ -1,3 +1,4 @@
+/*eslint-disable */
 from fastapi import APIRouter, HTTPException, Body, Depends, Request
 from fastapi.responses import Response
 from pymongo import MongoClient
@@ -95,8 +96,18 @@ def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
 
 def verify_password(password: str, hashed: str) -> bool:
-    """Verify password against hash"""
-    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+    """Verify password against hash.
+
+    If the stored hash is invalid (e.g. plain text, truncated, or non-bcrypt),
+    bcrypt.checkpw will raise a ValueError like \"Invalid salt\". We treat that
+    as a failed password check instead of crashing the login endpoint.
+    """
+    try:
+        return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+    except ValueError as e:
+        # Log and treat invalid hashes as authentication failure
+        print(f"⚠️ Invalid password hash encountered during login: {e}")
+        return False
 
 # OTP helper functions
 def generate_otp() -> str:
@@ -367,7 +378,12 @@ async def login(request: LoginRequest):
             raise HTTPException(status_code=401, detail="Invalid email or password")
         
         # Verify password
-        if not verify_password(password, user["password"]):
+        try:
+            if not verify_password(password, user.get("password", "")):
+                raise HTTPException(status_code=401, detail="Invalid email or password")
+        except Exception as e:
+            # Catch any unexpected bcrypt or encoding errors and treat as auth failure
+            print(f"⚠️ Error while verifying password for user {user.get('_id')}: {e}")
             raise HTTPException(status_code=401, detail="Invalid email or password")
         
         # Generate JWT token

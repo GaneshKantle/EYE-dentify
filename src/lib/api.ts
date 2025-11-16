@@ -21,6 +21,9 @@ const config = {
   version: process.env.REACT_APP_VERSION || '1.0.0',
 };
 
+const apiTimeoutMs =
+  Number(process.env.REACT_APP_API_TIMEOUT_MS || '') || 30000;
+
 // API Client configuration
 class APIClient {
   private client: AxiosInstance;
@@ -28,7 +31,7 @@ class APIClient {
   constructor() {
     this.client = axios.create({
       baseURL: `${config.apiUrl}/api/${config.apiVersion}`,
-      timeout: 30000,
+      timeout: apiTimeoutMs,
       headers: {
         'Content-Type': 'application/json',
         'X-Client-Version': config.version,
@@ -173,7 +176,7 @@ class APIClient {
   private getDirectClient(): AxiosInstance {
     const client = axios.create({
       baseURL: config.apiUrl,
-      timeout: 30000,
+      timeout: apiTimeoutMs,
       headers: {
         'Content-Type': 'application/json',
         'X-Client-Version': config.version,

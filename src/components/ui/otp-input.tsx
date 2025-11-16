@@ -25,7 +25,7 @@ const OTPInputBox = ({ index, verifyOTP, state }: OTPInputBoxProps) => {
   const slowSuccessTransition: Transition = {
     type: "spring",
     stiffness: 300,
-    damping: 30,
+    damping: 30,  
     delay: index * 0.06,
   }
 
