@@ -49,7 +49,17 @@ if not MONGO_URI:
         "MONGO_URI environment variable is required. "
         "Copy backend/env.example to backend/.env and set MONGO_URI before starting the server."
     )
-client = MongoClient(MONGO_URI)
+# Configure MongoDB connection with connection pooling and timeouts for production
+client = MongoClient(
+    MONGO_URI,
+    serverSelectionTimeoutMS=5000,  # 5s to find server
+    connectTimeoutMS=10000,          # 10s to connect
+    socketTimeoutMS=30000,           # 30s socket timeout
+    maxPoolSize=10,                 # Connection pool max size
+    minPoolSize=1,                  # Keep 1 connection alive
+    retryWrites=True,
+    retryReads=True
+)
 db = client["face_recognition_db"]
 users_collection = db["users"]
 otps_collection = db["otps"]
@@ -366,6 +376,13 @@ async def register(request: RegisterRequest):
 async def login(request: LoginRequest):
     """Login with email and password"""
     try:
+        # Verify MongoDB connection before processing login
+        try:
+            client.admin.command('ping')
+        except Exception as db_error:
+            print(f"⚠️ MongoDB connection error during login: {db_error}")
+            raise HTTPException(status_code=503, detail="Database connection unavailable. Please try again in a moment.")
+        
         # Extract fields from request
         email = request.email
         password = request.password

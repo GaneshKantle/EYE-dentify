@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios, { AxiosError } from "axios";
 import { RecognitionResult } from "./types";
-import { Upload, RotateCcw, PenTool, Target, CheckCircle, Eye, Zap, ArrowRight } from "lucide-react";
+import { Upload, RotateCcw, PenTool, Target, CheckCircle, Eye, Zap, ArrowRight, Maximize2, Download, X } from "lucide-react";
 import { apiClient } from "./lib/api";
 
 const RecognizeFace: React.FC = () => {
@@ -13,6 +13,8 @@ const RecognizeFace: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [loadingText, setLoadingText] = useState<string>("Initializing...");
+  const [isResultFullscreen, setIsResultFullscreen] = useState<boolean>(false);
+  const [fullscreenImageUrl, setFullscreenImageUrl] = useState<string>("");
 
   const forensicFacts = [
     "Analyzing facial geometry...",
@@ -82,6 +84,20 @@ const RecognizeFace: React.FC = () => {
     setResult(null);
     setIsProcessing(false);
     setLoadingText("Initializing...");
+    setIsResultFullscreen(false);
+    setFullscreenImageUrl("");
+  };
+
+  const openFullscreen = (imageUrl: string) => {
+    if (imageUrl) {
+      setFullscreenImageUrl(imageUrl);
+      setIsResultFullscreen(true);
+    }
+  };
+
+  const closeFullscreen = () => {
+    setIsResultFullscreen(false);
+    setFullscreenImageUrl("");
   };
 
   const handleNewSketch = () => {
@@ -230,12 +246,26 @@ const RecognizeFace: React.FC = () => {
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 md:gap-6 lg:gap-8">
                   {/* Uploaded Image */}
                   <div className="flex-shrink-0 text-center">
+                  <button
+                          onClick={() => objectUrl && openFullscreen(objectUrl)}
+                          className="mt-2 flex items-center justify-center gap-1.5 sm:gap-2 mx-auto px-2 sm:px-3 py-1 sm:py-1.50 text-emerald-700 text-xs sm:text-sm font-medium rounded-lg sm:rounded-xl transition-colors duration-200 border min-w-[100px] sm:min-w-[120px] min-h-[32px] sm:min-h-[36px]"
+                          aria-label="View fullscreen"
+                        >
                     <img
                       src={objectUrl || ''}
                       alt="Uploaded"
                       className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 lg:w-48 lg:h-48 rounded-lg sm:rounded-xl object-cover border-2 border-slate-300 shadow-sm"
                     />
+                    </button>
                     <p className="text-xs sm:text-sm text-slate-600 text-center mt-2 font-medium">Uploaded Image</p>
+                    <button
+                          onClick={() => objectUrl && openFullscreen(objectUrl)}
+                          className="mt-2 flex items-center justify-center gap-1.5 sm:gap-2 mx-auto px-2 sm:px-3 py-1 sm:py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs sm:text-sm font-medium rounded-lg sm:rounded-xl transition-colors duration-200 border border-emerald-200 hover:border-emerald-300 min-w-[100px] sm:min-w-[120px] min-h-[32px] sm:min-h-[36px]"
+                          aria-label="View fullscreen"
+                        >
+                          <Maximize2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                          <span>View Fullscreen</span>
+                        </button>
                   </div>
                   
                   {/* Arrow */}
@@ -247,12 +277,26 @@ const RecognizeFace: React.FC = () => {
                   <div className="flex-shrink-0 text-center">
                     {result.status === 'recognized' ? (
                       <>
-                        <img
-                          src={result.image_url || ''}
-                          alt={result.name || 'Match'}
-                          className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 lg:w-48 lg:h-48 rounded-lg sm:rounded-xl object-cover border-2 border-emerald-400 shadow-sm"
-                        />
+                        <button
+                          onClick={() => result.image_url && openFullscreen(result.image_url)}
+                          className="relative group cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 rounded-lg sm:rounded-xl transition-transform hover:scale-105 active:scale-95"
+                          aria-label="View image in fullscreen"
+                        >
+                          <img
+                            src={result.image_url || ''}
+                            alt={result.name || 'Match'}
+                            className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 lg:w-48 lg:h-48 rounded-lg sm:rounded-xl object-cover border-2 border-emerald-400 shadow-sm"
+                          />
+                        </button>
                         <p className="text-xs sm:text-sm text-emerald-600 text-center mt-2 font-medium">Database Match</p>
+                        <button
+                          onClick={() => result.image_url && openFullscreen(result.image_url)}
+                          className="mt-2 flex items-center justify-center gap-1.5 sm:gap-2 mx-auto px-2 sm:px-3 py-1 sm:py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs sm:text-sm font-medium rounded-lg sm:rounded-xl transition-colors duration-200 border border-emerald-200 hover:border-emerald-300 min-w-[100px] sm:min-w-[120px] min-h-[32px] sm:min-h-[36px]"
+                          aria-label="View fullscreen"
+                        >
+                          <Maximize2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                          <span>View Fullscreen</span>
+                        </button>
                       </>
                     ) : (
                       <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 lg:w-48 lg:h-48 rounded-lg sm:rounded-xl bg-red-50 border-2 border-red-300 flex items-center justify-center">
@@ -419,6 +463,62 @@ const RecognizeFace: React.FC = () => {
           </ul>
         </div>
       </div>
+
+      {/* Fullscreen Result Image Overlay */}
+      {isResultFullscreen && fullscreenImageUrl && (
+        <div 
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm"
+          onClick={closeFullscreen}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Fullscreen image viewer"
+        >
+          {/* Close Button - Top Right */}
+          <button
+            onClick={closeFullscreen}
+            className="absolute top-2 right-2 sm:top-4 sm:right-4 z-10 w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors duration-200 backdrop-blur-sm border border-white/20 min-w-[40px] sm:min-w-[48px] min-h-[40px] sm:min-h-[48px]"
+            aria-label="Close fullscreen"
+          >
+            <X className="w-5 h-5 sm:w-6 sm:h-6" />
+          </button>
+
+          {/* Image Container */}
+          <div 
+            className="flex-1 flex items-center justify-center w-full p-2 sm:p-4 md:p-6 lg:p-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={fullscreenImageUrl}
+              alt="Fullscreen result"
+              className="max-w-full max-h-full object-contain"
+            />
+          </div>
+
+          {/* Action Buttons - Bottom */}
+          <div 
+            className="absolute bottom-2 sm:bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col sm:flex-row gap-2 sm:gap-3 z-10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <a
+              href={fullscreenImageUrl}
+              download
+              className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg sm:rounded-xl transition-colors duration-200 text-sm sm:text-base min-w-[120px] sm:min-w-[140px] min-h-[40px] sm:min-h-[44px] shadow-lg"
+              aria-label="Download image"
+            >
+              <Download className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span>Download</span>
+            </a>
+            <button
+              onClick={closeFullscreen}
+              className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-lg sm:rounded-xl transition-colors duration-200 text-sm sm:text-base min-w-[120px] sm:min-w-[140px] min-h-[40px] sm:min-h-[44px] shadow-lg"
+              aria-label="Close"
+            >
+              <X className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span>Close</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

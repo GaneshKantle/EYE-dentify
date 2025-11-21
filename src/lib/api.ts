@@ -21,8 +21,11 @@ const config = {
   version: process.env.REACT_APP_VERSION || '1.0.0',
 };
 
+// Timeout configuration - increased to 90s for Render cold starts
 const apiTimeoutMs =
-  Number(process.env.REACT_APP_API_TIMEOUT_MS || '') || 60000;
+  Number(process.env.REACT_APP_API_TIMEOUT_MS || '') || 90000;
+// Fast timeout for health checks (5s)
+const healthCheckTimeoutMs = 5000;
 
 // API Client configuration
 class APIClient {
@@ -147,29 +150,77 @@ class APIClient {
     });
   }
 
-  // Error handling
+  // Error handling with timeout detection
   private handleError(error: any): Error {
     if (error.response) {
       // Server responded with error status
       const { status, data } = error.response;
       return new Error(`API Error ${status}: ${data?.message || data?.detail || 'Unknown error'}`);
+    } else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+      // Timeout error - server may be cold starting
+      return new Error('Request timeout: Server may be starting up. Please wait a moment and try again.');
     } else if (error.request) {
       // Request was made but no response received
-      return new Error('Network error: No response from server');
+      return new Error('Network error: No response from server. The server may be starting up.');
     } else {
       // Something else happened
       return new Error(error.message || 'Unknown error occurred');
     }
   }
 
-  // Health check
-  async healthCheck(): Promise<boolean> {
+  // Health check with fast timeout
+  async healthCheck(): Promise<{ healthy: boolean; status?: string }> {
     try {
-      await this.get('/health');
-      return true;
+      const healthClient = axios.create({
+        baseURL: config.apiUrl,
+        timeout: healthCheckTimeoutMs,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      const response = await healthClient.get('/health');
+      return { 
+        healthy: response.data?.status === 'healthy' || response.data?.status === 'operational',
+        status: response.data?.status 
+      };
     } catch {
-      return false;
+      return { healthy: false };
     }
+  }
+
+  // Smart retry wrapper with exponential backoff
+  private async retryRequest<T>(
+    requestFn: () => Promise<T>,
+    maxRetries: number = 3,
+    baseDelay: number = 2000
+  ): Promise<T> {
+    let lastError: any;
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await requestFn();
+      } catch (error: any) {
+        lastError = error;
+        
+        // Check if it's a timeout or network error that should be retried
+        const isRetryable = 
+          error.code === 'ECONNABORTED' || // Timeout
+          error.message?.includes('timeout') ||
+          error.message?.includes('Network Error') ||
+          (!error.response && error.request); // No response received
+        
+        // Don't retry on last attempt or if error is not retryable
+        if (attempt === maxRetries || !isRetryable) {
+          throw lastError;
+        }
+        
+        // Exponential backoff: 2s, 4s, 8s
+        const delay = baseDelay * Math.pow(2, attempt);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    
+    throw lastError;
   }
 
   // Direct API methods (without /api/v1 prefix) for routes at root level
@@ -215,7 +266,7 @@ class APIClient {
     } catch (error: any) {
       // Better error handling for network/CORS errors
       if (error.code === 'ECONNREFUSED' || error.message?.includes('Network Error')) {
-        throw new Error(`Cannot connect to backend server at ${config.apiUrl}. Make sure the backend is running on port 8000.`);
+        throw new Error(`Cannot connect to backend server at ${config.apiUrl}. The server may be starting up.`);
       }
       if (error.response?.status === 0 || error.message?.includes('CORS')) {
         throw new Error(`CORS error: The backend server may not be allowing requests from ${window.location.origin}. Check CORS configuration.`);
@@ -264,13 +315,15 @@ class APIClient {
     return response.data;
   }
 
-  // Authentication methods
+  // Authentication methods with smart retry
   async login(email: string, password: string): Promise<{ token: string; user: any }> {
-    const response = await this.directPost<{ status: string; token: string; user: any }>('/auth/login', {
-      email,
-      password
+    return this.retryRequest(async () => {
+      const response = await this.directPost<{ status: string; token: string; user: any }>('/auth/login', {
+        email,
+        password
+      });
+      return { token: response.token, user: response.user };
     });
-    return { token: response.token, user: response.user };
   }
 
   // OTP is temporarily disabled - registration works without OTP verification

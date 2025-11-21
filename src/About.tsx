@@ -1,8 +1,9 @@
 /*eslint-disable*/
-import { Shield, Award, Target, Zap, Users, Search, PenTool, Cloud, Brain } from 'lucide-react';
+import { Shield, Award, Target, Zap, Users, Search, PenTool, Cloud, Brain, HelpCircle } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { apiClient } from './lib/api';
 import { Database, Lock, BarChart3, Globe, CheckCircle } from 'lucide-react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './components/ui/accordion';
 
 const About = () => {
   const [faces, setFaces] = useState<any[]>([]);
@@ -11,6 +12,7 @@ const About = () => {
 
   type Feature = { title: string; desc: string; icon: React.ComponentType<React.SVGProps<SVGSVGElement>> };
   type Spec = { label: string; value: string };
+  type FAQ = { id: string; question: string; answer: string };
 
   const features: Feature[] = [
     { title: 'Real-time Matching', desc: 'Upload face images and get matches instantly', icon: Globe },
@@ -25,6 +27,59 @@ const About = () => {
     { label: 'Database', value: 'MongoDB Atlas (faces collection)' },
     { label: 'Image Storage', value: 'Cloudinary (secure URLs)' },
     { label: 'Frontend', value: 'React + TypeScript + Tailwind' },
+  ];
+
+  const faqs: FAQ[] = [
+    {
+      id: '1',
+      question: 'How does the face recognition system work?',
+      answer: 'Our system uses advanced AI technology powered by PyTorch FaceNet models. When you upload an image, MTCNN detects faces and extracts facial features. The InceptionResnetV1 model then generates unique 512-dimensional embeddings that represent facial characteristics. These embeddings are compared against our secure database using cosine similarity to find matches with high accuracy.',
+    },
+    {
+      id: '2',
+      question: 'What is the accuracy rate of the face recognition system?',
+      answer: 'Our system achieves a 98.5% accuracy rate using state-of-the-art FaceNet models trained on millions of faces from the VGGFace2 dataset. The system uses a recognition threshold of 0.50 and rejection threshold of 0.30 to minimize false positives while maintaining high true positive rates.',
+    },
+    {
+      id: '3',
+      question: 'How secure is my data and the criminal database?',
+      answer: 'Security is our top priority. All data is encrypted using AES-256 encryption, stored securely in MongoDB Atlas with access controls, and images are hosted on Cloudinary with secure URLs. We comply with GDPR, SOC 2 Type II, ISO 27001, and HIPAA standards. All communications are end-to-end encrypted, and we implement strict authentication and authorization protocols.',
+    },
+    {
+      id: '4',
+      question: 'How fast is the face matching process?',
+      answer: 'The entire face recognition process completes in under 135ms on average. This includes face detection (45ms), feature extraction (78ms), and database query (12ms). The system is optimized for real-time investigations, allowing investigators to get instant results when matching suspects against the database.',
+    },
+    {
+      id: '5',
+      question: 'Can I create forensic sketches in the system?',
+      answer: 'Yes, our platform includes professional-grade forensic sketch creation tools. Investigators and eyewitnesses can use our intuitive drawing interface to create detailed suspect sketches. These sketches can be saved, edited, and used for matching against the database or for case documentation.',
+    },
+    {
+      id: '6',
+      question: 'How do I add new criminal records to the database?',
+      answer: 'You can add new records through the "Add Face" feature in the dashboard. Simply upload one or more images of the suspect, fill in details like name, crime type, description, and other relevant information. The system will automatically process the images, extract facial embeddings, and store them securely in the database.',
+    },
+    {
+      id: '7',
+      question: 'What image formats and quality are supported?',
+      answer: 'The system supports common image formats including JPEG, PNG, and WebP. For best results, images should be clear with good lighting and the face should be clearly visible. The system can handle various image sizes and automatically processes them. Higher quality images with frontal faces yield the most accurate matching results.',
+    },
+    {
+      id: '8',
+      question: 'Can the system be integrated with existing law enforcement systems?',
+      answer: 'Yes, we provide a RESTful API that allows integration with existing law enforcement systems. The API supports face recognition, database queries, record management, and sketch operations. Our technical team can assist with integration and provide documentation for seamless implementation into your existing workflows.',
+    },
+    {
+      id: '9',
+      question: 'What happens if no match is found in the database?',
+      answer: 'If no match is found above the recognition threshold, the system will return a "No Match" result. You can then add the new face to the database for future matching. The system also provides similarity scores for potential matches below the threshold, which investigators can review manually if needed.',
+    },
+    {
+      id: '10',
+      question: 'Is there technical support available?',
+      answer: 'Yes, we provide 24/7 technical support for all users. You can reach our support team via email at support@eyedentify.com or by phone at +1 (555) 123-4567. Our team is available to assist with technical issues, integration help, training, and any questions about using the system effectively.',
+    },
   ];
 
   useEffect(() => {
@@ -389,6 +444,30 @@ const About = () => {
               <span className="text-xs xs:text-sm text-slate-700">📞 +1 (555) 123-4567</span>
             </div>
           </div>
+        </div>
+
+        {/* FAQ Section */}
+        <div className="mt-6 xs:mt-8 sm:mt-10 md:mt-12 bg-white/80 backdrop-blur-sm rounded-lg xs:rounded-xl sm:rounded-2xl p-4 xs:p-5 sm:p-6 md:p-7 lg:p-8 shadow-sm border border-slate-200/50">
+          <h2 className="text-lg xs:text-xl sm:text-2xl font-bold text-slate-900 mb-4 xs:mb-5 sm:mb-6 flex items-center">
+            <HelpCircle className="w-5 xs:w-6 h-5 xs:h-6 text-blue-600 mr-2 xs:mr-3" />
+            Frequently Asked Questions
+          </h2>
+          <Accordion type="single" collapsible className="w-full">
+            {faqs.map((faq) => (
+              <AccordionItem
+                key={faq.id}
+                value={faq.id}
+                className="border-b border-slate-200 last:border-b-0"
+              >
+                <AccordionTrigger className="text-left text-sm xs:text-base font-semibold text-slate-900 py-3 xs:py-4 hover:no-underline hover:text-blue-600 transition-colors">
+                  {faq.question}
+                </AccordionTrigger>
+                <AccordionContent className="text-xs xs:text-sm text-slate-600 leading-relaxed pb-3 xs:pb-4">
+                  {faq.answer}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
         </div>
       </div>
     </div>

@@ -5,6 +5,7 @@ from pymongo import MongoClient
 from contextlib import asynccontextmanager
 from typing import Optional
 from pathlib import Path
+from datetime import datetime
 import cloudinary
 import cloudinary.uploader
 import torch
@@ -98,7 +99,17 @@ def _float_env(key: str, default: float) -> float:
 # ---------------- MongoDB ---------------- 
 MONGO_URI = os.getenv("MONGO_URI")
 DATABASE_NAME = os.getenv("DATABASE_NAME", "face_recognition_db")
-client = MongoClient(MONGO_URI)
+# Configure MongoDB connection with connection pooling and timeouts for production
+client = MongoClient(
+    MONGO_URI,
+    serverSelectionTimeoutMS=5000,  # 5s to find server
+    connectTimeoutMS=10000,          # 10s to connect
+    socketTimeoutMS=30000,           # 30s socket timeout
+    maxPoolSize=10,                 # Connection pool max size
+    minPoolSize=1,                  # Keep 1 connection alive
+    retryWrites=True,
+    retryReads=True
+)
 db = client[DATABASE_NAME]
 collection = db["faces"]
 
@@ -515,8 +526,19 @@ async def root():
 
 @app.get("/health")
 async def health():
-    """Health check endpoint"""
-    return {"status": "healthy"}
+    """Health check endpoint with MongoDB connection verification"""
+    try:
+        # Verify MongoDB connection
+        client.admin.command('ping')
+        db_status = "connected"
+    except Exception as e:
+        db_status = f"error: {str(e)}"
+    
+    return {
+        "status": "healthy" if db_status == "connected" else "degraded",
+        "database": db_status,
+        "timestamp": datetime.utcnow().isoformat()
+    }
 
 @app.get("/debug/routes")
 async def debug_routes():
