@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Layout } from "./components/layout/Layout";
 import { Navbar } from "./components/layout/Navbar";
+import { BreadcrumbNav } from "./components/layout/BreadcrumbNav";
 import Dashboard from "./Dashboard";
 import AddFace from "./AddFace";
 import RecognizeFace from "./RecognizeFace";
@@ -109,6 +110,7 @@ const App: React.FC<AppProps> = () => {
           <Router>
             <Layout>
               <Navbar />
+              <BreadcrumbNav />
               <main className="min-h-screen">
                 <AppContent />
               </main>
