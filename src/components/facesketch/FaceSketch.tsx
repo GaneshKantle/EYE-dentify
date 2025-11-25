@@ -8,7 +8,8 @@ import { Separator } from '../ui/separator';
 import { Card } from '../ui/card';
 import { 
   Save, Download, Undo2, Redo2, FileText, User, Hash, Eye, Minus, Triangle, Smile, Waves, Zap, LucideIcon,
-  ChevronDown, Calendar, Settings, Upload, Plus, X, ZoomIn, ZoomOut, Grid3X3, Target, Copy, Trash2, Clock, Loader2
+  ChevronDown, Calendar, Settings, Upload, Plus, X, ZoomIn, ZoomOut, Grid3X3, Target, Copy, Trash2, Clock, Loader2,
+  Headphones, Circle
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -39,6 +40,7 @@ const createInitialCaseInfo = (): CaseInfo => ({
   officer: '',
   description: '',
   witness: '',
+  suspect: '',
   priority: 'medium',
   status: 'draft',
 });
@@ -147,8 +149,12 @@ const FaceSketch: React.FC = () => {
     setSaveDetails(createInitialSaveDetails());
   }, []);
 
-  // Asset category configuration
-  const assetCategories = React.useMemo(() => ({
+  // Asset category configuration - now state for dynamic updates
+  const [assetCategories, setAssetCategories] = useState<Record<string, {
+    name: string;
+    icon: LucideIcon;
+    color: string;
+  }>>({
     'face-shapes': {
       name: 'Face Shapes',
       icon: User,
@@ -184,12 +190,22 @@ const FaceSketch: React.FC = () => {
       icon: Zap,
       color: 'bg-gray-100 text-gray-700'
     },
+    'ears': {
+      name: 'Ears',
+      icon: Headphones,
+      color: 'bg-teal-100 text-teal-700'
+    },
+    'neck': {
+      name: 'Neck',
+      icon: Circle,
+      color: 'bg-cyan-100 text-cyan-700'
+    },
     'accessories': {
       name: 'More',
       icon: Settings,
       color: 'bg-indigo-100 text-indigo-700'
     }
-  }), []);
+  });
 
   // Reload assets function for real-time updates
   const reloadAssets = useCallback(async () => {
@@ -248,6 +264,54 @@ const FaceSketch: React.FC = () => {
       setAssetsLoading(false);
     }
   }, [assetCategories]);
+
+  // Category management functions
+  const handleRenameCategory = useCallback((categoryKey: string, newName: string) => {
+    if (!newName.trim()) return;
+    
+    setAssetCategories(prev => {
+      if (!prev[categoryKey]) return prev;
+      return {
+        ...prev,
+        [categoryKey]: {
+          ...prev[categoryKey],
+          name: newName.trim()
+        }
+      };
+    });
+    
+    // Update featureCategories to reflect the name change
+    setFeatureCategories(prev => {
+      if (!prev[categoryKey]) return prev;
+      return {
+        ...prev,
+        [categoryKey]: {
+          ...prev[categoryKey],
+          name: newName.trim()
+        }
+      };
+    });
+  }, []);
+
+  const handleDeleteCategory = useCallback((categoryKey: string) => {
+    // Don't allow deleting if it's the currently selected category
+    if (selectedCategory === categoryKey) {
+      setSelectedCategory('face-shapes');
+    }
+    
+    setAssetCategories(prev => {
+      const updated = { ...prev };
+      delete updated[categoryKey];
+      return updated;
+    });
+    
+    // Update featureCategories to remove the category
+    setFeatureCategories(prev => {
+      const updated = { ...prev };
+      delete updated[categoryKey];
+      return updated;
+    });
+  }, [selectedCategory]);
 
   // Load assets dynamically
   useEffect(() => {
@@ -753,7 +817,7 @@ const FaceSketch: React.FC = () => {
     // Check for resize handle on selected features first
     if (selectedFeatures.length === 1) {
       const selectedFeature = features.find(f => f.id === selectedFeatures[0]);
-      if (selectedFeature && selectedFeature.visible) {
+      if (selectedFeature && selectedFeature.visible && !selectedFeature.locked) {
         const handle = getResizeHandle(x, y, selectedFeature);
         if (handle) {
           setIsResizing(true);
@@ -764,9 +828,9 @@ const FaceSketch: React.FC = () => {
       }
     }
 
-    // Find all features at this location (including overlapping ones)
+    // Find all features at this location (including overlapping ones) - exclude locked features
     const featuresAtLocation = features.filter(feature => {
-      if (!feature.visible) return false;
+      if (!feature.visible || feature.locked) return false;
       
       const featureX = feature.x;
       const featureY = feature.y;
@@ -779,7 +843,7 @@ const FaceSketch: React.FC = () => {
 
     if (featuresAtLocation.length > 0) {
       if (featuresAtLocation.length === 1) {
-        // Single feature - select it directly
+        // Single feature - select it directly (already filtered to exclude locked)
         const clickedFeature = featuresAtLocation[0];
         
         if (e.shiftKey) {
@@ -794,8 +858,11 @@ const FaceSketch: React.FC = () => {
           setSelectedFeatures([clickedFeature.id]);
         }
         
-        setIsDragging(true);
-        setDragStart({ x: x - clickedFeature.x, y: y - clickedFeature.y });
+        // Only allow dragging if feature is not locked
+        if (!clickedFeature.locked) {
+          setIsDragging(true);
+          setDragStart({ x: x - clickedFeature.x, y: y - clickedFeature.y });
+        }
       } else {
         // Multiple features - prioritize the SMALLEST feature (most likely what user wants to click)
         // Sort by size first (smallest first), then by zIndex (top layer first)
@@ -812,11 +879,14 @@ const FaceSketch: React.FC = () => {
           return b.zIndex - a.zIndex;
         });
         
-        // Auto-select the smallest feature instead of showing picker
+        // Auto-select the smallest feature instead of showing picker (already filtered to exclude locked)
         const smallestFeature = sortedFeatures[0];
         setSelectedFeatures([smallestFeature.id]);
-        setIsDragging(true);
-        setDragStart({ x: x - smallestFeature.x, y: y - smallestFeature.y });
+        // Only allow dragging if feature is not locked
+        if (!smallestFeature.locked) {
+          setIsDragging(true);
+          setDragStart({ x: x - smallestFeature.x, y: y - smallestFeature.y });
+        }
         
         // Show auto-selection indicator
         setAutoSelectedFeature(smallestFeature.id);
@@ -880,7 +950,7 @@ const FaceSketch: React.FC = () => {
     // Handle resizing
     if (isResizing && resizeHandle && selectedFeatures.length === 1) {
       const selectedFeature = features.find(f => f.id === selectedFeatures[0]);
-      if (!selectedFeature) return;
+      if (!selectedFeature || selectedFeature.locked) return;
 
       const deltaX = x - resizeStart.x;
       const deltaY = y - resizeStart.y;
@@ -944,10 +1014,10 @@ const FaceSketch: React.FC = () => {
       return;
     }
 
-    // Handle dragging
+    // Handle dragging - skip locked features
     if (isDragging && selectedFeatures.length > 0) {
       const newFeatures = features.map(feature => {
-        if (selectedFeatures.includes(feature.id)) {
+        if (selectedFeatures.includes(feature.id) && !feature.locked) {
           let newX = x - dragStart.x;
           let newY = y - dragStart.y;
 
@@ -990,11 +1060,11 @@ const FaceSketch: React.FC = () => {
   }, [isDragging, isResizing, features, addToHistory]);
 
 
-  // Resize selected features
+  // Resize selected features - skip locked features
   const resizeSelectedFeatures = useCallback((newWidth: number, newHeight: number) => {
     console.log('Resizing features:', { newWidth, newHeight, selectedFeatures });
     const newFeatures = features.map(f => {
-      if (selectedFeatures.includes(f.id)) {
+      if (selectedFeatures.includes(f.id) && !f.locked) {
         console.log('Resizing feature:', f.id, 'from', f.width, 'x', f.height, 'to', newWidth, 'x', newHeight);
         return {
           ...f,
@@ -1493,7 +1563,7 @@ const FaceSketch: React.FC = () => {
     const newFeatures = [...features];
     selectedFeatures.forEach(id => {
       const feature = features.find(f => f.id === id);
-      if (feature) {
+      if (feature && !feature.locked) {
         const duplicate: PlacedFeature = {
           ...feature,
           id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -1520,7 +1590,7 @@ const FaceSketch: React.FC = () => {
     if (selectedFeatures.length === 0) return;
     const maxZ = Math.max(...features.map(f => f.zIndex));
     const newFeatures = features.map(f => 
-      selectedFeatures.includes(f.id) ? { ...f, zIndex: maxZ + 1 } : f
+      selectedFeatures.includes(f.id) && !f.locked ? { ...f, zIndex: maxZ + 1 } : f
     );
     setFeatures(newFeatures);
     addToHistory(newFeatures);
@@ -1530,11 +1600,36 @@ const FaceSketch: React.FC = () => {
     if (selectedFeatures.length === 0) return;
     const minZ = Math.min(...features.map(f => f.zIndex));
     const newFeatures = features.map(f => 
-      selectedFeatures.includes(f.id) ? { ...f, zIndex: minZ - 1 } : f
+      selectedFeatures.includes(f.id) && !f.locked ? { ...f, zIndex: minZ - 1 } : f
     );
     setFeatures(newFeatures);
     addToHistory(newFeatures);
   }, [features, selectedFeatures, addToHistory]);
+
+  // Individual layer ordering functions for per-feature controls
+  const bringFeatureToFront = useCallback((featureId: string) => {
+    const feature = features.find(f => f.id === featureId);
+    if (!feature || feature.locked) return;
+    
+    const maxZ = Math.max(...features.map(f => f.zIndex));
+    const newFeatures = features.map(f => 
+      f.id === featureId ? { ...f, zIndex: maxZ + 1 } : f
+    );
+    setFeatures(newFeatures);
+    addToHistory(newFeatures);
+  }, [features, addToHistory]);
+
+  const sendFeatureToBack = useCallback((featureId: string) => {
+    const feature = features.find(f => f.id === featureId);
+    if (!feature || feature.locked) return;
+    
+    const minZ = Math.min(...features.map(f => f.zIndex));
+    const newFeatures = features.map(f => 
+      f.id === featureId ? { ...f, zIndex: minZ - 1 } : f
+    );
+    setFeatures(newFeatures);
+    addToHistory(newFeatures);
+  }, [features, addToHistory]);
 
   // Reorder layer: when dragging feature X over feature Y, set X's zIndex to be below Y
   const reorderLayer = useCallback((draggedFeatureId: string, targetFeatureId: string) => {
@@ -1542,6 +1637,7 @@ const FaceSketch: React.FC = () => {
     const targetFeature = features.find(f => f.id === targetFeatureId);
     
     if (!draggedFeature || !targetFeature || draggedFeature.id === targetFeature.id) return;
+    if (draggedFeature.locked || targetFeature.locked) return;
     
     // Sort features by zIndex (lowest first for z-index calculation)
     const sortedFeatures = [...features].sort((a, b) => a.zIndex - b.zIndex);
@@ -1594,10 +1690,10 @@ const FaceSketch: React.FC = () => {
     addToHistory(newFeatures);
   }, [features, addToHistory]);
 
-  // Property updates for selected features
+  // Property updates for selected features - skip locked features
   const updateSelectedFeatures = useCallback((updates: Partial<PlacedFeature>) => {
     const newFeatures = features.map(f => 
-      selectedFeatures.includes(f.id) ? { ...f, ...updates } : f
+      selectedFeatures.includes(f.id) && !f.locked ? { ...f, ...updates } : f
     );
     setFeatures(newFeatures);
     addToHistory(newFeatures);
@@ -1606,7 +1702,7 @@ const FaceSketch: React.FC = () => {
   // Scale selected features
   const scaleSelectedFeatures = useCallback((newScale: number) => {
     const newFeatures = features.map(f => {
-      if (selectedFeatures.includes(f.id)) {
+      if (selectedFeatures.includes(f.id) && !f.locked) {
         const defaultSize = getFeatureDefaultSize(f.asset.category);
         const clampedScale = Math.max(0.5, Math.min(2.0, newScale));
         return {
@@ -1821,6 +1917,7 @@ const FaceSketch: React.FC = () => {
           officer: sketchData.officer || '',
           description: sketchData.description || '',
           witness: sketchData.eyewitness || '',
+          suspect: sketchData.suspect || '',
           date: sketchData.date ? new Date(sketchData.date).toISOString().split('T')[0] : baseCase.date,
           priority: (sketchData.priority as CaseInfo['priority']) || 'medium',
           status: (sketchData.status as CaseInfo['status']) || 'draft',
@@ -2209,6 +2306,8 @@ const FaceSketch: React.FC = () => {
           featureCategories={featureCategories}
           assetsLoading={assetsLoading}
           assetsError={assetsError}
+          onRenameCategory={handleRenameCategory}
+          onDeleteCategory={handleDeleteCategory}
         />
 
         {/* Main Canvas Area */}
@@ -2261,6 +2360,8 @@ const FaceSketch: React.FC = () => {
           selectedCategory={selectedCategory}
           bringToFront={bringToFront}
           sendToBack={sendToBack}
+          bringFeatureToFront={bringFeatureToFront}
+          sendFeatureToBack={sendFeatureToBack}
           duplicateFeature={duplicateFeature}
           reorderLayer={reorderLayer}
           deleteSelectedFeatures={deleteSelectedFeatures}

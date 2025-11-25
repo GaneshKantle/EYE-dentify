@@ -9,7 +9,8 @@ import {
   UserPlus,
   Shield,
   BarChart3,
-  Clock
+  Clock,
+  MoreHorizontal
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { Avatar, AvatarFallback } from '../../components/ui/avatar';
@@ -86,6 +87,12 @@ const navSections: NavSection[] = [
         path: '/about', 
         icon: Shield, 
         description: 'System information' 
+      },
+      { 
+        name: 'More', 
+        path: '/more', 
+        icon: MoreHorizontal, 
+        description: 'Additional information' 
       }
     ]
   }

@@ -3,11 +3,13 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { Layout } from "./components/layout/Layout";
 import { Navbar } from "./components/layout/Navbar";
 import { BreadcrumbNav } from "./components/layout/BreadcrumbNav";
+import { ScrollToTop } from "./components/ScrollToTop";
 import Dashboard from "./Dashboard";
 import AddFace from "./AddFace";
 import RecognizeFace from "./RecognizeFace";
 import Gallery from "./Gallery";
 import About from "./About";
+import More from "./pages/More";
 import FaceSketch from "./components/facesketch/FaceSketch";
 import RecentSketches from "./pages/RecentSketches";
 import Login from "./pages/auth/Login";
@@ -95,6 +97,14 @@ const AppContent: React.FC = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/more"
+        element={
+          <ProtectedRoute>
+            <More />
+          </ProtectedRoute>
+        }
+      />
       
       {/* Redirect unknown routes */}
       <Route path="*" element={<Navigate to="/" replace />} />
@@ -108,6 +118,7 @@ const App: React.FC<AppProps> = () => {
       <LoadingProvider>
         <NotificationProvider>
           <Router>
+            <ScrollToTop />
             <Layout>
               <Navbar />
               <BreadcrumbNav />

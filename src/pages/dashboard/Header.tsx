@@ -11,7 +11,7 @@ const Header = () => {
       {/* Hero Section with Full-Width Header Image */}
       <div className="relative w-full">
         {/* Full-Width Header Image - Super Responsive */}
-        <div className="w-full h-[40vh] sm:h-[50vh] md:h-[60vh] lg:h-[70vh] xl:h-[75vh] 2xl:h-[80vh] flex items-center justify-center overflow-hidden">
+        {/* <div className="w-full h-[40vh] sm:h-[50vh] md:h-[60vh] lg:h-[70vh] xl:h-[75vh] 2xl:h-[80vh] flex items-center justify-center overflow-hidden">
           <img 
             src={"https://res.cloudinary.com/dqkhdusc4/image/upload/v1761245722/1761245640400_1_p2stqx.png"}
             alt="Forensic Investigation Header"
@@ -21,7 +21,7 @@ const Header = () => {
               maxHeight: '100vh'
             }}
           />
-        </div>
+        </div> */}
         
         {/* Content Section - Centered and Responsive */}
         <div className="relative z-10 w-full px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 py-8 sm:py-12 lg:py-16 xl:py-20 2xl:py-24">

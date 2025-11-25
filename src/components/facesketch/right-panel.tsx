@@ -8,11 +8,19 @@ import { Badge } from '../ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { ScrollArea } from '../ui/scroll-area';
+import { Textarea } from '../ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select';
 import { 
   Maximize2, Minimize2, Layers, Settings, ClipboardList, 
   Eye, EyeOff, Lock, Unlock, Palette, Archive, Hash, 
   MousePointer2, Grid3X3, Target, Crop, Search, Upload, Trash2,
-  EyeIcon, Edit3, X, Check
+  EyeIcon, Edit3, X, Check, ArrowUp, ArrowDown, FileText
 } from 'lucide-react';
 
 interface FeatureAsset {
@@ -50,6 +58,7 @@ interface CaseInfo {
   officer: string;
   description: string;
   witness: string;
+  suspect?: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
   status: 'draft' | 'in-progress' | 'review' | 'completed';
 }
@@ -92,6 +101,8 @@ interface RightPanelProps {
   resizeSelectedFeatures: (newWidth: number, newHeight: number) => void;
   bringToFront: () => void;
   sendToBack: () => void;
+  bringFeatureToFront: (featureId: string) => void;
+  sendFeatureToBack: (featureId: string) => void;
   duplicateFeature: () => void;
   deleteSelectedFeatures: () => void;
   reorderLayer: (draggedFeatureId: string, targetFeatureId: string) => void;
@@ -139,6 +150,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
   resizeSelectedFeatures,
   bringToFront,
   sendToBack,
+  bringFeatureToFront,
+  sendFeatureToBack,
   duplicateFeature,
   deleteSelectedFeatures,
   exportPNG,
@@ -297,7 +310,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
         <TabsList className={`grid bg-slate-100 m-1.5 sm:m-2 transition-all duration-200 flex-shrink-0 ${
             rightSidebarCollapsed
               ? 'grid-cols-1 gap-1.5 sm:gap-2 p-1.5 sm:p-2'
-            : 'grid-cols-2 sm:grid-cols-3 gap-0.5 sm:gap-1'
+            : 'grid-cols-2 sm:grid-cols-4 gap-0.5 sm:gap-1'
         }`}>
           <TabsTrigger 
             value="properties" 
@@ -345,6 +358,22 @@ const RightPanel: React.FC<RightPanelProps> = ({
               </div>
             ) : (
               'Assets'
+            )}
+          </TabsTrigger>
+          <TabsTrigger 
+            value="case" 
+            className={`text-[10px] sm:text-xs transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm ${
+              rightSidebarCollapsed ? 'h-10 sm:h-12 w-full p-1.5 sm:p-2 flex-col justify-center' : 'h-7 sm:h-8'
+            }`}
+            title="Case Info"
+          >
+            {rightSidebarCollapsed ? (
+              <div className="flex flex-col items-center space-y-1">
+                <FileText className="w-4 h-4 text-indigo-600" />
+                <span className="text-[10px] font-medium text-slate-700">Case</span>
+              </div>
+            ) : (
+              'Case'
             )}
           </TabsTrigger>
         </TabsList>
@@ -736,6 +765,38 @@ const RightPanel: React.FC<RightPanelProps> = ({
                             <Unlock className={`${rightSidebarCollapsed ? 'w-2.5 h-2.5 lg:w-3 lg:h-3' : 'w-3 md:w-3.5 h-3 md:h-3.5'}`} />
                           }
                         </Button>
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            bringFeatureToFront(feature.id);
+                          }}
+                          variant="ghost"
+                          size="sm"
+                          className={`hover:bg-slate-200 p-0 ${
+                            rightSidebarCollapsed ? 'h-5 w-5 lg:h-6 lg:w-6' : 'h-6 w-6 md:h-7 md:w-7'
+                          }`}
+                          title="Bring to Front"
+                          onMouseDown={(e) => e.stopPropagation()}
+                          disabled={feature.locked}
+                        >
+                          <ArrowUp className={`${rightSidebarCollapsed ? 'w-2.5 h-2.5 lg:w-3 lg:h-3' : 'w-3 md:w-3.5 h-3 md:h-3.5'}`} />
+                        </Button>
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            sendFeatureToBack(feature.id);
+                          }}
+                          variant="ghost"
+                          size="sm"
+                          className={`hover:bg-slate-200 p-0 ${
+                            rightSidebarCollapsed ? 'h-5 w-5 lg:h-6 lg:w-6' : 'h-6 w-6 md:h-7 md:w-7'
+                          }`}
+                          title="Send to Back"
+                          onMouseDown={(e) => e.stopPropagation()}
+                          disabled={feature.locked}
+                        >
+                          <ArrowDown className={`${rightSidebarCollapsed ? 'w-2.5 h-2.5 lg:w-3 lg:h-3' : 'w-3 md:w-3.5 h-3 md:h-3.5'}`} />
+                        </Button>
                       </div>
                     </>
                   )}
@@ -1119,6 +1180,187 @@ const RightPanel: React.FC<RightPanelProps> = ({
                 </p>
               </div>
             )}
+          </ScrollArea>
+        </TabsContent>
+
+        <TabsContent value="case" className={`flex-1 p-1.5 sm:p-2 md:p-3 lg:p-4 m-0 transition-all duration-200 overflow-hidden flex flex-col min-h-0 ${rightSidebarCollapsed ? 'hidden' : ''}`}>
+          <ScrollArea className="flex-1 overflow-y-auto min-h-0">
+            <div className={`space-y-4 md:space-y-6 transition-all duration-200 ${
+              rightSidebarCollapsed ? 'space-y-3 lg:space-y-4' : 'space-y-4 md:space-y-6'
+            }`}>
+              <Card className="border-slate-300 bg-white shadow-lg">
+                <CardHeader className={`pb-3 transition-all duration-200 ${
+                  rightSidebarCollapsed ? 'pb-2 lg:pb-3' : 'pb-3'
+                }`}>
+                  <CardTitle className={`flex items-center space-x-2 transition-all duration-200 ${
+                    rightSidebarCollapsed ? 'text-xs lg:text-sm' : 'text-sm'
+                  } text-slate-900`}>
+                    <FileText className={`${rightSidebarCollapsed ? 'w-3 h-3 lg:w-4 lg:h-4' : 'w-4 h-4'}`} />
+                    <span className={rightSidebarCollapsed ? 'hidden lg:inline' : ''}>
+                      Case Information
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className={`space-y-4 transition-all duration-200 ${
+                  rightSidebarCollapsed ? 'space-y-3 lg:space-y-4' : 'space-y-4'
+                }`}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                    {/* Suspect Name */}
+                    <div className="md:col-span-2">
+                      <Label className={`text-slate-700 font-medium transition-all duration-200 ${
+                        rightSidebarCollapsed ? 'text-xs lg:text-xs' : 'text-xs'
+                      }`}>
+                        Suspect Name
+                      </Label>
+                      <Input
+                        value={caseInfo.suspect || ''}
+                        onChange={(e) => setCaseInfo({ ...caseInfo, suspect: e.target.value })}
+                        placeholder="Enter suspect name"
+                        className={`mt-1.5 border-slate-300 bg-white transition-all duration-200 ${
+                          rightSidebarCollapsed ? 'h-8 lg:h-9 text-xs lg:text-sm' : 'h-9 text-sm'
+                        }`}
+                      />
+                    </div>
+
+                    {/* Case Number */}
+                    <div>
+                      <Label className={`text-slate-700 font-medium transition-all duration-200 ${
+                        rightSidebarCollapsed ? 'text-xs lg:text-xs' : 'text-xs'
+                      }`}>
+                        Case Number
+                      </Label>
+                      <Input
+                        value={caseInfo.caseNumber}
+                        onChange={(e) => setCaseInfo({ ...caseInfo, caseNumber: e.target.value })}
+                        placeholder="Enter case number"
+                        className={`mt-1.5 border-slate-300 bg-white transition-all duration-200 ${
+                          rightSidebarCollapsed ? 'h-8 lg:h-9 text-xs lg:text-sm' : 'h-9 text-sm'
+                        }`}
+                      />
+                    </div>
+
+                    {/* Date */}
+                    <div>
+                      <Label className={`text-slate-700 font-medium transition-all duration-200 ${
+                        rightSidebarCollapsed ? 'text-xs lg:text-xs' : 'text-xs'
+                      }`}>
+                        Date
+                      </Label>
+                      <Input
+                        type="date"
+                        value={caseInfo.date}
+                        onChange={(e) => setCaseInfo({ ...caseInfo, date: e.target.value })}
+                        className={`mt-1.5 border-slate-300 bg-white transition-all duration-200 ${
+                          rightSidebarCollapsed ? 'h-8 lg:h-9 text-xs lg:text-sm' : 'h-9 text-sm'
+                        }`}
+                      />
+                    </div>
+
+                    {/* Officer */}
+                    <div>
+                      <Label className={`text-slate-700 font-medium transition-all duration-200 ${
+                        rightSidebarCollapsed ? 'text-xs lg:text-xs' : 'text-xs'
+                      }`}>
+                        Officer
+                      </Label>
+                      <Input
+                        value={caseInfo.officer}
+                        onChange={(e) => setCaseInfo({ ...caseInfo, officer: e.target.value })}
+                        placeholder="Enter officer name"
+                        className={`mt-1.5 border-slate-300 bg-white transition-all duration-200 ${
+                          rightSidebarCollapsed ? 'h-8 lg:h-9 text-xs lg:text-sm' : 'h-9 text-sm'
+                        }`}
+                      />
+                    </div>
+
+                    {/* Witness */}
+                    <div>
+                      <Label className={`text-slate-700 font-medium transition-all duration-200 ${
+                        rightSidebarCollapsed ? 'text-xs lg:text-xs' : 'text-xs'
+                      }`}>
+                        Witness
+                      </Label>
+                      <Input
+                        value={caseInfo.witness}
+                        onChange={(e) => setCaseInfo({ ...caseInfo, witness: e.target.value })}
+                        placeholder="Enter witness name"
+                        className={`mt-1.5 border-slate-300 bg-white transition-all duration-200 ${
+                          rightSidebarCollapsed ? 'h-8 lg:h-9 text-xs lg:text-sm' : 'h-9 text-sm'
+                        }`}
+                      />
+                    </div>
+
+                    {/* Priority */}
+                    <div>
+                      <Label className={`text-slate-700 font-medium transition-all duration-200 ${
+                        rightSidebarCollapsed ? 'text-xs lg:text-xs' : 'text-xs'
+                      }`}>
+                        Priority
+                      </Label>
+                      <Select
+                        value={caseInfo.priority}
+                        onValueChange={(value) => setCaseInfo({ ...caseInfo, priority: value as CaseInfo['priority'] })}
+                      >
+                        <SelectTrigger className={`mt-1.5 border-slate-300 bg-white transition-all duration-200 ${
+                          rightSidebarCollapsed ? 'h-8 lg:h-9 text-xs lg:text-sm' : 'h-9 text-sm'
+                        }`}>
+                          <SelectValue placeholder="Select priority" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="urgent">Urgent</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Status */}
+                    <div>
+                      <Label className={`text-slate-700 font-medium transition-all duration-200 ${
+                        rightSidebarCollapsed ? 'text-xs lg:text-xs' : 'text-xs'
+                      }`}>
+                        Status
+                      </Label>
+                      <Select
+                        value={caseInfo.status}
+                        onValueChange={(value) => setCaseInfo({ ...caseInfo, status: value as CaseInfo['status'] })}
+                      >
+                        <SelectTrigger className={`mt-1.5 border-slate-300 bg-white transition-all duration-200 ${
+                          rightSidebarCollapsed ? 'h-8 lg:h-9 text-xs lg:text-sm' : 'h-9 text-sm'
+                        }`}>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="draft">Draft</SelectItem>
+                          <SelectItem value="in-progress">In Progress</SelectItem>
+                          <SelectItem value="review">Review</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Description */}
+                    <div className="md:col-span-2">
+                      <Label className={`text-slate-700 font-medium transition-all duration-200 ${
+                        rightSidebarCollapsed ? 'text-xs lg:text-xs' : 'text-xs'
+                      }`}>
+                        Description
+                      </Label>
+                      <Textarea
+                        value={caseInfo.description}
+                        onChange={(e) => setCaseInfo({ ...caseInfo, description: e.target.value })}
+                        placeholder="Enter case description"
+                        rows={4}
+                        className={`mt-1.5 border-slate-300 bg-white transition-all duration-200 ${
+                          rightSidebarCollapsed ? 'text-xs lg:text-sm' : 'text-sm'
+                        }`}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </ScrollArea>
         </TabsContent>
       </Tabs>

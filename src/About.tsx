@@ -43,7 +43,7 @@ const About = () => {
     {
       id: '3',
       question: 'How secure is my data and the criminal database?',
-      answer: 'Security is our top priority. All data is encrypted using AES-256 encryption, stored securely in MongoDB Atlas with access controls, and images are hosted on Cloudinary with secure URLs. We comply with GDPR, SOC 2 Type II, ISO 27001, and HIPAA standards. All communications are end-to-end encrypted, and we implement strict authentication and authorization protocols.',
+      answer: 'Security is our top priority. We use JWT authentication with secure token-based access, password hashing with bcrypt, and HTTPS for all communications. Data is stored securely in MongoDB Atlas with connection pooling and access controls, and images are hosted on Cloudinary with secure URLs. We implement security headers for XSS and CSRF protection, rate limiting to prevent abuse, and request size limits. All API endpoints are protected with authentication middleware.',
     },
     {
       id: '4',
@@ -403,32 +403,32 @@ const About = () => {
           <div className="bg-white/80 backdrop-blur-sm rounded-lg xs:rounded-xl sm:rounded-2xl p-4 xs:p-5 sm:p-6 md:p-7 lg:p-8 shadow-sm border border-slate-200/50">
             <h2 className="text-lg xs:text-xl sm:text-2xl font-bold text-slate-900 mb-4 xs:mb-5 sm:mb-6 flex items-center">
               <Lock className="w-5 xs:w-6 h-5 xs:h-6 text-red-600 mr-2 xs:mr-3" />
-              Security & Compliance
+              Security Features
             </h2>
             <div className="space-y-2 xs:space-y-3">
               <div className="flex items-center space-x-2 xs:space-x-3 py-1 xs:py-2">
                 <CheckCircle className="w-4 xs:w-5 h-4 xs:h-5 text-green-600" />
-                <span className="text-xs xs:text-sm text-slate-700">AES-256 Encryption</span>
+                <span className="text-xs xs:text-sm text-slate-700">JWT Authentication</span>
               </div>
               <div className="flex items-center space-x-2 xs:space-x-3 py-1 xs:py-2">
                 <CheckCircle className="w-4 xs:w-5 h-4 xs:h-5 text-green-600" />
-                <span className="text-xs xs:text-sm text-slate-700">GDPR Compliant</span>
+                <span className="text-xs xs:text-sm text-slate-700">Password Hashing (bcrypt)</span>
               </div>
               <div className="flex items-center space-x-2 xs:space-x-3 py-1 xs:py-2">
                 <CheckCircle className="w-4 xs:w-5 h-4 xs:h-5 text-green-600" />
-                <span className="text-xs xs:text-sm text-slate-700">SOC 2 Type II</span>
+                <span className="text-xs xs:text-sm text-slate-700">HTTPS Secure Connections</span>
               </div>
               <div className="flex items-center space-x-2 xs:space-x-3 py-1 xs:py-2">
                 <CheckCircle className="w-4 xs:w-5 h-4 xs:h-5 text-green-600" />
-                <span className="text-xs xs:text-sm text-slate-700">ISO 27001</span>
+                <span className="text-xs xs:text-sm text-slate-700">Security Headers (XSS, CSRF Protection)</span>
               </div>
               <div className="flex items-center space-x-2 xs:space-x-3 py-1 xs:py-2">
                 <CheckCircle className="w-4 xs:w-5 h-4 xs:h-5 text-green-600" />
-                <span className="text-xs xs:text-sm text-slate-700">HIPAA Compliant</span>
+                <span className="text-xs xs:text-sm text-slate-700">Rate Limiting</span>
               </div>
               <div className="flex items-center space-x-2 xs:space-x-3 py-1 xs:py-2">
                 <CheckCircle className="w-4 xs:w-5 h-4 xs:h-5 text-green-600" />
-                <span className="text-xs xs:text-sm text-slate-700">End-to-End Encrypted</span>
+                <span className="text-xs xs:text-sm text-slate-700">Secure Cloud Storage (Cloudinary)</span>
               </div>
             </div>
           </div>

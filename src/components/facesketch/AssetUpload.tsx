@@ -28,6 +28,8 @@ const AssetUpload: React.FC<{
     { value: 'lips', label: 'Lips' },
     { value: 'hair', label: 'Hair' },
     { value: 'facial-hair', label: 'Facial Hair' },
+    { value: 'ears', label: 'Ears' },
+    { value: 'neck', label: 'Neck' },
     { value: 'accessories', label: 'Accessories' }
   ];
 

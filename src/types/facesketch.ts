@@ -33,6 +33,7 @@ export interface CaseInfo {
   officer: string;
   description: string;
   witness: string;
+  suspect?: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
   status: 'draft' | 'in-progress' | 'review' | 'completed';
 }
