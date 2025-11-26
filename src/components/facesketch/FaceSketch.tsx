@@ -2116,19 +2116,19 @@ const FaceSketch: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 flex flex-col">
+    <div className="h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 flex flex-col">
       {/* Enhanced Header - Reorganized */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-amber-200 shadow-sm flex-shrink-0">
         <div className="px-3 sm:px-4 md:px-6 py-2 sm:py-3">
           {/* Navigation Strip - Moved to Top */}
-          <div className="flex flex-wrap items-center justify-center gap-2 mb-2 sm:mb-3">
-            <Button
-              size="sm"
-              disabled
-              className="cursor-default bg-blue-600 text-white h-7 px-3 text-xs shadow-sm"
-            >
-              Sketch Workspace
-            </Button>
+          {/* <div className="flex flex-wrap items-center justify-center gap-2 mb-2 sm:mb-3">
+              <Button
+                size="sm"
+                disabled
+                className="cursor-default bg-blue-600 text-white h-7 px-3 text-xs shadow-sm"
+              >
+                Sketch Workspace
+              </Button>
             <Button
               size="sm"
               variant="outline"
@@ -2137,7 +2137,7 @@ const FaceSketch: React.FC = () => {
             >
               View Recent Sketches
             </Button>
-          </div>
+          </div> */}
 
           {/* Main Toolbar - Reorganized */}
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
@@ -2247,12 +2247,12 @@ const FaceSketch: React.FC = () => {
                 title="Recent sketches"
               >
                 <Clock className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline text-xs">Recent</span>
+                <span className="hidden sm:inline text-xs">View Recent Sketches </span>
               </Button>
               <Separator orientation="vertical" className="h-5 hidden sm:block" />
               <Button onClick={() => setShowAssetUpload(true)} size="sm" className="bg-green-600 hover:bg-green-700 text-white h-7 w-7 sm:w-auto sm:px-3">
                 <Upload className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline ml-1 text-xs">Upload</span>
+                <span className="hidden sm:inline ml-1 text-xs">Assets Upload</span>
               </Button>
               <Separator orientation="vertical" className="h-5 hidden sm:block" />
               <Button
@@ -2293,7 +2293,7 @@ const FaceSketch: React.FC = () => {
         </div>
       </header>
 
-      <div className="flex flex-1 flex-col lg:flex-row min-h-0 relative">
+      <div className="flex flex-1 flex-col lg:flex-row lg:items-stretch min-h-0 overflow-hidden relative">
         {/* Enhanced Left Sidebar */}
         <LeftPanel
           leftSidebarCollapsed={leftSidebarCollapsed}

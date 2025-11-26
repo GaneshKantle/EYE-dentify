@@ -284,7 +284,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
     setDragOverLayerId(null);
   };
   return (
-    <div className={`${rightSidebarCollapsed ? 'w-14 sm:w-16 md:w-20 lg:w-24' : 'w-full sm:w-full md:w-72 lg:w-80'} bg-white/90 backdrop-blur-sm border-t lg:border-t-0 lg:border-l border-amber-200 flex flex-col shadow-sm order-3 transition-all duration-300 ease-in-out flex-shrink-0 lg:sticky lg:top-0 lg:self-start ${rightSidebarCollapsed ? 'bg-gradient-to-b from-white/95 to-slate-50/90' : ''}`} style={{ maxHeight: 'calc(100vh - 8rem)' }}>
+    <div className={`${rightSidebarCollapsed ? 'w-14 sm:w-16 md:w-20 lg:w-24' : 'w-full sm:w-full md:w-72 lg:w-80'} bg-white/90 backdrop-blur-sm border-t lg:border-t-0 lg:border-l border-amber-200 flex flex-col shadow-sm order-3 transition-all duration-300 ease-in-out flex-shrink-0 self-stretch overflow-hidden ${rightSidebarCollapsed ? 'bg-gradient-to-b from-white/95 to-slate-50/90' : ''}`}>
       {/* Panel Header with Toggle */}
       <div className={`${rightSidebarCollapsed ? 'p-1.5 sm:p-2 justify-center' : 'p-2 sm:p-3 md:p-4 justify-between'} border-b border-amber-200 flex items-center transition-all duration-200 flex-shrink-0`}>
         <h3 className={`font-semibold text-slate-800 text-xs sm:text-sm transition-opacity duration-200 ${rightSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>
@@ -378,7 +378,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="workspace" className={`flex-1 p-1.5 sm:p-2 md:p-3 lg:p-4 m-0 transition-all duration-200 overflow-hidden flex flex-col min-h-0 ${rightSidebarCollapsed ? 'hidden' : ''}`}>
+        <TabsContent value="workspace" className={`flex-1 p-1.5 sm:p-2 md:p-3 lg:p-4 m-0 transition-all duration-200 overflow-hidden flex flex-col min-h-0 data-[state=inactive]:hidden ${rightSidebarCollapsed ? 'hidden' : ''}`}>
           <ScrollArea className="flex-1 overflow-y-auto min-h-0">
             
             {/* Asset Grid Container with Fixed Height */}
@@ -676,7 +676,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
           </ScrollArea>
         </TabsContent>
 
-        <TabsContent value="layers" className={`flex-1 p-1.5 sm:p-2 md:p-3 lg:p-4 m-0 transition-all duration-200 overflow-hidden flex flex-col min-h-0 ${rightSidebarCollapsed ? 'hidden' : ''}`}>
+        <TabsContent value="layers" className={`flex-1 p-1.5 sm:p-2 md:p-3 lg:p-4 m-0 transition-all duration-200 overflow-hidden flex flex-col min-h-0 data-[state=inactive]:hidden ${rightSidebarCollapsed ? 'hidden' : ''}`}>
           <ScrollArea className="flex-1 overflow-y-auto min-h-0">
             <div className="space-y-2">
               {[...features].sort((a, b) => b.zIndex - a.zIndex).map((feature, index) => (
@@ -806,7 +806,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
           </ScrollArea>
         </TabsContent>
 
-        <TabsContent value="properties" className={`flex-1 p-1.5 sm:p-2 md:p-3 lg:p-4 m-0 transition-all duration-200 overflow-hidden flex flex-col min-h-0 ${rightSidebarCollapsed ? 'hidden' : ''}`}>
+        <TabsContent value="properties" className={`flex-1 p-1.5 sm:p-2 md:p-3 lg:p-4 m-0 transition-all duration-200 overflow-hidden flex flex-col min-h-0 data-[state=inactive]:hidden ${rightSidebarCollapsed ? 'hidden' : ''}`}>
           <ScrollArea className="flex-1 overflow-y-auto min-h-0">
             {selectedFeature ? (
               <div className={`space-y-4 md:space-y-6 transition-all duration-200 ${
@@ -1183,7 +1183,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
           </ScrollArea>
         </TabsContent>
 
-        <TabsContent value="case" className={`flex-1 p-1.5 sm:p-2 md:p-3 lg:p-4 m-0 transition-all duration-200 overflow-hidden flex flex-col min-h-0 ${rightSidebarCollapsed ? 'hidden' : ''}`}>
+        <TabsContent value="case" className={`flex-1 p-1.5 sm:p-2 md:p-3 lg:p-4 m-0 transition-all duration-200 overflow-hidden flex flex-col min-h-0 data-[state=inactive]:hidden ${rightSidebarCollapsed ? 'hidden' : ''}`}>
           <ScrollArea className="flex-1 overflow-y-auto min-h-0">
             <div className={`space-y-4 md:space-y-6 transition-all duration-200 ${
               rightSidebarCollapsed ? 'space-y-3 lg:space-y-4' : 'space-y-4 md:space-y-6'

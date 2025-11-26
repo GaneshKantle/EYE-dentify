@@ -1,5 +1,5 @@
 import React from 'react';
-import { Github, Linkedin, Briefcase } from 'lucide-react';
+import { Github, Linkedin, Briefcase, ExternalLink, FileText, BookOpen, FileSpreadsheet } from 'lucide-react';
 import { GlassmorphismProfileCard, SocialLink } from '../components/ui/profile-card-1';
 
 const More = () => {
@@ -23,7 +23,7 @@ const More = () => {
     {
       id: 2,
       name: 'Manju A R',
-      title: 'UI/UX Designer & Frontend Developer',
+      title: 'AI/ML Engineer',
       // bio: 'Creating beautiful and intuitive user experiences. Specialized in modern design systems, accessibility, and responsive interfaces.',
       avatarUrl: 'https://res.cloudinary.com/dqkhdusc4/image/upload/v1764004865/user_qddras.png',
       socialLinks: [
@@ -79,7 +79,7 @@ const More = () => {
           <h2 className="text-lg xs:text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-4 xs:mb-6 sm:mb-8 text-center">
             Project Authors
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-4 3xl:grid-cols-4 gap-4 xs:gap-5 sm:gap-6 md:gap-7 lg:gap-8 xl:gap-10 2xl:gap-12 3xl:gap-16 items-stretch">
+          <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 xs:gap-4 sm:gap-5 md:gap-6 lg:gap-6 xl:gap-8 items-stretch max-w-5xl mx-auto">
             {authors.map((author) => (
               <GlassmorphismProfileCard
                 key={author.id}
@@ -175,10 +175,125 @@ const More = () => {
             />
           </div>
         </section>
+
+        {/* GitHub Source Code Section */}
+        <section className="mb-8 xs:mb-10 sm:mb-12 md:mb-16 lg:mb-20">
+          <h2 className="text-lg xs:text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-4 xs:mb-6 sm:mb-8 text-center">
+            Source Code
+          </h2>
+          <div className="max-w-2xl mx-auto">
+            <a
+              href="https://github.com/GaneshKantle/EYE-dentify"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center justify-between p-4 xs:p-5 sm:p-6 rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 text-white hover:from-gray-800 hover:to-gray-700 transition-all duration-300 shadow-lg hover:shadow-xl"
+            >
+              <div className="flex items-center gap-3 xs:gap-4">
+                <div className="w-10 h-10 xs:w-12 xs:h-12 sm:w-14 sm:h-14 rounded-full bg-white/10 flex items-center justify-center">
+                  <Github className="w-5 h-5 xs:w-6 xs:h-6 sm:w-7 sm:h-7" />
+                </div>
+                <div>
+                  <h3 className="text-sm xs:text-base sm:text-lg font-bold">View on GitHub</h3>
+                  <p className="text-[10px] xs:text-xs sm:text-sm text-gray-300">EYE-dentify Repository</p>
+                </div>
+              </div>
+              <ExternalLink className="w-4 h-4 xs:w-5 xs:h-5 opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+            </a>
+          </div>
+        </section>
+
+        {/* Documentation Section */}
+        <section className="mb-8 xs:mb-10 sm:mb-12 md:mb-16 lg:mb-20">
+          <h2 className="text-lg xs:text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-4 xs:mb-6 sm:mb-8 text-center">
+            Documentation
+          </h2>
+          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 xs:gap-4 sm:gap-5">
+            <ResourceCard icon={FileText} title="API Documentation" description="REST API endpoints & usage" href="https://github.com/GaneshKantle/EYE-dentify/blob/main/API_DOCUMENTATION.md" color="blue" />
+            <ResourceCard icon={BookOpen} title="Development Guide" description="Setup & development workflow" href="https://github.com/GaneshKantle/EYE-dentify/blob/main/DEVELOPMENT_GUIDE.md" color="emerald" />
+            <ResourceCard icon={FileText} title="Production Deployment" description="Deploy to production" href="https://github.com/GaneshKantle/EYE-dentify/blob/main/PRODUCTION_DEPLOYMENT.md" color="purple" />
+            <ResourceCard icon={FileText} title="Port Configuration" description="Network & port setup" href="https://github.com/GaneshKantle/EYE-dentify/blob/main/PORT_CONFIGURATION.md" color="orange" />
+          </div>
+        </section>
+
+        {/* Technical Papers Section */}
+        <section className="mb-8 xs:mb-10 sm:mb-12 md:mb-16 lg:mb-20">
+          <h2 className="text-lg xs:text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-4 xs:mb-6 sm:mb-8 text-center">
+            Technical Papers
+          </h2>
+          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-3 xs:gap-4 sm:gap-5">
+            <ResourceCard icon={BookOpen} title="Face Recognition Research" description="ML algorithms & methodology" comingSoon color="indigo" />
+            <ResourceCard icon={BookOpen} title="Sketch-to-Face Synthesis" description="GAN-based approach" comingSoon color="rose" />
+            <ResourceCard icon={BookOpen} title="System Architecture" description="Technical implementation" comingSoon color="cyan" />
+          </div>
+        </section>
+
+        {/* Reports Section */}
+        <section className="mb-8 xs:mb-10 sm:mb-12 md:mb-16 lg:mb-20">
+          <h2 className="text-lg xs:text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-4 xs:mb-6 sm:mb-8 text-center">
+            Project Reports
+          </h2>
+          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-3 xs:gap-4 sm:gap-5">
+            <ResourceCard icon={FileSpreadsheet} title="Project Synopsis" description="Overview & objectives" comingSoon color="amber" />
+            <ResourceCard icon={FileSpreadsheet} title="Progress Report" description="Development milestones" comingSoon color="teal" />
+            <ResourceCard icon={FileSpreadsheet} title="Final Report" description="Complete documentation" comingSoon color="violet" />
+          </div>
+        </section>
       </div>
     </div>
   );
 };
+
+// Resource Card Component
+interface ResourceCardProps {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+  href?: string;
+  comingSoon?: boolean;
+  color: 'blue' | 'emerald' | 'purple' | 'orange' | 'indigo' | 'rose' | 'cyan' | 'amber' | 'teal' | 'violet';
+}
+
+const colorMap = {
+  blue: { bg: 'from-blue-50 to-sky-50', icon: 'bg-blue-100 text-blue-600', border: 'hover:border-blue-200' },
+  emerald: { bg: 'from-emerald-50 to-green-50', icon: 'bg-emerald-100 text-emerald-600', border: 'hover:border-emerald-200' },
+  purple: { bg: 'from-purple-50 to-violet-50', icon: 'bg-purple-100 text-purple-600', border: 'hover:border-purple-200' },
+  orange: { bg: 'from-orange-50 to-amber-50', icon: 'bg-orange-100 text-orange-600', border: 'hover:border-orange-200' },
+  indigo: { bg: 'from-indigo-50 to-blue-50', icon: 'bg-indigo-100 text-indigo-600', border: 'hover:border-indigo-200' },
+  rose: { bg: 'from-rose-50 to-pink-50', icon: 'bg-rose-100 text-rose-600', border: 'hover:border-rose-200' },
+  cyan: { bg: 'from-cyan-50 to-sky-50', icon: 'bg-cyan-100 text-cyan-600', border: 'hover:border-cyan-200' },
+  amber: { bg: 'from-amber-50 to-yellow-50', icon: 'bg-amber-100 text-amber-600', border: 'hover:border-amber-200' },
+  teal: { bg: 'from-teal-50 to-emerald-50', icon: 'bg-teal-100 text-teal-600', border: 'hover:border-teal-200' },
+  violet: { bg: 'from-violet-50 to-purple-50', icon: 'bg-violet-100 text-violet-600', border: 'hover:border-violet-200' },
+};
+
+const ResourceCard = React.memo<ResourceCardProps>(({ icon: Icon, title, description, href, comingSoon, color }) => {
+  const colors = colorMap[color];
+  const Content = (
+    <div className={`relative h-full p-3 xs:p-4 sm:p-5 rounded-xl bg-gradient-to-br ${colors.bg} border border-gray-100 ${colors.border} transition-all duration-300 hover:shadow-md ${href ? 'cursor-pointer' : ''}`}>
+      {comingSoon && (
+        <span className="absolute top-2 right-2 px-1.5 py-0.5 text-[8px] xs:text-[9px] font-semibold bg-gray-200 text-gray-600 rounded">
+          Coming Soon
+        </span>
+      )}
+      <div className={`w-8 h-8 xs:w-9 xs:h-9 sm:w-10 sm:h-10 rounded-lg ${colors.icon} flex items-center justify-center mb-2 xs:mb-3`}>
+        <Icon className="w-4 h-4 xs:w-5 xs:h-5" />
+      </div>
+      <h3 className="text-xs xs:text-sm sm:text-base font-bold text-gray-900 mb-0.5 xs:mb-1">{title}</h3>
+      <p className="text-[10px] xs:text-xs sm:text-sm text-gray-600">{description}</p>
+    </div>
+  );
+
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className="block h-full">
+        {Content}
+      </a>
+    );
+  }
+  return Content;
+});
+
+ResourceCard.displayName = 'ResourceCard';
 
 // Tech Card Component
 interface TechCardProps {
