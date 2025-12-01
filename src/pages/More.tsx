@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import React from 'react';
 import { Github, Linkedin, Briefcase, ExternalLink, FileText, BookOpen, FileSpreadsheet } from 'lucide-react';
 import { GlassmorphismProfileCard, SocialLink } from '../components/ui/profile-card-1';
@@ -13,7 +14,7 @@ const More = () => {
       socialLinks: [
         { id: 'github', icon: Github, label: 'GitHub', href: 'https://github.com/ganeshkantle' },
         { id: 'linkedin', icon: Linkedin, label: 'LinkedIn', href: 'https://linkedin.com/in/ganesh-kantle' },
-        { id: 'portfolio', icon: Briefcase, label: 'Portfolio', href: 'https://ganesh-kantle.vercel.app' },
+        // { id: 'portfolio', icon: Briefcase, label: 'Portfolio', href: 'https://ganesh-kantle.vercel.app' },
       ] as SocialLink[],
       actionButton: {
         text: 'Contact',
@@ -29,23 +30,23 @@ const More = () => {
       socialLinks: [
         { id: 'github', icon: Github, label: 'GitHub', href: 'https://github.com/MANJU-AR' },
         { id: 'linkedin', icon: Linkedin, label: 'LinkedIn', href: 'https://linkedin.com/in/manju-a-r-624466255' },
-        { id: 'portfolio', icon: Briefcase, label: 'Portfolio', href: 'https://github.com/MANJU-AR' },
+        // { id: 'portfolio', icon: Briefcase, label: 'Portfolio', href: 'https://github.com/MANJU-AR' },
       ] as SocialLink[],
       actionButton: {
         text: 'Contact',
-        href: 'mailto:manjuaraug2k2@gmail.com',
+        href: 'mailto:manju17aug2k4@gmail.com',
       },
     },
     {
       id: 3,
       name: 'Nagashree Uday Bhat',
-      title: 'Backend Engineer & AI Specialist',
+      title: 'Data Scientist',
       // bio: 'Building robust APIs and machine learning models. Focused on performance optimization and scalable architecture.',
       avatarUrl: 'https://res.cloudinary.com/dqkhdusc4/image/upload/v1764004865/human_f1qari.png',
       socialLinks: [
         { id: 'github', icon: Github, label: 'GitHub', href: 'https://github.com/NagashreeBhat04' },
         { id: 'linkedin', icon: Linkedin, label: 'LinkedIn', href: 'https://www.linkedin.com/in/nagashree-bhat-694774256' },
-        { id: 'portfolio', icon: Briefcase, label: 'Portfolio', href: 'https://github.com/NagashreeBhat04' },
+        // { id: 'portfolio', icon: Briefcase, label: 'Portfolio', href: 'https://github.com/NagashreeBhat04' },
       ] as SocialLink[],
       actionButton: {
         text: 'Contact',
@@ -55,17 +56,17 @@ const More = () => {
     {
       id: 4,
       name: 'Nandita Karuna',
-      title: 'DevOps Engineer & Security Expert',
+      title: 'Full Stack Developer',
       // bio: 'Ensuring secure, reliable deployments and infrastructure. Passionate about automation, cloud computing, and system security.',
       avatarUrl: 'https://res.cloudinary.com/dqkhdusc4/image/upload/v1764004865/woman_dczty3.png',
       socialLinks: [
-        { id: 'github', icon: Github, label: 'GitHub', href: 'https://github.com' },
-        { id: 'linkedin', icon: Linkedin, label: 'LinkedIn', href: 'https://linkedin.com' },
-        { id: 'portfolio', icon: Briefcase, label: 'Portfolio', href: 'https://twitter.com' },
+        { id: 'github', icon: Github, label: 'GitHub', href: 'https://github.com/nanditha04K' },
+        { id: 'linkedin', icon: Linkedin, label: 'LinkedIn', href: 'https://www.linkedin.com/in/nanditha-karuna1' },
+        // { id: 'portfolio', icon: Briefcase, label: 'Portfolio', href: 'https://twitter.com' },
       ] as SocialLink[],
       actionButton: {
         text: 'Contact',
-        href: 'mailto:emma@example.com',
+        href: 'mailto:nandithakaruna1@gmail.com',
       },
     },
   ];

@@ -1,10 +1,10 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Face, GalleryResponse } from "./types";
 import { apiClient } from "./lib/api";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { Button } from "./components/ui/button";
-import { Edit, Trash2, Eye, PenTool } from "lucide-react";
+import { Edit, Trash2, Eye, PenTool, UserPlus, Download, X } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,12 +43,11 @@ const Gallery: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [filterCrime, setFilterCrime] = useState<string>("");
   const [sketchSearchTerm, setSketchSearchTerm] = useState<string>("");
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [replaceTargetName, setReplaceTargetName] = useState<string>("");
   const [deleteSketchId, setDeleteSketchId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [editingFace, setEditingFace] = useState<Face | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [viewerImage, setViewerImage] = useState<{ url: string; name: string } | null>(null);
 
   // Load criminals
   useEffect(() => {
@@ -140,10 +139,6 @@ const Gallery: React.FC = () => {
     navigate(`/sketch?id=${sketchId}`);
   };
 
-  const handleSketchView = (sketchId: string) => {
-    navigate(`/sketch?id=${sketchId}`);
-  };
-
   const handleSketchDelete = async () => {
     if (!deleteSketchId) return;
     try {
@@ -186,26 +181,29 @@ const Gallery: React.FC = () => {
     }
   };
 
-  const handleReplaceClick = (name: string) => {
-    setReplaceTargetName(name);
-    fileInputRef.current?.click();
-  };
-
-  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !replaceTargetName) return;
-    try {
+  const handleFaceImageChange = async (file: File) => {
+    if (!editingFace) return;
       const fd = new FormData();
       fd.append("file", file);
-      const data = await apiClient.directUploadFile<{image_url: string}>(`/face/${encodeURIComponent(replaceTargetName)}/image`, fd);
-      // Optimistically replace the primary image url
-      setFaces(prev => prev.map(f => f.name === replaceTargetName ? { ...f, image_urls: [data.image_url, ...(f.image_urls?.slice(1) || [])] } : f));
+    const data = await apiClient.directUploadFile<{image_url: string}>(`/face/${encodeURIComponent(editingFace.name)}/image`, fd);
+    setFaces(prev => prev.map(f => f.name === editingFace.name ? { ...f, image_urls: [data.image_url, ...(f.image_urls?.slice(1) || [])] } : f));
+    setEditingFace(prev => prev ? { ...prev, image_urls: [data.image_url, ...(prev.image_urls?.slice(1) || [])] } : null);
+  };
+
+  const handleDownloadImage = async (url: string, name: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${name}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
     } catch (err) {
       console.error(err);
-      alert("Image replace failed");
-    } finally {
-      e.target.value = "";
-      setReplaceTargetName("");
+      window.open(url, '_blank');
     }
   };
 
@@ -253,6 +251,13 @@ const Gallery: React.FC = () => {
                 ))}
               </select>
             </div>
+            <Button
+              onClick={() => navigate('/add')}
+              className="h-9 sm:h-10 px-3 sm:px-4 text-xs sm:text-sm bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-md hover:shadow-lg transition-all"
+            >
+              <UserPlus className="w-4 h-4 mr-1.5 sm:mr-2" />
+              Add Criminal
+            </Button>
           </div>
         </div>
 
@@ -272,17 +277,6 @@ const Gallery: React.FC = () => {
           </div>
         </div>
 
-        {/* File input for replace image */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={onFileChange}
-          aria-label="Replace image file"
-          title="Replace image file"
-        />
-
         {/* Content */}
         {loading ? (
           <div className="flex items-center justify-center py-8 sm:py-12">
@@ -301,50 +295,57 @@ const Gallery: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3">
+          <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-3 xs:gap-4 sm:gap-5 md:gap-6">
             {filteredFaces.map((face, idx) => (
-              <div className="bg-white rounded-lg overflow-hidden transition-all duration-200 border border-slate-200/60 hover:border-slate-300 hover:shadow-md" key={idx}>
-                <div className="relative">
+              <div className="group bg-white rounded-xl xs:rounded-2xl overflow-hidden transition-all duration-300 border border-slate-200/80 hover:border-blue-300 hover:shadow-xl hover:-translate-y-1" key={idx}>
+                <div className="relative aspect-[4/5] overflow-hidden">
                   <img 
                     src={face.image_urls[0]} 
                     alt={face.name} 
-                    className="w-full h-24 sm:h-28 md:h-32 object-cover" 
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
                     loading="lazy"
                   />
-                  <div className="absolute top-1 right-1 flex gap-1">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="absolute top-2 xs:top-3 right-2 xs:right-3 flex gap-1.5 xs:gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
+                    <button
+                      onClick={() => setViewerImage({ url: face.image_urls[0], name: face.name })}
+                      className="p-1.5 xs:p-2 bg-white rounded-lg hover:bg-blue-500 hover:text-white transition-all shadow-lg border border-slate-200"
+                      aria-label="View Image"
+                      title="View Image"
+                    >
+                      <Eye className="w-3 h-3 xs:w-4 xs:h-4" />
+                    </button>
                     <button
                       onClick={() => handleEdit(face)}
-                      className="px-1.5 py-0.5 text-[10px] bg-white/95 backdrop-blur-sm border border-slate-200 rounded hover:bg-white transition-colors shadow-sm"
+                      className="p-1.5 xs:p-2 bg-white rounded-lg hover:bg-emerald-500 hover:text-white transition-all shadow-lg border border-slate-200"
                       aria-label="Edit"
                       title="Edit"
-                    >Edit</button>
-                    <button
-                      onClick={() => handleReplaceClick(face.name)}
-                      className="px-1.5 py-0.5 text-[10px] bg-white/95 backdrop-blur-sm border border-slate-200 rounded hover:bg-white transition-colors shadow-sm"
-                      aria-label="Replace image"
-                      title="Replace image"
-                    >Img</button>
+                    >
+                      <Edit className="w-3 h-3 xs:w-4 xs:h-4" />
+                    </button>
                     <button
                       onClick={() => handleDelete(face.name)}
-                      className="px-1.5 py-0.5 text-[10px] bg-red-50 border border-red-200 text-red-700 rounded hover:bg-red-100 transition-colors shadow-sm"
+                      className="p-1.5 xs:p-2 bg-white rounded-lg hover:bg-red-500 hover:text-white transition-all shadow-lg border border-slate-200"
                       aria-label="Delete"
                       title="Delete"
-                    >Del</button>
+                    >
+                      <Trash2 className="w-3 h-3 xs:w-4 xs:h-4" />
+                    </button>
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 p-3 xs:p-4 bg-gradient-to-t from-black/70 to-transparent">
+                    <h3 className="text-sm xs:text-base sm:text-lg font-bold text-white truncate drop-shadow-lg">{face.name}</h3>
                   </div>
                 </div>
-                <div className="p-2">
-                  <h3 className="text-xs sm:text-sm font-medium text-slate-900 truncate mb-1">{face.name}</h3>
-                  <div className="space-y-0.5 mb-1">
-                    <div className="flex justify-between text-[10px] sm:text-xs">
-                      <span className="text-slate-500">Age:</span>
-                      <span className="text-slate-900 font-medium">{face.age || 'N/A'}</span>
+                <div className="p-3 xs:p-4 space-y-2 xs:space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] xs:text-xs sm:text-sm text-slate-500">Age</span>
+                    <span className="text-xs xs:text-sm sm:text-base font-semibold text-slate-800">{face.age || 'N/A'}</span>
                     </div>
-                    <div className="flex justify-between text-[10px] sm:text-xs">
-                      <span className="text-slate-500">Crime:</span>
-                      <span className="text-slate-900 font-medium truncate ml-1">{face.crime || 'N/A'}</span>
-                    </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] xs:text-xs sm:text-sm text-slate-500">Crime</span>
+                    <span className="text-xs xs:text-sm sm:text-base font-semibold text-red-600 truncate ml-2 max-w-[60%] text-right">{face.crime || 'N/A'}</span>
                   </div>
-                  <p className="text-[10px] sm:text-xs text-slate-600 line-clamp-2 mb-1">{face.description || 'No description'}</p>
+                  <p className="text-[10px] xs:text-xs sm:text-sm text-slate-600 line-clamp-2 leading-relaxed pt-1 border-t border-slate-100">{face.description || 'No description available'}</p>
                 </div>
               </div>
             ))}
@@ -401,86 +402,86 @@ const Gallery: React.FC = () => {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-3 xs:gap-4 sm:gap-5 md:gap-6">
                 {filteredSketches.map((sketch) => (
                   <div 
                     key={sketch._id} 
-                    className="bg-white rounded-lg overflow-hidden border border-slate-200/60 hover:border-slate-300 hover:shadow-md transition-all duration-200"
+                    className="group bg-white rounded-xl xs:rounded-2xl overflow-hidden transition-all duration-300 border border-slate-200/80 hover:border-blue-300 hover:shadow-xl hover:-translate-y-1"
                   >
-                    <div className="relative">
+                    <div className="relative aspect-[4/5] overflow-hidden">
                       {sketch.cloudinary_url ? (
                         <img 
                           src={sketch.cloudinary_url} 
                           alt={sketch.name} 
-                          className="w-full h-36 sm:h-40 object-cover"
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                           loading="lazy"
                         />
                       ) : (
-                        <div className="w-full h-36 sm:h-40 bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center">
-                          <PenTool className="w-12 h-12 text-amber-600 opacity-50" />
+                        <div className="w-full h-full bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center">
+                          <PenTool className="w-12 h-12 xs:w-16 xs:h-16 text-amber-600 opacity-50" />
                         </div>
                       )}
-                      <div className="absolute top-2 right-2">
-                        <span className={`px-2 py-1 text-[10px] rounded-full ${
-                          sketch.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
-                          sketch.status === 'in-progress' ? 'bg-blue-100 text-blue-700' :
-                          sketch.status === 'review' ? 'bg-purple-100 text-purple-700' :
-                          'bg-slate-100 text-slate-700'
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <div className="absolute top-2 xs:top-3 left-2 xs:left-3">
+                        <span className={`px-2 xs:px-3 py-1 text-[10px] xs:text-xs font-medium rounded-full backdrop-blur-md ${
+                          sketch.status === 'completed' ? 'bg-emerald-500/90 text-white' :
+                          sketch.status === 'in-progress' ? 'bg-blue-500/90 text-white' :
+                          sketch.status === 'review' ? 'bg-purple-500/90 text-white' :
+                          'bg-slate-500/90 text-white'
                         }`}>
                           {sketch.status || 'draft'}
                         </span>
                       </div>
-                      <div className="absolute bottom-2 left-2 right-2 flex gap-1">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          className="flex-1 h-7 text-[10px]"
-                          onClick={() => handleSketchView(sketch._id)}
+                      <div className="absolute top-2 xs:top-3 right-2 xs:right-3 flex gap-1.5 xs:gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
+                        <button
+                          onClick={() => sketch.cloudinary_url && setViewerImage({ url: sketch.cloudinary_url, name: sketch.name })}
+                          className="p-1.5 xs:p-2 bg-white rounded-lg hover:bg-blue-500 hover:text-white transition-all shadow-lg border border-slate-200"
+                          aria-label="View Image"
+                          title="View Image"
                         >
-                          <Eye className="w-3 h-3 mr-1" />
-                          View
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          className="flex-1 h-7 text-[10px]"
+                          <Eye className="w-3 h-3 xs:w-4 xs:h-4" />
+                        </button>
+                        <button
                           onClick={() => handleSketchEdit(sketch._id)}
+                          className="p-1.5 xs:p-2 bg-white rounded-lg hover:bg-emerald-500 hover:text-white transition-all shadow-lg border border-slate-200"
+                          aria-label="Edit"
+                          title="Edit"
                         >
-                          <Edit className="w-3 h-3 mr-1" />
-                          Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          className="h-7 w-7 p-0"
+                          <Edit className="w-3 h-3 xs:w-4 xs:h-4" />
+                        </button>
+                        <button
                           onClick={() => {
                             setDeleteSketchId(sketch._id);
                             setShowDeleteDialog(true);
                           }}
+                          className="p-1.5 xs:p-2 bg-white rounded-lg hover:bg-red-500 hover:text-white transition-all shadow-lg border border-slate-200"
+                          aria-label="Delete"
+                          title="Delete"
                         >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
+                          <Trash2 className="w-3 h-3 xs:w-4 xs:h-4" />
+                        </button>
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 p-3 xs:p-4 bg-gradient-to-t from-black/70 to-transparent">
+                        <h3 className="text-sm xs:text-base sm:text-lg font-bold text-white truncate drop-shadow-lg">{sketch.name}</h3>
                       </div>
                     </div>
-                    <div className="p-3">
-                      <h3 className="text-sm font-semibold text-slate-900 mb-2 truncate">{sketch.name}</h3>
-                      <div className="space-y-1 text-xs text-slate-600">
+                    <div className="p-3 xs:p-4 space-y-2 xs:space-y-3">
                         {sketch.suspect && (
-                          <div className="flex justify-between">
-                            <span className="text-slate-500">Suspect:</span>
-                            <span className="font-medium text-slate-900">{sketch.suspect}</span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] xs:text-xs sm:text-sm text-slate-500">Suspect</span>
+                          <span className="text-xs xs:text-sm sm:text-base font-semibold text-slate-800 truncate ml-2 max-w-[60%] text-right">{sketch.suspect}</span>
                           </div>
                         )}
                         {sketch.officer && (
-                          <div className="flex justify-between">
-                            <span className="text-slate-500">Officer:</span>
-                            <span className="font-medium text-slate-900">{sketch.officer}</span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] xs:text-xs sm:text-sm text-slate-500">Officer</span>
+                          <span className="text-xs xs:text-sm sm:text-base font-semibold text-slate-800 truncate ml-2 max-w-[60%] text-right">{sketch.officer}</span>
                           </div>
                         )}
                         {sketch.priority && (
-                          <div className="flex justify-between">
-                            <span className="text-slate-500">Priority:</span>
-                            <span className={`font-medium capitalize ${
+                        <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                          <span className="text-[10px] xs:text-xs sm:text-sm text-slate-500">Priority</span>
+                          <span className={`text-xs xs:text-sm sm:text-base font-semibold capitalize ${
                               sketch.priority === 'urgent' ? 'text-red-600' :
                               sketch.priority === 'high' ? 'text-orange-600' :
                               sketch.priority === 'medium' ? 'text-yellow-600' :
@@ -490,7 +491,6 @@ const Gallery: React.FC = () => {
                             </span>
                           </div>
                         )}
-                      </div>
                     </div>
                   </div>
                 ))}
@@ -531,7 +531,47 @@ const Gallery: React.FC = () => {
           onOpenChange={setShowEditModal}
           face={editingFace}
           onSave={handleSaveEdit}
+          onImageChange={handleFaceImageChange}
         />
+
+        {/* Image Viewer Modal */}
+        {viewerImage && (
+          <div 
+            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 xs:p-6 sm:p-8"
+            onClick={() => setViewerImage(null)}
+          >
+            <div className="absolute top-4 right-4 xs:top-6 xs:right-6 flex gap-2 xs:gap-3 z-10">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDownloadImage(viewerImage.url, viewerImage.name);
+                }}
+                className="p-2 xs:p-3 bg-white rounded-full hover:bg-emerald-500 hover:text-white transition-all shadow-lg"
+                aria-label="Download"
+                title="Download"
+              >
+                <Download className="w-5 h-5 xs:w-6 xs:h-6" />
+              </button>
+              <button
+                onClick={() => setViewerImage(null)}
+                className="p-2 xs:p-3 bg-white rounded-full hover:bg-red-500 hover:text-white transition-all shadow-lg"
+                aria-label="Close"
+                title="Close"
+              >
+                <X className="w-5 h-5 xs:w-6 xs:h-6" />
+              </button>
+            </div>
+            <img
+              src={viewerImage.url}
+              alt={viewerImage.name}
+              className="max-w-full max-h-full object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <div className="absolute bottom-4 xs:bottom-6 left-1/2 -translate-x-1/2 bg-black/60 px-4 py-2 rounded-full">
+              <span className="text-white text-sm xs:text-base font-medium">{viewerImage.name}</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

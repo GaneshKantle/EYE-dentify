@@ -98,8 +98,8 @@ export const Navbar = () => {
                       </p>
                     </div>
                   </div>
-                  <DropdownMenuSeparator className="bg-slate-200" />
-                  <DropdownMenuItem asChild className="hover:bg-slate-100 focus:bg-slate-100 transition-colors duration-200">
+                   {/* <DropdownMenuSeparator className="bg-slate-200" />
+                 <DropdownMenuItem asChild className="hover:bg-slate-100 focus:bg-slate-100 transition-colors duration-200">
                     <Link to="/profile" className="flex items-center text-slate-700">
                       <User className="mr-2 h-4 w-4" />
                       Profile
@@ -110,7 +110,8 @@ export const Navbar = () => {
                       <Settings className="mr-2 h-4 w-4" />
                       Settings
                     </Link>
-                  </DropdownMenuItem>
+                  </DropdownMenuItem> 
+                  */}
                   <DropdownMenuSeparator className="bg-slate-200" />
                   <DropdownMenuItem onClick={handleLogout} className="text-red-600 hover:bg-red-50/50 focus:bg-red-50/50 transition-colors duration-200">
                     <LogOut className="mr-2 h-4 w-4" />

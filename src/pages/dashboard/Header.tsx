@@ -1,10 +1,13 @@
-import { Shield, Users, Clock } from 'lucide-react';
+import { Shield, Users, Clock, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../../store/authStore';
 import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 const Header = () => {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
 
   return (
     <>
@@ -40,14 +43,14 @@ const Header = () => {
               <Badge variant="outline" className="border-red-300 text-red-600">v2.0</Badge>
             </div>
 
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl font-bold mb-4 sm:mb-6 text-gray-800 leading-tight">
-              Forensic
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-3 sm:mb-4 text-gray-800 leading-tight">
+              EYE'dentify
             </h1>
-            <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-semibold text-gray-600 mb-6 sm:mb-8 tracking-wide">
-              Investigation Center
+            <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-600 mb-4 sm:mb-6 tracking-wide">
+              Forensic Sketch & Recognition System
             </h2>
             
-            <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-6 text-gray-500 mb-6 sm:mb-8">
+            <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-6 text-gray-500 mb-4 sm:mb-6">
               <div className="flex items-center space-x-2">
                 <Users className="w-4 h-4" />
                 <span className="text-sm sm:text-base">Officer: {user?.username || 'Unknown'}</span>
@@ -59,10 +62,19 @@ const Header = () => {
               </div>
             </div>
 
-            <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-2xl sm:max-w-3xl lg:max-w-4xl xl:max-w-5xl mx-auto leading-relaxed px-4">
-              Advanced forensic face recognition and sketch creation tools for law enforcement professionals. 
-              Access cutting-edge technology to solve cases faster and more accurately.
+            <p className="text-sm sm:text-base md:text-lg text-gray-600 max-w-2xl sm:max-w-3xl lg:max-w-4xl mx-auto leading-relaxed px-4 mb-4 sm:mb-6">
+              AI-powered forensic sketch creation and face recognition platform. 
+              Create detailed suspect sketches, manage active cases, and accelerate investigations.
             </p>
+            <div className="flex justify-center">
+              <Button
+                onClick={() => navigate('/sketch')}
+                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 xs:px-6 sm:px-8 py-2 xs:py-2.5 sm:py-3 text-xs xs:text-sm sm:text-base font-semibold shadow-lg hover:shadow-xl transition-all"
+              >
+                Start Investigation
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
             </motion.div>
           </div>
         </div>
