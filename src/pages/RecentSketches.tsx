@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Loader2, PenTool, RefreshCcw, Search, Sparkles } from 'lucide-react';
+import { Calendar, Loader2, PenTool, RefreshCcw, Search, Sparkles, Eye, Edit, Trash2, Download, X, Database } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
@@ -8,6 +8,17 @@ import { Card } from '../components/ui/card';
 import { Skeleton } from '../components/ui/skeleton';
 import { useSketches } from '../lib/sketchService';
 import { SketchPriority, SketchStatus } from '../types/sketch';
+import { apiClient } from '../lib/api';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../components/ui/alert-dialog';
 
 const statusOptions: Array<{ value: SketchStatus | 'all'; label: string }> = [
   { value: 'all', label: 'All statuses' },
@@ -49,6 +60,9 @@ const RecentSketches: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<SketchStatus | 'all'>('all');
   const [priorityFilter, setPriorityFilter] = useState<SketchPriority | 'all'>('all');
+  const [deleteSketchId, setDeleteSketchId] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [viewerImage, setViewerImage] = useState<{ url: string; name: string } | null>(null);
 
   const stats = useMemo(() => {
     const total = sketches.length;
@@ -116,6 +130,46 @@ const RecentSketches: React.FC = () => {
     navigate(`/sketch?id=${id}`);
   };
 
+  const handleEdit = (id: string) => {
+    navigate(`/sketch?id=${id}`);
+  };
+
+  const handleView = (sketch: any) => {
+    if (sketch.cloudinary_url) {
+      setViewerImage({ url: sketch.cloudinary_url, name: sketch.name });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteSketchId) return;
+    try {
+      await apiClient.directDelete(`/sketches/${deleteSketchId}`);
+      refresh();
+      setShowDeleteDialog(false);
+      setDeleteSketchId(null);
+    } catch (err: any) {
+      console.error('Failed to delete sketch:', err);
+      alert('Failed to delete sketch');
+    }
+  };
+
+  const handleDownloadImage = async (url: string, name: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${name}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } catch (err) {
+      console.error(err);
+      window.open(url, '_blank');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12 py-3 sm:py-4 md:py-5 lg:py-6 space-y-3 sm:space-y-4 md:space-y-5 lg:space-y-6">
@@ -139,6 +193,15 @@ const RecentSketches: React.FC = () => {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 sm:items-center flex-shrink-0">
+            <Button
+              onClick={() => navigate('/gallery?tab=sketches')}
+              variant="outline"
+              size="sm"
+              className="flex items-center justify-center gap-1.5 sm:gap-2 border-blue-200 text-blue-700 hover:text-blue-800 hover:bg-blue-100/70 text-xs sm:text-sm"
+            >
+              <Database className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="font-medium">Gallery</span>
+            </Button>
             <Button
               onClick={() => refresh()}
               variant="outline"
@@ -303,7 +366,8 @@ const RecentSketches: React.FC = () => {
                         <PenTool className="h-8 w-8 text-slate-400" />
                       </div>
                     )}
-                    <div className="absolute top-2 left-2 flex gap-1.5 flex-wrap">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <div className="absolute top-2 left-2 flex gap-1.5 flex-wrap z-10">
                       {sketch.status && (
                         <Badge variant="secondary" className={`text-[10px] font-medium rounded-full px-2 py-0.5 ${statusBadgeClasses[sketch.status] || ''}`}>
                           {sketch.status}
@@ -314,6 +378,38 @@ const RecentSketches: React.FC = () => {
                           {sketch.priority}
                         </Badge>
                       )}
+                    </div>
+                    <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300 z-10">
+                      <button
+                        onClick={() => handleView(sketch)}
+                        className="p-1.5 bg-white rounded-lg hover:bg-blue-500 hover:text-white transition-all shadow-lg border border-slate-200"
+                        aria-label="View Image"
+                        title="View Image"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleEdit(sketch._id)}
+                        className="p-1.5 bg-white rounded-lg hover:bg-emerald-500 hover:text-white transition-all shadow-lg border border-slate-200"
+                        aria-label="Edit"
+                        title="Edit"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setDeleteSketchId(sketch._id);
+                          setShowDeleteDialog(true);
+                        }}
+                        className="p-1.5 bg-white rounded-lg hover:bg-red-500 hover:text-white transition-all shadow-lg border border-slate-200"
+                        aria-label="Delete"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <h3 className="text-sm font-bold text-white truncate">{sketch.name}</h3>
                     </div>
                   </div>
                   <div className="p-3 space-y-2">
@@ -357,6 +453,71 @@ const RecentSketches: React.FC = () => {
             <Loader2 className="h-4 w-4 animate-spin" />
             <span className="hidden sm:inline">Syncing...</span>
             <span className="sm:hidden">Sync</span>
+          </div>
+        )}
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Sketch</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this sketch? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => {
+                setShowDeleteDialog(false);
+                setDeleteSketchId(null);
+              }}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDelete}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Image Viewer Modal */}
+        {viewerImage && (
+          <div 
+            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 xs:p-6 sm:p-8"
+            onClick={() => setViewerImage(null)}
+          >
+            <div className="absolute top-4 right-4 xs:top-6 xs:right-6 flex gap-2 xs:gap-3 z-10">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDownloadImage(viewerImage.url, viewerImage.name);
+                }}
+                className="p-2 xs:p-3 bg-white rounded-full hover:bg-emerald-500 hover:text-white transition-all shadow-lg"
+                aria-label="Download"
+                title="Download"
+              >
+                <Download className="w-5 h-5 xs:w-6 xs:h-6" />
+              </button>
+              <button
+                onClick={() => setViewerImage(null)}
+                className="p-2 xs:p-3 bg-white rounded-full hover:bg-red-500 hover:text-white transition-all shadow-lg"
+                aria-label="Close"
+                title="Close"
+              >
+                <X className="w-5 h-5 xs:w-6 xs:h-6" />
+              </button>
+            </div>
+            <img
+              src={viewerImage.url}
+              alt={viewerImage.name}
+              className="max-w-full max-h-full object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <div className="absolute bottom-4 xs:bottom-6 left-1/2 -translate-x-1/2 bg-black/60 px-4 py-2 rounded-full">
+              <span className="text-white text-sm xs:text-base font-medium">{viewerImage.name}</span>
+            </div>
           </div>
         )}
       </div>

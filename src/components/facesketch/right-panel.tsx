@@ -20,7 +20,7 @@ import {
   Maximize2, Minimize2, Layers, Settings, ClipboardList, 
   Eye, EyeOff, Lock, Unlock, Palette, Archive, Hash, 
   MousePointer2, Grid3X3, Target, Crop, Search, Upload, Trash2,
-  EyeIcon, Edit3, X, Check, ArrowUp, ArrowDown, FileText
+  EyeIcon, Edit3, X, Check, ArrowUp, ArrowDown, FileText, Save, Edit, Loader2
 } from 'lucide-react';
 
 interface FeatureAsset {
@@ -117,6 +117,31 @@ interface RightPanelProps {
   onShowUpload?: () => void;
   onAssetView?: (asset: any) => void;
   onAssetEdit?: (assetId: string, newName: string) => void;
+  currentSketchId?: string | null;
+  saveDetails?: {
+    name: string;
+    suspect: string;
+    eyewitness: string;
+    officer: string;
+    date: string;
+    reason: string;
+    description: string;
+    priority: string;
+    status: string;
+  };
+  onSaveClick?: () => void;
+  onUpdateDetails?: (data: {
+    name: string;
+    suspect: string;
+    eyewitness: string;
+    officer: string;
+    date: string;
+    reason: string;
+    description: string;
+    priority: string;
+    status: string;
+  }) => Promise<void>;
+  isSaving?: boolean;
 }
 
 const RightPanel: React.FC<RightPanelProps> = ({
@@ -165,13 +190,30 @@ const RightPanel: React.FC<RightPanelProps> = ({
   onAssetDelete,
   onShowUpload,
   onAssetView,
-  onAssetEdit
+  onAssetEdit,
+  currentSketchId = null,
+  saveDetails,
+  onSaveClick,
+  onUpdateDetails,
+  isSaving = false
 }) => {
   // State for editing
   const [editingAsset, setEditingAsset] = React.useState<string | null>(null);
   const [editName, setEditName] = React.useState('');
   const [draggedLayerId, setDraggedLayerId] = React.useState<string | null>(null);
   const [dragOverLayerId, setDragOverLayerId] = React.useState<string | null>(null);
+  const [isEditingDetails, setIsEditingDetails] = React.useState(false);
+  const [editedDetails, setEditedDetails] = React.useState<{
+    name: string;
+    suspect: string;
+    eyewitness: string;
+    officer: string;
+    date: string;
+    reason: string;
+    description: string;
+    priority: string;
+    status: string;
+  } | null>(null);
 
   // Edit handlers
   const handleEditStart = (asset: any) => {
@@ -190,6 +232,26 @@ const RightPanel: React.FC<RightPanelProps> = ({
   const handleEditCancel = () => {
     setEditingAsset(null);
     setEditName('');
+  };
+
+  // Handle edit details mode
+  const handleStartEditDetails = () => {
+    if (saveDetails) {
+      setEditedDetails({ ...saveDetails });
+      setIsEditingDetails(true);
+    }
+  };
+
+  const handleCancelEditDetails = () => {
+    setIsEditingDetails(false);
+    setEditedDetails(null);
+  };
+
+  const handleSaveEditDetails = async () => {
+    if (!editedDetails || !onUpdateDetails) return;
+    await onUpdateDetails(editedDetails);
+    setIsEditingDetails(false);
+    setEditedDetails(null);
   };
 
   // Layer drag handlers
@@ -284,10 +346,10 @@ const RightPanel: React.FC<RightPanelProps> = ({
     setDragOverLayerId(null);
   };
   return (
-    <div className={`${rightSidebarCollapsed ? 'w-14 sm:w-16 md:w-20 lg:w-24' : 'w-full sm:w-full md:w-72 lg:w-80'} bg-white/90 backdrop-blur-sm border-t lg:border-t-0 lg:border-l border-amber-200 flex flex-col shadow-sm order-3 transition-all duration-300 ease-in-out flex-shrink-0 self-stretch overflow-hidden ${rightSidebarCollapsed ? 'bg-gradient-to-b from-white/95 to-slate-50/90' : ''}`}>
+    <div className={`${rightSidebarCollapsed ? 'w-0 hidden lg:flex lg:w-24' : 'w-64 sm:w-72 md:w-80 lg:w-80'} ${rightSidebarCollapsed ? '' : 'absolute lg:relative inset-y-0 right-0 z-40'} bg-white/95 backdrop-blur-sm border-t lg:border-t-0 lg:border-l border-amber-200 flex flex-col shadow-lg lg:shadow-sm order-3 transition-all duration-300 ease-in-out flex-shrink-0 self-stretch overflow-hidden ${rightSidebarCollapsed ? 'bg-gradient-to-b from-white/95 to-slate-50/90' : ''}`}>
       {/* Panel Header with Toggle */}
-      <div className={`${rightSidebarCollapsed ? 'p-1.5 sm:p-2 justify-center' : 'p-2 sm:p-3 md:p-4 justify-between'} border-b border-amber-200 flex items-center transition-all duration-200 flex-shrink-0`}>
-        <h3 className={`font-semibold text-slate-800 text-xs sm:text-sm transition-opacity duration-200 ${rightSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>
+      <div className={`${rightSidebarCollapsed ? 'p-2 sm:p-2.5 justify-center' : 'p-3 sm:p-4 md:p-5 justify-between'} border-b border-amber-200 flex items-center transition-all duration-200 flex-shrink-0`}>
+        <h3 className={`font-semibold text-slate-800 text-sm sm:text-base transition-opacity duration-200 ${rightSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>
           {activeTab === 'properties' && 'Properties Panel'}
           {activeTab === 'layers' && 'Layer Management'}
           {activeTab === 'workspace' && 'Asset Library'}
@@ -307,22 +369,22 @@ const RightPanel: React.FC<RightPanelProps> = ({
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden min-h-0">
-        <TabsList className={`grid bg-slate-100 m-1.5 sm:m-2 transition-all duration-200 flex-shrink-0 ${
+        <TabsList className={`flex bg-slate-100 m-2 sm:m-3 transition-all duration-200 flex-shrink-0 rounded-lg overflow-x-auto ${
             rightSidebarCollapsed
-              ? 'grid-cols-1 gap-1.5 sm:gap-2 p-1.5 sm:p-2'
-            : 'grid-cols-2 sm:grid-cols-4 gap-0.5 sm:gap-1'
+              ? 'flex-col gap-2 sm:gap-2.5 p-2 sm:p-2.5'
+            : 'flex-row gap-2 sm:gap-2.5 p-2 sm:p-2.5'
         }`}>
           <TabsTrigger 
             value="properties" 
-            className={`text-[10px] sm:text-xs transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm ${
-              rightSidebarCollapsed ? 'h-10 sm:h-12 w-full p-1.5 sm:p-2 flex-col justify-center' : 'h-7 sm:h-8'
+            className={`text-xs sm:text-sm transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm whitespace-nowrap ${
+              rightSidebarCollapsed ? 'h-12 sm:h-14 w-full p-2 sm:p-2.5 flex-col justify-center' : 'h-9 sm:h-10 px-3 sm:px-4 flex-1 min-w-0'
             }`}
             title="Properties"
           >
             {rightSidebarCollapsed ? (
-              <div className="flex flex-col items-center space-y-1">
-                <Settings className="w-4 h-4 text-purple-600" />
-                <span className="text-[10px] font-medium text-slate-700">Props</span>
+              <div className="flex flex-col items-center space-y-1.5">
+                <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
+                <span className="text-xs font-medium text-slate-700">Props</span>
               </div>
             ) : (
               'Props'
@@ -330,15 +392,15 @@ const RightPanel: React.FC<RightPanelProps> = ({
           </TabsTrigger>
           <TabsTrigger 
             value="layers" 
-            className={`text-[10px] sm:text-xs transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm ${
-              rightSidebarCollapsed ? 'h-10 sm:h-12 w-full p-1.5 sm:p-2 flex-col justify-center' : 'h-7 sm:h-8'
+            className={`text-xs sm:text-sm transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm whitespace-nowrap ${
+              rightSidebarCollapsed ? 'h-12 sm:h-14 w-full p-2 sm:p-2.5 flex-col justify-center' : 'h-9 sm:h-10 px-3 sm:px-4 flex-1 min-w-0'
             }`}
             title="Layers"
           >
             {rightSidebarCollapsed ? (
-              <div className="flex flex-col items-center space-y-1">
-                <Layers className="w-4 h-4 text-green-600" />
-                <span className="text-[10px] font-medium text-slate-700">Layers</span>
+              <div className="flex flex-col items-center space-y-1.5">
+                <Layers className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+                <span className="text-xs font-medium text-slate-700">Layers</span>
               </div>
             ) : (
               'Layers'
@@ -346,15 +408,15 @@ const RightPanel: React.FC<RightPanelProps> = ({
           </TabsTrigger>
           <TabsTrigger 
             value="workspace" 
-            className={`text-[10px] sm:text-xs transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm ${
-              rightSidebarCollapsed ? 'h-10 sm:h-12 w-full p-1.5 sm:p-2 flex-col justify-center' : 'h-7 sm:h-8'
+            className={`text-xs sm:text-sm transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm whitespace-nowrap ${
+              rightSidebarCollapsed ? 'h-12 sm:h-14 w-full p-2 sm:p-2.5 flex-col justify-center' : 'h-9 sm:h-10 px-3 sm:px-4 flex-1 min-w-0'
             }`}
             title="Assets"
           >
             {rightSidebarCollapsed ? (
-              <div className="flex flex-col items-center space-y-1">
-                <Layers className="w-4 h-4 text-blue-600" />
-                <span className="text-[10px] font-medium text-slate-700">Assets</span>
+              <div className="flex flex-col items-center space-y-1.5">
+                <Layers className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+                <span className="text-xs font-medium text-slate-700">Assets</span>
               </div>
             ) : (
               'Assets'
@@ -362,15 +424,15 @@ const RightPanel: React.FC<RightPanelProps> = ({
           </TabsTrigger>
           <TabsTrigger 
             value="case" 
-            className={`text-[10px] sm:text-xs transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm ${
-              rightSidebarCollapsed ? 'h-10 sm:h-12 w-full p-1.5 sm:p-2 flex-col justify-center' : 'h-7 sm:h-8'
+            className={`text-xs sm:text-sm transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm whitespace-nowrap ${
+              rightSidebarCollapsed ? 'h-12 sm:h-14 w-full p-2 sm:p-2.5 flex-col justify-center' : 'h-9 sm:h-10 px-3 sm:px-4 flex-1 min-w-0'
             }`}
             title="Case Info"
           >
             {rightSidebarCollapsed ? (
-              <div className="flex flex-col items-center space-y-1">
-                <FileText className="w-4 h-4 text-indigo-600" />
-                <span className="text-[10px] font-medium text-slate-700">Case</span>
+              <div className="flex flex-col items-center space-y-1.5">
+                <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
+                <span className="text-xs font-medium text-slate-700">Case</span>
               </div>
             ) : (
               'Case'
@@ -1188,178 +1250,335 @@ const RightPanel: React.FC<RightPanelProps> = ({
             <div className={`space-y-4 md:space-y-6 transition-all duration-200 ${
               rightSidebarCollapsed ? 'space-y-3 lg:space-y-4' : 'space-y-4 md:space-y-6'
             }`}>
-              <Card className="border-slate-300 bg-white shadow-lg">
-                <CardHeader className={`pb-3 transition-all duration-200 ${
-                  rightSidebarCollapsed ? 'pb-2 lg:pb-3' : 'pb-3'
-                }`}>
-                  <CardTitle className={`flex items-center space-x-2 transition-all duration-200 ${
-                    rightSidebarCollapsed ? 'text-xs lg:text-sm' : 'text-sm'
-                  } text-slate-900`}>
-                    <FileText className={`${rightSidebarCollapsed ? 'w-3 h-3 lg:w-4 lg:h-4' : 'w-4 h-4'}`} />
-                    <span className={rightSidebarCollapsed ? 'hidden lg:inline' : ''}>
-                      Case Information
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className={`space-y-4 transition-all duration-200 ${
-                  rightSidebarCollapsed ? 'space-y-3 lg:space-y-4' : 'space-y-4'
-                }`}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                    {/* Suspect Name */}
-                    <div className="md:col-span-2">
-                      <Label className={`text-slate-700 font-medium transition-all duration-200 ${
-                        rightSidebarCollapsed ? 'text-xs lg:text-xs' : 'text-xs'
-                      }`}>
-                        Suspect Name
-                      </Label>
-                      <Input
-                        value={caseInfo.suspect || ''}
-                        onChange={(e) => setCaseInfo({ ...caseInfo, suspect: e.target.value })}
-                        placeholder="Enter suspect name"
-                        className={`mt-1.5 border-slate-300 bg-white transition-all duration-200 ${
-                          rightSidebarCollapsed ? 'h-8 lg:h-9 text-xs lg:text-sm' : 'h-9 text-sm'
-                        }`}
-                      />
+              {(!currentSketchId || !saveDetails?.name) ? (
+                <Card className="border-slate-300 bg-white shadow-lg">
+                  <CardHeader className={`pb-3 transition-all duration-200 ${
+                    rightSidebarCollapsed ? 'pb-2 lg:pb-3' : 'pb-3'
+                  }`}>
+                    <CardTitle className={`flex items-center space-x-2 transition-all duration-200 ${
+                      rightSidebarCollapsed ? 'text-xs lg:text-sm' : 'text-sm'
+                    } text-slate-900`}>
+                      <FileText className={`${rightSidebarCollapsed ? 'w-3 h-3 lg:w-4 lg:h-4' : 'w-4 h-4'}`} />
+                      <span className={rightSidebarCollapsed ? 'hidden lg:inline' : ''}>
+                        Case Information
+                      </span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className={`space-y-4 transition-all duration-200 ${
+                    rightSidebarCollapsed ? 'space-y-3 lg:space-y-4' : 'space-y-4'
+                  }`}>
+                    <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-center">
+                      <FileText className={`${rightSidebarCollapsed ? 'w-12 h-12 lg:w-16 lg:h-16' : 'w-16 h-16'} text-slate-300 mb-4`} />
+                      <p className={`${rightSidebarCollapsed ? 'text-xs lg:text-sm' : 'text-sm'} font-medium text-slate-700 mb-2`}>
+                        Sketch not saved yet
+                      </p>
+                      <p className={`${rightSidebarCollapsed ? 'text-[10px] lg:text-xs' : 'text-xs'} text-slate-500 mb-4`}>
+                        Save your sketch to view and manage case details
+                      </p>
+                      {onSaveClick && (
+                        <Button
+                          onClick={onSaveClick}
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                          size="sm"
+                        >
+                          <Save className="w-4 h-4 mr-2" />
+                          Save Sketch
+                        </Button>
+                      )}
                     </div>
-
-                    {/* Case Number */}
-                    <div>
-                      <Label className={`text-slate-700 font-medium transition-all duration-200 ${
-                        rightSidebarCollapsed ? 'text-xs lg:text-xs' : 'text-xs'
-                      }`}>
-                        Case Number
-                      </Label>
-                      <Input
-                        value={caseInfo.caseNumber}
-                        onChange={(e) => setCaseInfo({ ...caseInfo, caseNumber: e.target.value })}
-                        placeholder="Enter case number"
-                        className={`mt-1.5 border-slate-300 bg-white transition-all duration-200 ${
-                          rightSidebarCollapsed ? 'h-8 lg:h-9 text-xs lg:text-sm' : 'h-9 text-sm'
-                        }`}
-                      />
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="border-slate-300 bg-white shadow-lg">
+                  <CardHeader className={`pb-3 transition-all duration-200 ${
+                    rightSidebarCollapsed ? 'pb-2 lg:pb-3' : 'pb-3'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className={`flex items-center space-x-2 transition-all duration-200 ${
+                        rightSidebarCollapsed ? 'text-xs lg:text-sm' : 'text-sm'
+                      } text-slate-900`}>
+                        <FileText className={`${rightSidebarCollapsed ? 'w-3 h-3 lg:w-4 lg:h-4' : 'w-4 h-4'}`} />
+                        <span className={rightSidebarCollapsed ? 'hidden lg:inline' : ''}>
+                          Case Information
+                        </span>
+                      </CardTitle>
+                      {!isEditingDetails && onUpdateDetails && (
+                        <Button
+                          onClick={handleStartEditDetails}
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 sm:px-3 text-xs"
+                        >
+                          <Edit className="w-3.5 h-3.5 mr-1.5" />
+                          Edit
+                        </Button>
+                      )}
                     </div>
-
-                    {/* Date */}
-                    <div>
-                      <Label className={`text-slate-700 font-medium transition-all duration-200 ${
-                        rightSidebarCollapsed ? 'text-xs lg:text-xs' : 'text-xs'
-                      }`}>
-                        Date
-                      </Label>
-                      <Input
-                        type="date"
-                        value={caseInfo.date}
-                        onChange={(e) => setCaseInfo({ ...caseInfo, date: e.target.value })}
-                        className={`mt-1.5 border-slate-300 bg-white transition-all duration-200 ${
-                          rightSidebarCollapsed ? 'h-8 lg:h-9 text-xs lg:text-sm' : 'h-9 text-sm'
-                        }`}
-                      />
-                    </div>
-
-                    {/* Officer */}
-                    <div>
-                      <Label className={`text-slate-700 font-medium transition-all duration-200 ${
-                        rightSidebarCollapsed ? 'text-xs lg:text-xs' : 'text-xs'
-                      }`}>
-                        Officer
-                      </Label>
-                      <Input
-                        value={caseInfo.officer}
-                        onChange={(e) => setCaseInfo({ ...caseInfo, officer: e.target.value })}
-                        placeholder="Enter officer name"
-                        className={`mt-1.5 border-slate-300 bg-white transition-all duration-200 ${
-                          rightSidebarCollapsed ? 'h-8 lg:h-9 text-xs lg:text-sm' : 'h-9 text-sm'
-                        }`}
-                      />
-                    </div>
-
-                    {/* Witness */}
-                    <div>
-                      <Label className={`text-slate-700 font-medium transition-all duration-200 ${
-                        rightSidebarCollapsed ? 'text-xs lg:text-xs' : 'text-xs'
-                      }`}>
-                        Witness
-                      </Label>
-                      <Input
-                        value={caseInfo.witness}
-                        onChange={(e) => setCaseInfo({ ...caseInfo, witness: e.target.value })}
-                        placeholder="Enter witness name"
-                        className={`mt-1.5 border-slate-300 bg-white transition-all duration-200 ${
-                          rightSidebarCollapsed ? 'h-8 lg:h-9 text-xs lg:text-sm' : 'h-9 text-sm'
-                        }`}
-                      />
-                    </div>
-
-                    {/* Priority */}
-                    <div>
-                      <Label className={`text-slate-700 font-medium transition-all duration-200 ${
-                        rightSidebarCollapsed ? 'text-xs lg:text-xs' : 'text-xs'
-                      }`}>
-                        Priority
-                      </Label>
-                      <Select
-                        value={caseInfo.priority}
-                        onValueChange={(value) => setCaseInfo({ ...caseInfo, priority: value as CaseInfo['priority'] })}
-                      >
-                        <SelectTrigger className={`mt-1.5 border-slate-300 bg-white transition-all duration-200 ${
-                          rightSidebarCollapsed ? 'h-8 lg:h-9 text-xs lg:text-sm' : 'h-9 text-sm'
+                  </CardHeader>
+                  <CardContent className={`space-y-4 transition-all duration-200 ${
+                    rightSidebarCollapsed ? 'space-y-3 lg:space-y-4' : 'space-y-4'
+                  }`}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                      {/* Sketch Name */}
+                      <div className="md:col-span-2">
+                        <Label className={`text-slate-700 font-medium transition-all duration-200 ${
+                          rightSidebarCollapsed ? 'text-xs lg:text-xs' : 'text-xs'
                         }`}>
-                          <SelectValue placeholder="Select priority" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="low">Low</SelectItem>
-                          <SelectItem value="medium">Medium</SelectItem>
-                          <SelectItem value="high">High</SelectItem>
-                          <SelectItem value="urgent">Urgent</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                          Sketch Name
+                        </Label>
+                        <Input
+                          value={isEditingDetails && editedDetails ? editedDetails.name : (saveDetails?.name || '')}
+                          onChange={(e) => isEditingDetails && editedDetails && setEditedDetails({ ...editedDetails, name: e.target.value })}
+                          readOnly={!isEditingDetails}
+                          className={`mt-1.5 border-slate-300 transition-all duration-200 ${
+                            isEditingDetails ? 'bg-white' : 'bg-slate-50'
+                          } ${
+                            rightSidebarCollapsed ? 'h-8 lg:h-9 text-xs lg:text-sm' : 'h-9 text-sm'
+                          }`}
+                        />
+                      </div>
 
-                    {/* Status */}
-                    <div>
-                      <Label className={`text-slate-700 font-medium transition-all duration-200 ${
-                        rightSidebarCollapsed ? 'text-xs lg:text-xs' : 'text-xs'
-                      }`}>
-                        Status
-                      </Label>
-                      <Select
-                        value={caseInfo.status}
-                        onValueChange={(value) => setCaseInfo({ ...caseInfo, status: value as CaseInfo['status'] })}
-                      >
-                        <SelectTrigger className={`mt-1.5 border-slate-300 bg-white transition-all duration-200 ${
-                          rightSidebarCollapsed ? 'h-8 lg:h-9 text-xs lg:text-sm' : 'h-9 text-sm'
+                      {/* Suspect Name */}
+                      <div className="md:col-span-2">
+                        <Label className={`text-slate-700 font-medium transition-all duration-200 ${
+                          rightSidebarCollapsed ? 'text-xs lg:text-xs' : 'text-xs'
                         }`}>
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="draft">Draft</SelectItem>
-                          <SelectItem value="in-progress">In Progress</SelectItem>
-                          <SelectItem value="review">Review</SelectItem>
-                          <SelectItem value="completed">Completed</SelectItem>
-                        </SelectContent>
-                      </Select>
+                          Suspect Name
+                        </Label>
+                        <Input
+                          value={isEditingDetails && editedDetails ? editedDetails.suspect : (saveDetails?.suspect || caseInfo.suspect || '')}
+                          onChange={(e) => isEditingDetails && editedDetails && setEditedDetails({ ...editedDetails, suspect: e.target.value })}
+                          readOnly={!isEditingDetails}
+                          className={`mt-1.5 border-slate-300 transition-all duration-200 ${
+                            isEditingDetails ? 'bg-white' : 'bg-slate-50'
+                          } ${
+                            rightSidebarCollapsed ? 'h-8 lg:h-9 text-xs lg:text-sm' : 'h-9 text-sm'
+                          }`}
+                        />
+                      </div>
+
+                      {/* Case Number */}
+                      <div>
+                        <Label className={`text-slate-700 font-medium transition-all duration-200 ${
+                          rightSidebarCollapsed ? 'text-xs lg:text-xs' : 'text-xs'
+                        }`}>
+                          Case Number
+                        </Label>
+                        <Input
+                          value={isEditingDetails && editedDetails ? editedDetails.name : (saveDetails?.name || caseInfo.caseNumber || '')}
+                          readOnly
+                          className={`mt-1.5 border-slate-300 bg-slate-50 transition-all duration-200 ${
+                            rightSidebarCollapsed ? 'h-8 lg:h-9 text-xs lg:text-sm' : 'h-9 text-sm'
+                          }`}
+                        />
+                      </div>
+
+                      {/* Date */}
+                      <div>
+                        <Label className={`text-slate-700 font-medium transition-all duration-200 ${
+                          rightSidebarCollapsed ? 'text-xs lg:text-xs' : 'text-xs'
+                        }`}>
+                          Date
+                        </Label>
+                        <Input
+                          type="date"
+                          value={isEditingDetails && editedDetails ? editedDetails.date : (saveDetails?.date || caseInfo.date || '')}
+                          onChange={(e) => isEditingDetails && editedDetails && setEditedDetails({ ...editedDetails, date: e.target.value })}
+                          readOnly={!isEditingDetails}
+                          className={`mt-1.5 border-slate-300 transition-all duration-200 ${
+                            isEditingDetails ? 'bg-white' : 'bg-slate-50'
+                          } ${
+                            rightSidebarCollapsed ? 'h-8 lg:h-9 text-xs lg:text-sm' : 'h-9 text-sm'
+                          }`}
+                        />
+                      </div>
+
+                      {/* Officer */}
+                      <div>
+                        <Label className={`text-slate-700 font-medium transition-all duration-200 ${
+                          rightSidebarCollapsed ? 'text-xs lg:text-xs' : 'text-xs'
+                        }`}>
+                          Officer
+                        </Label>
+                        <Input
+                          value={isEditingDetails && editedDetails ? editedDetails.officer : (saveDetails?.officer || caseInfo.officer || '')}
+                          onChange={(e) => isEditingDetails && editedDetails && setEditedDetails({ ...editedDetails, officer: e.target.value })}
+                          readOnly={!isEditingDetails}
+                          className={`mt-1.5 border-slate-300 transition-all duration-200 ${
+                            isEditingDetails ? 'bg-white' : 'bg-slate-50'
+                          } ${
+                            rightSidebarCollapsed ? 'h-8 lg:h-9 text-xs lg:text-sm' : 'h-9 text-sm'
+                          }`}
+                        />
+                      </div>
+
+                      {/* Witness/Eyewitness */}
+                      <div>
+                        <Label className={`text-slate-700 font-medium transition-all duration-200 ${
+                          rightSidebarCollapsed ? 'text-xs lg:text-xs' : 'text-xs'
+                        }`}>
+                          Witness
+                        </Label>
+                        <Input
+                          value={isEditingDetails && editedDetails ? editedDetails.eyewitness : (saveDetails?.eyewitness || caseInfo.witness || '')}
+                          onChange={(e) => isEditingDetails && editedDetails && setEditedDetails({ ...editedDetails, eyewitness: e.target.value })}
+                          readOnly={!isEditingDetails}
+                          className={`mt-1.5 border-slate-300 transition-all duration-200 ${
+                            isEditingDetails ? 'bg-white' : 'bg-slate-50'
+                          } ${
+                            rightSidebarCollapsed ? 'h-8 lg:h-9 text-xs lg:text-sm' : 'h-9 text-sm'
+                          }`}
+                        />
+                      </div>
+
+                      {/* Priority */}
+                      <div>
+                        <Label className={`text-slate-700 font-medium transition-all duration-200 ${
+                          rightSidebarCollapsed ? 'text-xs lg:text-xs' : 'text-xs'
+                        }`}>
+                          Priority
+                        </Label>
+                        {isEditingDetails && editedDetails ? (
+                          <Select
+                            value={editedDetails.priority}
+                            onValueChange={(value) => setEditedDetails({ ...editedDetails, priority: value })}
+                          >
+                            <SelectTrigger className={`mt-1.5 border-slate-300 bg-white transition-all duration-200 ${
+                              rightSidebarCollapsed ? 'h-8 lg:h-9 text-xs lg:text-sm' : 'h-9 text-sm'
+                            }`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="low">Low</SelectItem>
+                              <SelectItem value="medium">Medium</SelectItem>
+                              <SelectItem value="high">High</SelectItem>
+                              <SelectItem value="urgent">Urgent</SelectItem>
+                              <SelectItem value="normal">Normal</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            value={saveDetails?.priority || caseInfo.priority || ''}
+                            readOnly
+                            className={`mt-1.5 border-slate-300 bg-slate-50 transition-all duration-200 capitalize ${
+                              rightSidebarCollapsed ? 'h-8 lg:h-9 text-xs lg:text-sm' : 'h-9 text-sm'
+                            }`}
+                          />
+                        )}
+                      </div>
+
+                      {/* Status */}
+                      <div>
+                        <Label className={`text-slate-700 font-medium transition-all duration-200 ${
+                          rightSidebarCollapsed ? 'text-xs lg:text-xs' : 'text-xs'
+                        }`}>
+                          Status
+                        </Label>
+                        {isEditingDetails && editedDetails ? (
+                          <Select
+                            value={editedDetails.status}
+                            onValueChange={(value) => setEditedDetails({ ...editedDetails, status: value })}
+                          >
+                            <SelectTrigger className={`mt-1.5 border-slate-300 bg-white transition-all duration-200 ${
+                              rightSidebarCollapsed ? 'h-8 lg:h-9 text-xs lg:text-sm' : 'h-9 text-sm'
+                            }`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="draft">Draft</SelectItem>
+                              <SelectItem value="in-progress">In Progress</SelectItem>
+                              <SelectItem value="review">Review</SelectItem>
+                              <SelectItem value="completed">Completed</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            value={saveDetails?.status || caseInfo.status || ''}
+                            readOnly
+                            className={`mt-1.5 border-slate-300 bg-slate-50 transition-all duration-200 capitalize ${
+                              rightSidebarCollapsed ? 'h-8 lg:h-9 text-xs lg:text-sm' : 'h-9 text-sm'
+                            }`}
+                          />
+                        )}
+                      </div>
+
+                      {/* Reason */}
+                      {(saveDetails?.reason || (isEditingDetails && editedDetails?.reason)) && (
+                        <div className="md:col-span-2">
+                          <Label className={`text-slate-700 font-medium transition-all duration-200 ${
+                            rightSidebarCollapsed ? 'text-xs lg:text-xs' : 'text-xs'
+                          }`}>
+                            Reason
+                          </Label>
+                          <Input
+                            value={isEditingDetails && editedDetails ? (editedDetails.reason || '') : (saveDetails?.reason || '')}
+                            onChange={(e) => isEditingDetails && editedDetails && setEditedDetails({ ...editedDetails, reason: e.target.value })}
+                            readOnly={!isEditingDetails}
+                            className={`mt-1.5 border-slate-300 transition-all duration-200 ${
+                              isEditingDetails ? 'bg-white' : 'bg-slate-50'
+                            } ${
+                              rightSidebarCollapsed ? 'h-8 lg:h-9 text-xs lg:text-sm' : 'h-9 text-sm'
+                            }`}
+                          />
+                        </div>
+                      )}
+
+                      {/* Description */}
+                      <div className="md:col-span-2">
+                        <Label className={`text-slate-700 font-medium transition-all duration-200 ${
+                          rightSidebarCollapsed ? 'text-xs lg:text-xs' : 'text-xs'
+                        }`}>
+                          Description
+                        </Label>
+                        <Textarea
+                          value={isEditingDetails && editedDetails ? editedDetails.description : (saveDetails?.description || caseInfo.description || '')}
+                          onChange={(e) => isEditingDetails && editedDetails && setEditedDetails({ ...editedDetails, description: e.target.value })}
+                          readOnly={!isEditingDetails}
+                          rows={4}
+                          className={`mt-1.5 border-slate-300 transition-all duration-200 ${
+                            isEditingDetails ? 'bg-white' : 'bg-slate-50'
+                          } ${
+                            rightSidebarCollapsed ? 'text-xs lg:text-sm' : 'text-sm'
+                          }`}
+                        />
+                      </div>
                     </div>
 
-                    {/* Description */}
-                    <div className="md:col-span-2">
-                      <Label className={`text-slate-700 font-medium transition-all duration-200 ${
-                        rightSidebarCollapsed ? 'text-xs lg:text-xs' : 'text-xs'
-                      }`}>
-                        Description
-                      </Label>
-                      <Textarea
-                        value={caseInfo.description}
-                        onChange={(e) => setCaseInfo({ ...caseInfo, description: e.target.value })}
-                        placeholder="Enter case description"
-                        rows={4}
-                        className={`mt-1.5 border-slate-300 bg-white transition-all duration-200 ${
-                          rightSidebarCollapsed ? 'text-xs lg:text-sm' : 'text-sm'
-                        }`}
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                    {/* Edit Mode Action Buttons */}
+                    {isEditingDetails && (
+                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
+                        <Button
+                          onClick={handleCancelEditDetails}
+                          variant="outline"
+                          size="sm"
+                          className="h-8 px-3 text-xs"
+                          disabled={isSaving}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={handleSaveEditDetails}
+                          size="sm"
+                          className="h-8 px-3 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                          disabled={isSaving}
+                        >
+                          {isSaving ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="w-3.5 h-3.5 mr-1.5" />
+                              Save Changes
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </ScrollArea>
         </TabsContent>

@@ -1,4 +1,6 @@
-import { useState, createContext, useContext, ReactNode } from 'react';
+import { useState, createContext, useContext, ReactNode, useEffect, useRef } from 'react';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
+import { useNotifications } from '../../contexts/NotificationContext';
 
 interface LayoutContextType {
   isSidebarOpen: boolean;
@@ -21,6 +23,25 @@ interface LayoutProps {
 
 export const Layout = ({ children }: LayoutProps) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { isOnline, wasOffline } = useOnlineStatus();
+  const { info, warning } = useNotifications();
+  const previousOnlineStatusRef = useRef<boolean | null>(null);
+
+  useEffect(() => {
+    if (previousOnlineStatusRef.current === null) {
+      previousOnlineStatusRef.current = isOnline;
+      return;
+    }
+
+    if (previousOnlineStatusRef.current !== isOnline) {
+      if (isOnline && wasOffline) {
+        info('Back Online', 'Your connection has been restored.');
+      } else if (!isOnline) {
+        warning('You\'re Offline', 'Some features may be limited. Your work is being saved locally.');
+      }
+      previousOnlineStatusRef.current = isOnline;
+    }
+  }, [isOnline, wasOffline, info, warning]);
 
   return (
     <LayoutContext.Provider value={{ isSidebarOpen, setIsSidebarOpen }}>

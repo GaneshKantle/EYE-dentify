@@ -1,7 +1,8 @@
 /*eslint-disable*/
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { UserPlus, Upload, Shield, CheckCircle } from "lucide-react";
+import { UserPlus, Upload, Shield, CheckCircle, Database } from "lucide-react";
 import Toast from "./Toast";
 import { apiClient } from "./lib/api";
 
@@ -11,6 +12,7 @@ interface ToastState {
 }
 
 const AddFace: React.FC = () => {
+  const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
   const [name, setName] = useState<string>("");
   const [age, setAge] = useState<string>("");
@@ -74,6 +76,15 @@ const AddFace: React.FC = () => {
                 Add new criminal records to the database with complete information for investigation purposes.
               </p>
             </div>
+            <motion.button
+              onClick={() => navigate('/gallery')}
+              className="mt-0.5 sm:mt-1 flex-shrink-0 px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs sm:text-sm font-semibold rounded-lg sm:rounded-xl transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-1.5 sm:gap-2"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Database className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">Database</span>
+            </motion.button>
           </div>
         </motion.div>
 

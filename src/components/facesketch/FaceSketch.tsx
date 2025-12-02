@@ -9,7 +9,7 @@ import { Card } from '../ui/card';
 import { 
   Save, Download, Undo2, Redo2, FileText, User, Hash, Eye, Minus, Triangle, Smile, Waves, Zap, LucideIcon,
   ChevronDown, Calendar, Settings, Upload, Plus, X, ZoomIn, ZoomOut, Grid3X3, Target, Copy, Trash2, Clock, Loader2,
-  Headphones, Circle
+  Headphones, Circle, PanelLeftOpen, PanelRightOpen
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -32,6 +32,7 @@ import { Asset, AssetUpload as AssetUploadType } from '../../types/asset';
 import { apiClient } from '../../lib/api';
 import { getSketchById, invalidateSketchDetail, invalidateSketchList } from '../../lib/sketchService';
 import { useNotifications } from '../../contexts/NotificationContext';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 
 
 const createInitialCaseInfo = (): CaseInfo => ({
@@ -80,12 +81,36 @@ const FaceSketch: React.FC = () => {
   const [history, setHistory] = useState<PlacedFeature[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [activeTab, setActiveTab] = useState('properties');
-  const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
-  const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
+  // Initialize panels as closed on mobile screens
+  const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 1024;
+    }
+    return false;
+  });
+  const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 1024;
+    }
+    return false;
+  });
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 1024;
+    }
+    return false;
+  });
   const [autoSelectedFeature, setAutoSelectedFeature] = useState<string | null>(null);
   const [isResizing, setIsResizing] = useState(false);
   const [resizeHandle, setResizeHandle] = useState<string | null>(null);
-  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const [resizeStart, setResizeStart] = useState({ 
+    mouseX: 0, 
+    mouseY: 0, 
+    featureX: 0, 
+    featureY: 0, 
+    width: 0, 
+    height: 0 
+  });
   
   // Performance optimization: use refs to store pending updates during drag/resize
   const pendingFeaturesRef = useRef<PlacedFeature[] | null>(null);
@@ -126,8 +151,11 @@ const FaceSketch: React.FC = () => {
   const [isLoadingSketch, setIsLoadingSketch] = useState(false);
   const [lastSavedStateHash, setLastSavedStateHash] = useState<string>('');
   const autoSaveIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const localStorageSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const notifications = useNotifications();
+  const { isOnline } = useOnlineStatus();
   const [saveDetails, setSaveDetails] = useState(createInitialSaveDetails);
+  const hasRestoredFromLocalStorageRef = useRef<boolean>(false);
 
   const resetSketchState = useCallback(() => {
     if (autoSaveIntervalRef.current) {
@@ -148,6 +176,148 @@ const FaceSketch: React.FC = () => {
     setAutoSelectedFeature(null);
     setSaveDetails(createInitialSaveDetails());
   }, []);
+
+  // localStorage persistence functions
+  const getLocalStorageKey = useCallback(() => {
+    return `sketch_draft_${currentSketchId || 'new'}`;
+  }, [currentSketchId]);
+
+  const saveToLocalStorage = useCallback(() => {
+    try {
+      const sketchState = {
+        features: features.map(f => ({
+          id: f.id,
+          asset: {
+            id: f.asset.id,
+            name: f.asset.name,
+            category: f.asset.category,
+            path: f.asset.path,
+            tags: f.asset.tags || [],
+            description: f.asset.description
+          },
+          x: f.x,
+          y: f.y,
+          width: f.width,
+          height: f.height,
+          rotation: f.rotation,
+          opacity: f.opacity,
+          zIndex: f.zIndex,
+          locked: f.locked,
+          visible: f.visible,
+          flipH: f.flipH,
+          flipV: f.flipV,
+          brightness: f.brightness,
+          contrast: f.contrast,
+          scale: f.scale
+        })),
+        canvasSettings,
+        zoom,
+        panOffset,
+        selectedFeatures,
+        caseInfo,
+        saveDetails,
+        timestamp: Date.now()
+      };
+      localStorage.setItem(getLocalStorageKey(), JSON.stringify(sketchState));
+    } catch (error) {
+      console.error('Failed to save to localStorage:', error);
+    }
+  }, [features, zoom, panOffset, canvasSettings, selectedFeatures, caseInfo, saveDetails, getLocalStorageKey]);
+
+  const restoreFromLocalStorage = useCallback(() => {
+    if (hasRestoredFromLocalStorageRef.current) {
+      return false;
+    }
+    
+    try {
+      const key = getLocalStorageKey();
+      const saved = localStorage.getItem(key);
+      if (!saved) {
+        return false;
+      }
+
+      const sketchState = JSON.parse(saved);
+      
+      if (sketchState.features && Array.isArray(sketchState.features)) {
+        const restoredFeatures: PlacedFeature[] = sketchState.features.map((f: any) => ({
+          id: f.id,
+          asset: {
+            id: f.asset.id,
+            name: f.asset.name,
+            path: f.asset.path,
+            category: f.asset.category,
+            tags: f.asset.tags || [],
+            description: f.asset.description
+          },
+          x: f.x || 0,
+          y: f.y || 0,
+          width: f.width || 100,
+          height: f.height || 100,
+          rotation: f.rotation || 0,
+          opacity: f.opacity ?? 1,
+          zIndex: f.zIndex ?? 0,
+          selected: false,
+          locked: f.locked || false,
+          visible: f.visible !== undefined ? f.visible : true,
+          flipH: f.flipH || false,
+          flipV: f.flipV || false,
+          brightness: f.brightness ?? 100,
+          contrast: f.contrast ?? 100,
+          scale: f.scale ?? 1
+        }));
+
+        setFeatures(restoredFeatures);
+        const snapshot = restoredFeatures.map(feature => ({
+          ...feature,
+          asset: { ...feature.asset },
+        }));
+        setHistory([snapshot]);
+        setHistoryIndex(0);
+      }
+
+      if (sketchState.zoom !== undefined) {
+        setZoom(sketchState.zoom);
+      }
+      if (sketchState.panOffset) {
+        setPanOffset(sketchState.panOffset);
+      }
+      if (sketchState.canvasSettings) {
+        setCanvasSettings({
+          ...createInitialCanvasSettings(),
+          ...sketchState.canvasSettings
+        });
+      }
+      if (sketchState.selectedFeatures) {
+        setSelectedFeatures(sketchState.selectedFeatures);
+      }
+      if (sketchState.caseInfo) {
+        setCaseInfo({
+          ...createInitialCaseInfo(),
+          ...sketchState.caseInfo
+        });
+      }
+      if (sketchState.saveDetails) {
+        setSaveDetails({
+          ...createInitialSaveDetails(),
+          ...sketchState.saveDetails
+        });
+      }
+
+      hasRestoredFromLocalStorageRef.current = true;
+      return true;
+    } catch (error) {
+      console.error('Failed to restore from localStorage:', error);
+      return false;
+    }
+  }, [getLocalStorageKey]);
+
+  const clearLocalStorage = useCallback(() => {
+    try {
+      localStorage.removeItem(getLocalStorageKey());
+    } catch (error) {
+      console.error('Failed to clear localStorage:', error);
+    }
+  }, [getLocalStorageKey]);
 
   // Asset category configuration - now state for dynamic updates
   const [assetCategories, setAssetCategories] = useState<Record<string, {
@@ -822,7 +992,15 @@ const FaceSketch: React.FC = () => {
         if (handle) {
           setIsResizing(true);
           setResizeHandle(handle);
-          setResizeStart({ x, y, width: selectedFeature.width, height: selectedFeature.height });
+          // Store both mouse position and feature position/size for accurate resize calculation
+          setResizeStart({ 
+            mouseX: x,
+            mouseY: y,
+            featureX: selectedFeature.x, 
+            featureY: selectedFeature.y, 
+            width: selectedFeature.width, 
+            height: selectedFeature.height 
+          });
           return;
         }
       }
@@ -952,29 +1130,30 @@ const FaceSketch: React.FC = () => {
       const selectedFeature = features.find(f => f.id === selectedFeatures[0]);
       if (!selectedFeature || selectedFeature.locked) return;
 
-      const deltaX = x - resizeStart.x;
-      const deltaY = y - resizeStart.y;
+      // Calculate delta from initial mouse position
+      const deltaX = x - resizeStart.mouseX;
+      const deltaY = y - resizeStart.mouseY;
       let newWidth = resizeStart.width;
       let newHeight = resizeStart.height;
-      let newX = selectedFeature.x;
-      let newY = selectedFeature.y;
+      let newX = resizeStart.featureX;
+      let newY = resizeStart.featureY;
 
       // Apply resize based on handle type
       switch (resizeHandle) {
         case 'nw': // top-left
           newWidth = Math.max(20, resizeStart.width - deltaX);
           newHeight = Math.max(20, resizeStart.height - deltaY);
-          newX = selectedFeature.x + (resizeStart.width - newWidth);
-          newY = selectedFeature.y + (resizeStart.height - newHeight);
+          newX = resizeStart.featureX + deltaX;
+          newY = resizeStart.featureY + deltaY;
           break;
         case 'n': // top
           newHeight = Math.max(20, resizeStart.height - deltaY);
-          newY = selectedFeature.y + (resizeStart.height - newHeight);
+          newY = resizeStart.featureY + deltaY;
           break;
         case 'ne': // top-right
           newWidth = Math.max(20, resizeStart.width + deltaX);
           newHeight = Math.max(20, resizeStart.height - deltaY);
-          newY = selectedFeature.y + (resizeStart.height - newHeight);
+          newY = resizeStart.featureY + deltaY;
           break;
         case 'e': // right
           newWidth = Math.max(20, resizeStart.width + deltaX);
@@ -989,11 +1168,11 @@ const FaceSketch: React.FC = () => {
         case 'sw': // bottom-left
           newWidth = Math.max(20, resizeStart.width - deltaX);
           newHeight = Math.max(20, resizeStart.height + deltaY);
-          newX = selectedFeature.x + (resizeStart.width - newWidth);
+          newX = resizeStart.featureX + deltaX;
           break;
         case 'w': // left
           newWidth = Math.max(20, resizeStart.width - deltaX);
-          newX = selectedFeature.x + (resizeStart.width - newWidth);
+          newX = resizeStart.featureX + deltaX;
           break;
       }
 
@@ -1362,7 +1541,19 @@ const FaceSketch: React.FC = () => {
         canvasSettings,
         zoom,
         panOffset,
-        selectedFeatures
+        selectedFeatures,
+        saveDetails: saveData,
+        caseInfo: {
+          ...caseInfo,
+          caseNumber: saveData.name || caseInfo.caseNumber,
+          officer: saveData.officer || caseInfo.officer,
+          description: saveData.description || caseInfo.description,
+          witness: saveData.eyewitness || caseInfo.witness,
+          suspect: saveData.suspect || caseInfo.suspect,
+          date: saveData.date ? saveData.date.split('T')[0] : caseInfo.date,
+          priority: (saveData.priority as CaseInfo['priority']) || caseInfo.priority,
+          status: (saveData.status as CaseInfo['status']) || caseInfo.status,
+        }
       };
       
       // Create FormData
@@ -1411,6 +1602,7 @@ const FaceSketch: React.FC = () => {
         invalidateSketchDetail(currentSketchId ?? undefined);
 
         notifications.success('Sketch updated', 'All changes saved to the database.');
+        clearLocalStorage(); // Clear localStorage after successful save
         setSaveDetails(saveData);
         setCaseInfo((prev) => ({
           ...prev,
@@ -1448,6 +1640,7 @@ const FaceSketch: React.FC = () => {
         setLastSavedStateHash(stateHash);
         
         notifications.success('Sketch saved', 'Your sketch is now available in recent sketches.');
+        clearLocalStorage(); // Clear localStorage after successful save
         setSaveDetails(saveData);
         setCaseInfo((prev) => ({
           ...prev,
@@ -1479,7 +1672,7 @@ const FaceSketch: React.FC = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [features, canvasSettings, zoom, panOffset, selectedFeatures, exportCanvasAsBlob, currentSketchId, notifications, setCaseInfo]);
+  }, [features, canvasSettings, zoom, panOffset, selectedFeatures, exportCanvasAsBlob, currentSketchId, notifications, setCaseInfo, clearLocalStorage]);
 
   const handlePrimarySaveClick = useCallback(() => {
     if (isSaving) {
@@ -1491,6 +1684,141 @@ const FaceSketch: React.FC = () => {
     }
     void handleSaveSketch(saveDetails);
   }, [currentSketchId, handleSaveSketch, isSaving, saveDetails]);
+
+  // Handler to update sketch details only (without image)
+  const handleUpdateSketchDetails = useCallback(async (updateData: {
+    name: string;
+    suspect: string;
+    eyewitness: string;
+    officer: string;
+    date: string;
+    reason: string;
+    description: string;
+    priority: string;
+    status: string;
+  }) => {
+    if (!currentSketchId) {
+      notifications.error('Error', 'No sketch ID available');
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      
+      // Prepare sketch state with updated details
+      const sketchState = {
+        features: features.map(f => ({
+          id: f.id,
+          asset: {
+            id: f.asset.id,
+            name: f.asset.name,
+            category: f.asset.category,
+            path: f.asset.path
+          },
+          x: f.x,
+          y: f.y,
+          width: f.width,
+          height: f.height,
+          rotation: f.rotation,
+          opacity: f.opacity,
+          zIndex: f.zIndex,
+          locked: f.locked,
+          visible: f.visible,
+          flipH: f.flipH,
+          flipV: f.flipV,
+          brightness: f.brightness,
+          contrast: f.contrast,
+          scale: f.scale
+        })),
+        canvasSettings,
+        zoom,
+        panOffset,
+        selectedFeatures,
+        saveDetails: updateData,
+        caseInfo: {
+          ...caseInfo,
+          caseNumber: updateData.name || caseInfo.caseNumber,
+          officer: updateData.officer || caseInfo.officer,
+          description: updateData.description || caseInfo.description,
+          witness: updateData.eyewitness || caseInfo.witness,
+          suspect: updateData.suspect || caseInfo.suspect,
+          date: updateData.date ? updateData.date.split('T')[0] : caseInfo.date,
+          priority: (updateData.priority as CaseInfo['priority']) || caseInfo.priority,
+          status: (updateData.status as CaseInfo['status']) || caseInfo.status,
+        }
+      };
+      
+      // Create FormData with only metadata (no image)
+      const formData = new FormData();
+      formData.append('name', updateData.name);
+      formData.append('suspect', updateData.suspect || '');
+      formData.append('eyewitness', updateData.eyewitness || '');
+      formData.append('officer', updateData.officer || '');
+      formData.append('date', updateData.date || new Date().toISOString());
+      formData.append('reason', updateData.reason || '');
+      formData.append('description', updateData.description || '');
+      formData.append('priority', updateData.priority);
+      formData.append('status', updateData.status);
+      formData.append('sketch_state', JSON.stringify(sketchState));
+      
+      // Update existing sketch - use PUT with FormData (no image)
+      await apiClient.directUploadFile<{ status: string; message: string; sketch_id: string }>(
+        `/sketches/${currentSketchId}`,
+        formData,
+        'PUT'
+      );
+      
+      // Invalidate cache to force refetch from DB
+      invalidateSketchList();
+      invalidateSketchDetail(currentSketchId);
+      
+      // Refetch sketch data from DB to ensure we have latest
+      const updatedSketch = await getSketchById(currentSketchId, true);
+      
+      // Update local state from DB data
+      setSaveDetails({
+        name: updatedSketch.name || '',
+        suspect: updatedSketch.suspect || '',
+        eyewitness: updatedSketch.eyewitness || '',
+        officer: updatedSketch.officer || '',
+        date: updatedSketch.date ? new Date(updatedSketch.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        reason: updatedSketch.reason || '',
+        description: updatedSketch.description || '',
+        priority: updatedSketch.priority || 'normal',
+        status: updatedSketch.status || 'draft',
+      });
+      
+      const stateWithExtras = updatedSketch.sketch_state as any;
+      if (stateWithExtras?.caseInfo) {
+        setCaseInfo({
+          ...createInitialCaseInfo(),
+          ...stateWithExtras.caseInfo
+        });
+      } else {
+        setCaseInfo({
+          ...createInitialCaseInfo(),
+          caseNumber: updatedSketch.name || '',
+          officer: updatedSketch.officer || '',
+          description: updatedSketch.description || '',
+          witness: updatedSketch.eyewitness || '',
+          suspect: updatedSketch.suspect || '',
+          date: updatedSketch.date ? new Date(updatedSketch.date).toISOString().split('T')[0] : createInitialCaseInfo().date,
+          priority: (updatedSketch.priority as CaseInfo['priority']) || 'medium',
+          status: (updatedSketch.status as CaseInfo['status']) || 'draft',
+        });
+      }
+
+      notifications.success('Details updated', 'Sketch details have been updated in the database.');
+    } catch (error: any) {
+      console.error('Error updating sketch details:', error);
+      notifications.error(
+        'Update failed',
+        error?.response?.data?.detail || error?.message || 'Unknown error'
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }, [currentSketchId, features, canvasSettings, zoom, panOffset, selectedFeatures, caseInfo, notifications]);
 
   // Export JSON metadata only
   const exportMetadata = useCallback(() => {
@@ -1817,9 +2145,58 @@ const FaceSketch: React.FC = () => {
     }
   }, [history.length, addToHistory]);
 
+  // Restore from localStorage on mount (for new sketches or if server load fails)
+  useEffect(() => {
+    if (requestedSketchId) {
+      // If there's a sketch ID, wait for server load first
+      return;
+    }
+    
+    // For new sketches, try to restore from localStorage
+    if (!hasRestoredFromLocalStorageRef.current) {
+      const restored = restoreFromLocalStorage();
+      if (restored) {
+        notifications.info('Draft Restored', 'Your previous work has been restored from local storage.');
+      }
+    }
+  }, [requestedSketchId, restoreFromLocalStorage, notifications]);
+
+  // Save to localStorage on changes (debounced)
+  useEffect(() => {
+    if (localStorageSaveTimeoutRef.current) {
+      clearTimeout(localStorageSaveTimeoutRef.current);
+    }
+
+    localStorageSaveTimeoutRef.current = setTimeout(() => {
+      saveToLocalStorage();
+    }, 2000); // 2 second debounce
+
+    return () => {
+      if (localStorageSaveTimeoutRef.current) {
+        clearTimeout(localStorageSaveTimeoutRef.current);
+      }
+    };
+  }, [features, zoom, panOffset, canvasSettings, selectedFeatures, caseInfo, saveDetails, saveToLocalStorage]);
+
+  // Save to localStorage before page unload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      saveToLocalStorage();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [saveToLocalStorage]);
+
   // Load sketch whenever the requested ID changes
   useEffect(() => {
     if (!requestedSketchId) {
+      // If no sketch ID, try to restore from localStorage
+      if (!hasRestoredFromLocalStorageRef.current) {
+        restoreFromLocalStorage();
+      }
       return;
     }
 
@@ -1910,41 +2287,67 @@ const FaceSketch: React.FC = () => {
         });
         setLastSavedStateHash(stateHash);
 
+        // Restore caseInfo from sketch_state if available, otherwise from sketchData
         const baseCase = createInitialCaseInfo();
-        setCaseInfo({
-          ...baseCase,
-          caseNumber: sketchData.name || baseCase.caseNumber,
-          officer: sketchData.officer || '',
-          description: sketchData.description || '',
-          witness: sketchData.eyewitness || '',
-          suspect: sketchData.suspect || '',
-          date: sketchData.date ? new Date(sketchData.date).toISOString().split('T')[0] : baseCase.date,
-          priority: (sketchData.priority as CaseInfo['priority']) || 'medium',
-          status: (sketchData.status as CaseInfo['status']) || 'draft',
-        });
-        setSaveDetails({
-          name: sketchData.name || '',
-          suspect: sketchData.suspect || '',
-          eyewitness: sketchData.eyewitness || '',
-          officer: sketchData.officer || '',
-          date: sketchData.date ? new Date(sketchData.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-          reason: sketchData.reason || '',
-          description: sketchData.description || '',
-          priority: sketchData.priority || 'normal',
-          status: sketchData.status || 'draft',
-        });
+        const stateWithExtras = state as any;
+        if (stateWithExtras?.caseInfo) {
+          setCaseInfo({
+            ...baseCase,
+            ...stateWithExtras.caseInfo
+          });
+        } else {
+          setCaseInfo({
+            ...baseCase,
+            caseNumber: sketchData.name || baseCase.caseNumber,
+            officer: sketchData.officer || '',
+            description: sketchData.description || '',
+            witness: sketchData.eyewitness || '',
+            suspect: sketchData.suspect || '',
+            date: sketchData.date ? new Date(sketchData.date).toISOString().split('T')[0] : baseCase.date,
+            priority: (sketchData.priority as CaseInfo['priority']) || 'medium',
+            status: (sketchData.status as CaseInfo['status']) || 'draft',
+          });
+        }
+
+        // Restore saveDetails from sketch_state if available, otherwise from sketchData
+        if (stateWithExtras?.saveDetails) {
+          setSaveDetails({
+            ...createInitialSaveDetails(),
+            ...stateWithExtras.saveDetails
+          });
+        } else {
+          setSaveDetails({
+            name: sketchData.name || '',
+            suspect: sketchData.suspect || '',
+            eyewitness: sketchData.eyewitness || '',
+            officer: sketchData.officer || '',
+            date: sketchData.date ? new Date(sketchData.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            reason: sketchData.reason || '',
+            description: sketchData.description || '',
+            priority: sketchData.priority || 'normal',
+            status: sketchData.status || 'draft',
+          });
+        }
 
         setCurrentSketchId(sketchId);
         loadedSketchIdRef.current = sketchId;
+        hasRestoredFromLocalStorageRef.current = false; // Allow localStorage restore if server fails next time
       } catch (error: any) {
         if (cancelled) {
           return;
         }
         console.error('Failed to load sketch:', error);
-        alert(`Failed to load sketch: ${error?.response?.data?.detail || error?.message || 'Unknown error'}`);
-        invalidateSketchDetail(sketchId);
-        resetSketchState();
-        navigate('/sketch', { replace: true });
+        
+        // Try to restore from localStorage as fallback
+        const restored = restoreFromLocalStorage();
+        if (restored) {
+          notifications.warning('Server Load Failed', 'Loaded from local storage instead. Some data may be outdated.');
+        } else {
+          alert(`Failed to load sketch: ${error?.response?.data?.detail || error?.message || 'Unknown error'}`);
+          invalidateSketchDetail(sketchId);
+          resetSketchState();
+          navigate('/sketch', { replace: true });
+        }
       } finally {
         if (!cancelled) {
           setIsLoadingSketch(false);
@@ -1959,10 +2362,15 @@ const FaceSketch: React.FC = () => {
     };
   }, [requestedSketchId, navigate, resetSketchState]);
 
-  // Auto-save functionality (every 30 seconds if changes detected)
+  // Auto-save functionality (every 30 seconds if changes detected, only when online)
   useEffect(() => {
     if (!currentSketchId) {
-      // No sketch saved yet, don't auto-save
+      // No sketch saved yet, don't auto-save to server (but still save to localStorage)
+      return;
+    }
+
+    if (!isOnline) {
+      // Don't auto-save to server when offline (localStorage is handled separately)
       return;
     }
     
@@ -1996,6 +2404,10 @@ const FaceSketch: React.FC = () => {
     
     // Set up auto-save interval
     autoSaveIntervalRef.current = setInterval(async () => {
+      if (!isOnline) {
+        return; // Skip if offline
+      }
+
       const currentHash = JSON.stringify({
         features: features.map(f => ({
           id: f.id,
@@ -2055,9 +2467,12 @@ const FaceSketch: React.FC = () => {
         await apiClient.directUploadFile(`/sketches/${currentSketchId}`, formData, 'PUT');
         
         setLastSavedStateHash(currentHash);
+        // Clear localStorage after successful server save
+        clearLocalStorage();
       } catch (error) {
         console.error('Auto-save failed:', error);
         // Don't show alert for auto-save failures to avoid annoying user
+        // localStorage will still have the data
       }
     }, 30000); // 30 seconds
     
@@ -2066,13 +2481,15 @@ const FaceSketch: React.FC = () => {
         clearInterval(autoSaveIntervalRef.current);
       }
     };
-  }, [features, zoom, panOffset, canvasSettings, selectedFeatures, currentSketchId, lastSavedStateHash]);
+  }, [features, zoom, panOffset, canvasSettings, selectedFeatures, currentSketchId, lastSavedStateHash, isOnline, clearLocalStorage]);
 
   // Responsive defaults: collapse panels on screens < 1024px
+  // Handle screen size changes and ensure panels are closed on mobile
   useEffect(() => {
     const checkScreenSize = () => {
-      const isMobile = window.innerWidth < 1024;
-      if (isMobile) {
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+      if (mobile) {
         setLeftSidebarCollapsed(true);
         setRightSidebarCollapsed(true);
       }
@@ -2082,6 +2499,33 @@ const FaceSketch: React.FC = () => {
     window.addEventListener('resize', checkScreenSize);
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
+
+  // Mobile panel toggle handlers - ensure only one panel is open at a time on mobile
+  const handleLeftPanelToggle = useCallback(() => {
+    const isMobile = window.innerWidth < 1024;
+    if (isMobile) {
+      // On mobile, if opening left panel, close right panel
+      if (leftSidebarCollapsed) {
+        setRightSidebarCollapsed(true);
+      }
+      setLeftSidebarCollapsed(!leftSidebarCollapsed);
+    } else {
+      setLeftSidebarCollapsed(!leftSidebarCollapsed);
+    }
+  }, [leftSidebarCollapsed]);
+
+  const handleRightPanelToggle = useCallback(() => {
+    const isMobile = window.innerWidth < 1024;
+    if (isMobile) {
+      // On mobile, if opening right panel, close left panel
+      if (rightSidebarCollapsed) {
+        setLeftSidebarCollapsed(true);
+      }
+      setRightSidebarCollapsed(!rightSidebarCollapsed);
+    } else {
+      setRightSidebarCollapsed(!rightSidebarCollapsed);
+    }
+  }, [rightSidebarCollapsed]);
 
   // Redraw canvas with performance optimization
   const redrawCanvasRef = useRef<number | null>(null);
@@ -2118,26 +2562,54 @@ const FaceSketch: React.FC = () => {
   return (
     <div className="h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 flex flex-col">
       {/* Enhanced Header - Reorganized */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-amber-200 shadow-sm flex-shrink-0">
-        <div className="px-3 sm:px-4 md:px-6 py-2 sm:py-3">
-          {/* Navigation Strip - Moved to Top */}
-          {/* <div className="flex flex-wrap items-center justify-center gap-2 mb-2 sm:mb-3">
-              <Button
-                size="sm"
-                disabled
-                className="cursor-default bg-blue-600 text-white h-7 px-3 text-xs shadow-sm"
-              >
-                Sketch Workspace
-              </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => navigate('/sketches/recent')}
-              className="h-7 px-3 text-xs border-amber-200 text-amber-700 hover:text-amber-800 hover:bg-amber-100/70 transition-all"
-            >
-              View Recent Sketches
-            </Button>
-          </div> */}
+      <header className="bg-white/80 backdrop-blur-sm border-b border-amber-200 shadow-sm flex-shrink-0 text-align:center;">
+        <div className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-align:center;">
+          {/* Sketch Info Section */}
+          <div className="mb-2 sm:mb-3 pb-2 sm:pb-3 border-b border-amber-200/50">
+            <div className="flex flex-col items-center justify-center gap-2 sm:gap-3">
+              <div className="flex items-center justify-center gap-2 flex-wrap">
+                <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 flex-shrink-0" />
+                <h2 className="text-sm sm:text-base md:text-lg lg:text-xl font-semibold text-slate-900 text-center">
+                  {saveDetails.name || 'Unsaved Sketch'}
+                </h2>
+              </div>
+              {(saveDetails.suspect || saveDetails.officer) && (
+                <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm text-slate-600">
+                  {saveDetails.suspect && (
+                    <div className="flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-500 flex-shrink-0" />
+                      <span className="truncate max-w-[150px] sm:max-w-[200px] md:max-w-none">{saveDetails.suspect}</span>
+                    </div>
+                  )}
+                  {saveDetails.officer && (
+                    <div className="flex items-center gap-1.5">
+                      <Hash className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-500 flex-shrink-0" />
+                      <span className="truncate max-w-[150px] sm:max-w-[200px] md:max-w-none">{saveDetails.officer}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              {!currentSketchId && (
+                <Button
+                  onClick={handlePrimarySaveClick}
+                  disabled={isSaving}
+                  className="mt-1 sm:mt-0 flex items-center justify-center gap-1.5 sm:gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-200 h-8 sm:h-9 px-3 sm:px-4 text-xs sm:text-sm font-semibold rounded-lg"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <span>Save Sketch</span>
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
 
           {/* Main Toolbar - Reorganized */}
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
@@ -2195,35 +2667,6 @@ const FaceSketch: React.FC = () => {
                 >
                   <Grid3X3 className="w-3.5 h-3.5" />
                 </Button>
-                <Button
-                  onClick={() => setSnapToGrid(!snapToGrid)}
-                  variant={snapToGrid ? "default" : "ghost"}
-                  size="sm"
-                  className={`h-7 w-7 p-0 transition-all duration-200 ${
-                    snapToGrid 
-                      ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md" 
-                      : "hover:bg-blue-100 text-blue-700 hover:text-blue-800"
-                  }`}
-                  title="Snap to Grid"
-                >
-                  <Target className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-
-              <Separator orientation="vertical" className="h-6 hidden sm:block bg-amber-300" />
-
-              {/* Edit Controls */}
-              <div className="flex items-center space-x-1 bg-white rounded-lg p-1 border-2 border-slate-200 shadow-sm">
-                <Button 
-                  onClick={duplicateFeature} 
-                  disabled={selectedFeatures.length === 0} 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-7 w-7 p-0 hover:bg-green-100 text-green-700 hover:text-green-800 disabled:opacity-50 transition-all duration-200" 
-                  title="Duplicate (Ctrl+D)"
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                </Button>
                 <Button 
                   onClick={deleteSelectedFeatures} 
                   disabled={selectedFeatures.length === 0} 
@@ -2235,23 +2678,26 @@ const FaceSketch: React.FC = () => {
                   <Trash2 className="w-3.5 h-3.5" />
                 </Button>
               </div>
+           
             </div>
             
             {/* Right Group: File & Export Actions - Reorganized */}
-            <div className="flex items-center justify-center lg:justify-end gap-2">
+            <div className="flex items-center justify-center lg:justify-end gap-1.5 sm:gap-2">
               <Button
                 onClick={() => navigate('/sketches/recent')}
                 variant="outline"
                 size="sm"
-                className="flex items-center justify-center gap-1 text-slate-600 border-slate-300 h-7 w-7 sm:w-auto sm:px-3 hover:bg-amber-100/70"
+                className="flex items-center justify-center gap-1 text-slate-600 border-slate-300 h-7 px-2 sm:h-7 sm:w-auto sm:px-3 hover:bg-amber-100/70"
                 title="Recent sketches"
               >
-                <Clock className="w-3.5 h-3.5" />
+                <Clock className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5" />
+                <span className="text-[10px] sm:hidden">Recent</span>
                 <span className="hidden sm:inline text-xs">View Recent Sketches </span>
               </Button>
               <Separator orientation="vertical" className="h-5 hidden sm:block" />
-              <Button onClick={() => setShowAssetUpload(true)} size="sm" className="bg-green-600 hover:bg-green-700 text-white h-7 w-7 sm:w-auto sm:px-3">
-                <Upload className="w-3.5 h-3.5" />
+              <Button onClick={() => setShowAssetUpload(true)} size="sm" className="flex items-center justify-center gap-1 bg-green-600 hover:bg-green-700 text-white h-7 px-2 sm:h-7 sm:w-auto sm:px-3">
+                <Upload className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5" />
+                <span className="text-[10px] sm:hidden">Upload</span>
                 <span className="hidden sm:inline ml-1 text-xs">Assets Upload</span>
               </Button>
               <Separator orientation="vertical" className="h-5 hidden sm:block" />
@@ -2259,20 +2705,22 @@ const FaceSketch: React.FC = () => {
                 onClick={handlePrimarySaveClick}
                 size="sm"
                 disabled={isSaving}
-                className="flex items-center justify-center gap-1 bg-blue-600 hover:bg-blue-700 text-white h-7 w-7 sm:w-auto sm:px-3 disabled:opacity-70 disabled:cursor-not-allowed"
+                className="flex items-center justify-center gap-1 bg-blue-600 hover:bg-blue-700 text-white h-7 px-2 sm:h-7 sm:w-auto sm:px-3 disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {isSaving ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 animate-spin" />
                 ) : (
-                  <Save className="w-3.5 h-3.5" />
+                  <Save className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5" />
                 )}
+                <span className="text-[10px] sm:hidden">{isSaving ? 'Saving...' : 'Save'}</span>
                 <span className="hidden sm:inline text-xs">{isSaving ? 'Saving...' : 'Save'}</span>
               </Button>
               <Separator orientation="vertical" className="h-5 hidden sm:block" />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white h-7 w-7 sm:w-auto sm:px-3" size="sm">
-                    <Download className="w-3.5 h-3.5" />
+                  <Button className="flex items-center justify-center gap-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white h-7 px-2 sm:h-7 sm:w-auto sm:px-3" size="sm">
+                    <Download className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5" />
+                    <span className="text-[10px] sm:hidden">Download</span>
                     <span className="hidden sm:inline ml-1 text-xs">Download</span>
                     <ChevronDown className="hidden sm:block ml-1 h-3 w-3" />
                   </Button>
@@ -2294,10 +2742,40 @@ const FaceSketch: React.FC = () => {
       </header>
 
       <div className="flex flex-1 flex-col lg:flex-row lg:items-stretch min-h-0 overflow-hidden relative">
+        {/* Floating Toggle Buttons for Mobile - Ultra minimal design */}
+        {isMobile && (
+          <>
+            <button
+              onClick={handleLeftPanelToggle}
+              className="fixed left-2 top-28 z-[100] lg:hidden bg-white/80 backdrop-blur-sm rounded p-1.5 hover:bg-white/90 transition-opacity duration-100"
+              aria-label={leftSidebarCollapsed ? "Open Left Panel" : "Close Left Panel"}
+              title={leftSidebarCollapsed ? "Open Asset Library" : "Close Asset Library"}
+            >
+              {leftSidebarCollapsed ? (
+                <PanelLeftOpen className="w-3.5 h-3.5 text-slate-600" />
+              ) : (
+                <X className="w-3.5 h-3.5 text-slate-600" />
+              )}
+            </button>
+            <button
+              onClick={handleRightPanelToggle}
+              className="fixed right-2 top-28 z-[100] lg:hidden bg-white/80 backdrop-blur-sm rounded p-1.5 hover:bg-white/90 transition-opacity duration-100"
+              aria-label={rightSidebarCollapsed ? "Open Right Panel" : "Close Right Panel"}
+              title={rightSidebarCollapsed ? "Open Properties Panel" : "Close Properties Panel"}
+            >
+              {rightSidebarCollapsed ? (
+                <PanelRightOpen className="w-3.5 h-3.5 text-slate-600" />
+              ) : (
+                <X className="w-3.5 h-3.5 text-slate-600" />
+              )}
+            </button>
+          </>
+        )}
+
         {/* Enhanced Left Sidebar */}
         <LeftPanel
           leftSidebarCollapsed={leftSidebarCollapsed}
-          setLeftSidebarCollapsed={setLeftSidebarCollapsed}
+          setLeftSidebarCollapsed={handleLeftPanelToggle}
           selectedCategory={selectedCategory}
           setSelectedCategory={setSelectedCategory}
           searchTerm={searchTerm}
@@ -2331,7 +2809,7 @@ const FaceSketch: React.FC = () => {
         {/* Enhanced Right Panel */}
         <RightPanel
           rightSidebarCollapsed={rightSidebarCollapsed}
-          setRightSidebarCollapsed={setRightSidebarCollapsed}
+          setRightSidebarCollapsed={handleRightPanelToggle}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           features={features}
@@ -2376,6 +2854,11 @@ const FaceSketch: React.FC = () => {
           onShowUpload={() => setShowAssetUpload(true)}
           onAssetView={handleAssetView}
           onAssetEdit={handleAssetEdit}
+          currentSketchId={currentSketchId}
+          saveDetails={saveDetails}
+          onSaveClick={handlePrimarySaveClick}
+          onUpdateDetails={handleUpdateSketchDetails}
+          isSaving={isSaving}
         />
       </div>
 
@@ -2563,6 +3046,8 @@ const AssetUploadForm: React.FC<{
     { value: 'lips', label: 'Lips' },
     { value: 'hair', label: 'Hair' },
     { value: 'facial-hair', label: 'Facial Hair' },
+    { value: 'ears', label: 'Ears' },
+    { value: 'neck', label: 'Neck' },
     { value: 'accessories', label: 'Accessories' }
   ];
 

@@ -92,7 +92,7 @@ const LeftPanel: React.FC<LeftPanelProps> = ({
     }
   };
   return (
-    <div className={`${leftSidebarCollapsed ? 'w-12 sm:w-14 md:w-16' : 'w-36 sm:w-40 md:w-44'} bg-white/90 backdrop-blur-sm border-r border-amber-200 flex flex-col transition-all duration-300 shadow-sm order-2 lg:order-1 flex-shrink-0 self-stretch overflow-hidden`}>
+    <div className={`${leftSidebarCollapsed ? 'w-0 hidden lg:flex lg:w-16' : 'w-64 sm:w-72 md:w-80 lg:w-36 lg:sm:w-40 lg:md:w-44'} ${leftSidebarCollapsed ? '' : 'lg:relative absolute lg:static inset-y-0 left-0 z-40'} bg-white/95 backdrop-blur-sm border-r border-amber-200 flex flex-col transition-all duration-300 shadow-lg lg:shadow-sm order-2 lg:order-1 flex-shrink-0 self-stretch overflow-hidden`}>
       <div className={`p-1.5 sm:p-2 border-b border-amber-200 flex-shrink-0`}>
         <div className={`flex items-center ${leftSidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
           <Button 

@@ -193,12 +193,12 @@ export const Dashboard = () => {
                       <Target className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-blue-600" />
                     </motion.div>
                     <h3 className="text-xs xs:text-sm sm:text-base md:text-lg lg:text-xl font-bold text-slate-800">What We Are</h3>
-                  </div>
-                  <p className="text-[10px] xs:text-xs sm:text-sm md:text-base lg:text-lg text-slate-600 leading-relaxed xs:leading-relaxed sm:leading-relaxed">
-                    A complete forensic identification platform designed for law enforcement. Create composite sketches, run facial searches, and manage suspect records — all in one place.
-                  </p>
                 </div>
-              </Card>
+                  <p className="text-[10px] xs:text-xs sm:text-sm md:text-base lg:text-lg text-slate-600 leading-relaxed xs:leading-relaxed sm:leading-relaxed">
+                A complete forensic identification platform designed for law enforcement. Create composite sketches, run facial searches, and manage suspect records — all in one place.
+              </p>
+                </div>
+            </Card>
             </motion.div>
 
             {/* Flow Arrow 1 */}
@@ -237,12 +237,12 @@ export const Dashboard = () => {
                       <Zap className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-emerald-600" />
                     </motion.div>
                     <h3 className="text-xs xs:text-sm sm:text-base md:text-lg lg:text-xl font-bold text-slate-800">Problem We Solve</h3>
-                  </div>
-                  <p className="text-[10px] xs:text-xs sm:text-sm md:text-base lg:text-lg text-slate-600 leading-relaxed xs:leading-relaxed sm:leading-relaxed">
-                    Traditional identification methods are slow and error-prone. Our system reduces suspect identification time from days to minutes using automated facial recognition technology.
-                  </p>
                 </div>
-              </Card>
+                  <p className="text-[10px] xs:text-xs sm:text-sm md:text-base lg:text-lg text-slate-600 leading-relaxed xs:leading-relaxed sm:leading-relaxed">
+                Traditional identification methods are slow and error-prone. Our system reduces suspect identification time from days to minutes using automated facial recognition technology.
+              </p>
+                </div>
+            </Card>
             </motion.div>
 
             {/* Flow Arrow 2 */}
@@ -281,7 +281,7 @@ export const Dashboard = () => {
                       <Shield className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-indigo-600" />
                     </motion.div>
                     <h3 className="text-xs xs:text-sm sm:text-base md:text-lg lg:text-xl font-bold text-slate-800">What We Provide</h3>
-                  </div>
+                </div>
                   <div className="space-y-1 xs:space-y-1.5 sm:space-y-2 md:space-y-2.5">
                     <motion.div
                       whileHover={{ x: 4 }}
@@ -315,9 +315,9 @@ export const Dashboard = () => {
                       <Brain className="w-3 h-3 xs:w-3.5 xs:h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-amber-600 flex-shrink-0" />
                       <span className="text-[10px] xs:text-xs sm:text-sm md:text-base lg:text-lg text-slate-600">Machine learning powered matching engine</span>
                     </motion.div>
-                  </div>
                 </div>
-              </Card>
+              </div>
+            </Card>
             </motion.div>
           </div>
         </div>
@@ -553,7 +553,7 @@ export const Dashboard = () => {
               {/* Mobile/Tablet: Vertical Flow */}
               <div className="lg:hidden space-y-3 xs:space-y-4 sm:space-y-5">
                 {/* Step 1: Create Sketch */}
-                <motion.div
+              <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.1 }}
@@ -573,7 +573,7 @@ export const Dashboard = () => {
                       Build composite sketch from witness description. Save to database for future searches.
                     </p>
                   </div>
-                </motion.div>
+                  </motion.div>
 
                 {/* Arrow Down */}
                 <div className="flex justify-center py-1">
@@ -581,7 +581,7 @@ export const Dashboard = () => {
                 </div>
 
                 {/* Step 2: Search Database */}
-                <motion.div
+                  <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.2 }}
@@ -597,9 +597,9 @@ export const Dashboard = () => {
                       </div>
                       <h4 className="text-xs xs:text-sm sm:text-base font-bold text-gray-800">Search Database</h4>
                     </div>
-                    <p className="text-[10px] xs:text-xs sm:text-sm text-gray-600 leading-relaxed">
+                  <p className="text-[10px] xs:text-xs sm:text-sm text-gray-600 leading-relaxed">
                       Upload sketch or photo. AI extracts facial features and compares against criminal database.
-                    </p>
+                  </p>
                   </div>
                 </motion.div>
 
@@ -611,7 +611,7 @@ export const Dashboard = () => {
                 {/* Conditional Branch */}
                 <div className="space-y-3 xs:space-y-4">
                   {/* Match Found Path */}
-                  <motion.div
+                <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4, delay: 0.3 }}
@@ -634,9 +634,9 @@ export const Dashboard = () => {
                   </motion.div>
 
                   {/* No Match Path */}
-                  <motion.div
+                <motion.div
                     initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
+                  animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4, delay: 0.35 }}
                     className="flex items-start gap-3 xs:gap-4"
                   >
@@ -679,9 +679,9 @@ export const Dashboard = () => {
                       </div>
                       <h4 className="text-xs xs:text-sm sm:text-base font-bold text-gray-800">View in Database</h4>
                     </div>
-                    <p className="text-[10px] xs:text-xs sm:text-sm text-gray-600 leading-relaxed">
+                  <p className="text-[10px] xs:text-xs sm:text-sm text-gray-600 leading-relaxed">
                       Access, search, and manage all criminal records and cases.
-                    </p>
+                  </p>
                   </div>
                 </motion.div>
               </div>
@@ -692,9 +692,9 @@ export const Dashboard = () => {
                   {/* Steps 1-2: Sequential */}
                   <div className="flex items-center gap-4 xl:gap-6 w-full max-w-5xl">
                     {/* Step 1 */}
-                    <motion.div
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.4, delay: 0.1 }}
                       className="flex-1 bg-white rounded-xl xl:rounded-2xl p-4 xl:p-5 shadow-sm border border-blue-100 hover:shadow-md transition-shadow"
                     >
@@ -709,16 +709,16 @@ export const Dashboard = () => {
                       </div>
                       <p className="text-xs xl:text-sm text-gray-600 leading-relaxed">
                         Build composite sketch from witness description. Save to database for future searches.
-                      </p>
-                    </motion.div>
+                  </p>
+                </motion.div>
 
                     {/* Arrow */}
                     <ChevronRight className="w-6 h-6 xl:w-8 xl:h-8 text-slate-400 flex-shrink-0" />
 
                     {/* Step 2 */}
-                    <motion.div
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.4, delay: 0.2 }}
                       className="flex-1 bg-white rounded-xl xl:rounded-2xl p-4 xl:p-5 shadow-sm border border-red-100 hover:shadow-md transition-shadow"
                     >
@@ -734,7 +734,7 @@ export const Dashboard = () => {
                       <p className="text-xs xl:text-sm text-gray-600 leading-relaxed">
                         Upload sketch or photo. AI extracts facial features and compares against criminal database.
                       </p>
-                    </motion.div>
+                  </motion.div>
                   </div>
 
                   {/* Arrow Down */}
@@ -743,9 +743,9 @@ export const Dashboard = () => {
                   {/* Conditional Branch: Match Found vs No Match */}
                   <div className="flex items-start gap-4 xl:gap-6 w-full max-w-5xl">
                     {/* Match Found Path */}
-                    <motion.div
+                <motion.div
                       initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
+                  animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4, delay: 0.3 }}
                       className="flex-1 bg-white rounded-xl xl:rounded-2xl p-4 xl:p-5 shadow-sm border border-emerald-100 hover:shadow-md transition-shadow"
                     >
@@ -761,18 +761,18 @@ export const Dashboard = () => {
                       <p className="text-xs xl:text-sm text-gray-600 leading-relaxed">
                         Review suspect details, similarity score, and case information.
                       </p>
-                    </motion.div>
+                </motion.div>
 
                     {/* Divider */}
                     <div className="text-slate-400 text-sm xl:text-base font-medium py-4">OR</div>
 
                     {/* No Match Path */}
-                    <motion.div
+                <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4, delay: 0.35 }}
                       className="flex-1 bg-white rounded-xl xl:rounded-2xl p-4 xl:p-5 shadow-sm border border-amber-100 hover:shadow-md transition-shadow"
-                    >
+                >
                       <div className="flex items-center gap-3 mb-3">
                         <div className="w-10 h-10 xl:w-12 xl:h-12 rounded-full bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center text-white font-bold text-base xl:text-lg shadow-md">
                           ✗
@@ -785,7 +785,7 @@ export const Dashboard = () => {
                       <p className="text-xs xl:text-sm text-gray-600 leading-relaxed">
                         Add new suspect to database with photo and case details.
                       </p>
-                    </motion.div>
+                  </motion.div>
                   </div>
 
                   {/* Arrow Down */}
@@ -809,8 +809,8 @@ export const Dashboard = () => {
                     </div>
                     <p className="text-xs xl:text-sm text-gray-600 leading-relaxed">
                       Access, search, and manage all criminal records and cases.
-                    </p>
-                  </motion.div>
+                  </p>
+                </motion.div>
                 </div>
               </div>
             </Card>
