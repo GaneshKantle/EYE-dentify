@@ -821,10 +821,10 @@ export const Dashboard = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.6 }}
-            className="grid grid-cols-1 xs:grid-cols-1 sm:grid-cols-1 md:grid-cols-1 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-3 3xl:grid-cols-3 gap-3 xs:gap-4 sm:gap-5 md:gap-6 lg:gap-8 xl:gap-10 2xl:gap-12 3xl:gap-16 mb-5 xs:mb-7 sm:mb-9 md:mb-11 lg:mb-12 xl:mb-14"
+            className="grid grid-cols-1 xs:grid-cols-1 sm:grid-cols-1 md:grid-cols-1 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-3 3xl:grid-cols-3 gap-3 xs:gap-4 sm:gap-5 md:gap-6 lg:gap-8 xl:gap-10 2xl:gap-12 3xl:gap-16 mb-5 xs:mb-7 sm:mb-9 md:mb-11 lg:mb-12 xl:mb-14 w-full"
           >
             {/* Recent Activity */}
-            <Card className="bg-white backdrop-blur-sm border-amber-100 shadow-sm rounded-xl xs:rounded-2xl sm:rounded-2xl lg:col-span-1">
+            <Card className="bg-white backdrop-blur-sm border-amber-100 shadow-sm rounded-xl xs:rounded-2xl sm:rounded-2xl lg:col-span-1 w-full h-full flex flex-col">
               <CardHeader className="p-3 xs:p-4 sm:p-5 md:p-6">
                 <CardTitle className="text-gray-800 flex items-center space-x-2 text-sm xs:text-base sm:text-lg">
                   <Activity className="w-4 xs:w-5 h-4 xs:h-5 text-blue-600" />
@@ -895,9 +895,9 @@ export const Dashboard = () => {
             </Card>
 
             {/* System Overview Section - Now 2 columns */}
-            <div className="lg:col-span-2 grid grid-cols-1 xs:grid-cols-1 sm:grid-cols-1 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-2 3xl:grid-cols-2 gap-3 xs:gap-4 sm:gap-5 md:gap-6 lg:gap-4 xl:gap-6 2xl:gap-8 3xl:gap-10">
+            <div className="lg:col-span-2 w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-2 3xl:grid-cols-2 4xl:grid-cols-2 gap-3 sm:gap-4 md:gap-5 lg:gap-6 xl:gap-6 2xl:gap-8 3xl:gap-10 4xl:gap-12">
             {/* System Status */}
-            <Card className="bg-white backdrop-blur-sm border-amber-100 shadow-sm rounded-xl xs:rounded-2xl sm:rounded-2xl">
+            <Card className="bg-white backdrop-blur-sm border-amber-100 shadow-sm rounded-xl xs:rounded-2xl sm:rounded-2xl w-full h-full flex flex-col min-w-0">
               <CardHeader className="p-3 xs:p-4 sm:p-5 md:p-6">
                 <CardTitle className="text-gray-800 flex items-center space-x-2 text-sm xs:text-base sm:text-lg">
                   <Shield className="w-4 xs:w-5 h-4 xs:h-5 text-green-600" />
@@ -940,56 +940,7 @@ export const Dashboard = () => {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Quick Access */}
-            <Card className="bg-white backdrop-blur-sm border-amber-100 shadow-sm rounded-xl xs:rounded-2xl sm:rounded-2xl">
-              <CardHeader className="p-3 xs:p-4 sm:p-5 md:p-6">
-                <CardTitle className="text-gray-800 flex items-center space-x-2 text-sm xs:text-base sm:text-lg">
-                  <FileText className="w-4 xs:w-5 h-4 xs:h-5 text-amber-600" />
-                  <span>Quick Access</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-3 xs:p-4 sm:p-5 md:p-6 pt-0">
-                <div className="space-y-2 xs:space-y-3">
-                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                    <Button 
-                      variant="outline" 
-                      className="w-full justify-start border-black-200 text-gray-700 hover:border-red-300 hover:text-red-600 hover:bg-amber-50 text-xs xs:text-sm h-8 xs:h-9 sm:h-10 transition-all duration-200"
-                      onClick={() => navigate('/recognize')}
-                    >
-                      <motion.div whileHover={{ rotate: 360 }} transition={{ duration: 0.5 }}>
-                        <Scan className="w-3 xs:w-4 h-3 xs:h-4 mr-1 xs:mr-2" />
-                      </motion.div>
-                      Start Face Recognition
-                    </Button>
-                  </motion.div>
-                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                    <Button 
-                      variant="outline" 
-                      className="w-full justify-start border-black-200 text-gray-700 hover:border-red-300 hover:text-red-600 hover:bg-amber-50 text-xs xs:text-sm h-8 xs:h-9 sm:h-10 transition-all duration-200"
-                      onClick={() => navigate('/sketch')}
-                    >
-                      <motion.div whileHover={{ rotate: 360 }} transition={{ duration: 0.5 }}>
-                        <PenTool className="w-3 xs:w-4 h-3 xs:h-4 mr-1 xs:mr-2" />
-                      </motion.div>
-                      Create New Sketch
-                    </Button>
-                  </motion.div>
-                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                    <Button 
-                      variant="outline" 
-                      className="w-full justify-start border-black-200 text-gray-700 hover:border-red-300 hover:text-red-600 hover:bg-amber-50 text-xs xs:text-sm h-8 xs:h-9 sm:h-10 transition-all duration-200"
-                      onClick={() => navigate('/gallery')}
-                    >
-                      <motion.div whileHover={{ rotate: 360 }} transition={{ duration: 0.5 }}>
-                        <Database className="w-3 xs:w-4 h-3 xs:h-4 mr-1 xs:mr-2" />
-                      </motion.div>
-                      View Database
-                    </Button>
-                  </motion.div>
-                </div>
-              </CardContent>
-            </Card>
+        
             </div>
           </motion.div>
 

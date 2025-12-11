@@ -4,7 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { UserPlus, Upload, Shield, CheckCircle, Database } from "lucide-react";
 import Toast from "./Toast";
-import { apiClient } from "./lib/api";
+import axios from "axios";
+import { config } from "./lib/api";
 
 interface ToastState {
   message: string;
@@ -36,18 +37,46 @@ const AddFace: React.FC = () => {
     formData.append("description", description);
 
     try {
-      const data = await apiClient.directUploadFile<{status: string, message: string}>("/add_face", formData);
-        setToast({ message: `Successfully added ${name}`, type: "success" });
-        // Reset form
-        setName("");
-        setAge("");
-        setCrime("");
-        setDescription("");
-        setFile(null);
-        const fileInput = document.getElementById('file-input') as HTMLInputElement;
-        if (fileInput) fileInput.value = '';
+      const token = localStorage.getItem('token');
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+      
+      const response = await axios.post<{status: string, message: string}>(
+        `${config.apiUrl}/add_face`,
+        formData,
+        { headers }
+      );
+      
+      setToast({ message: `Successfully added ${name}`, type: "success" });
+      // Reset form
+      setName("");
+      setAge("");
+      setCrime("");
+      setDescription("");
+      setFile(null);
+      const fileInput = document.getElementById('file-input') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
     } catch (err: any) {
-      setToast({ message: err?.response?.data?.detail || err?.message || "Network error", type: "error" });
+      let errorMessage = "Network error";
+      
+      if (err?.response?.data?.detail) {
+        const detail = err.response.data.detail;
+        if (Array.isArray(detail)) {
+          errorMessage = detail.map((e: any) => e.msg || e.message || String(e)).join(", ");
+        } else if (typeof detail === "string") {
+          errorMessage = detail;
+        } else {
+          errorMessage = detail.message || detail.msg || String(detail);
+        }
+      } else if (err?.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+      
+      setToast({ message: errorMessage, type: "error" });
     } finally {
       setIsUploading(false);
     }

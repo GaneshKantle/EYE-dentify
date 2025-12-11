@@ -2563,9 +2563,9 @@ const FaceSketch: React.FC = () => {
     <div className="h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 flex flex-col">
       {/* Enhanced Header - Reorganized */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-amber-200 shadow-sm flex-shrink-0 text-align:center;">
-        <div className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-align:center;">
+        <div className="px-3 sm:px-4 md:px-6 py-1 sm:py-1.5 text-align:center;">
           {/* Sketch Info Section */}
-          <div className="mb-2 sm:mb-3 pb-2 sm:pb-3 border-b border-amber-200/50">
+          <div className="mb-1 sm:mb-1.5 pb-1 sm:pb-1.5 border-b border-amber-200/50">
             <div className="flex flex-col items-center justify-center gap-2 sm:gap-3">
               <div className="flex items-center justify-center gap-2 flex-wrap">
                 <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 flex-shrink-0" />
@@ -2612,7 +2612,7 @@ const FaceSketch: React.FC = () => {
           </div>
 
           {/* Main Toolbar - Reorganized */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 sm:gap-2.5">
             {/* Left Group: View & Edit Controls */}
             <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 sm:gap-3">
               {/* History Controls - Moved First */}

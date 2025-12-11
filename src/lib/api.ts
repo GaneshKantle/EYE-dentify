@@ -300,18 +300,13 @@ class APIClient {
     config?: AxiosRequestConfig
   ): Promise<T> {
     const client = this.getDirectClient();
-    const requestConfig: AxiosRequestConfig = {
+    const requestConfig = {
       ...config,
       method,
       headers: {
         ...config?.headers,
       },
     };
-    
-    // Remove Content-Type to let axios automatically set it with boundary for FormData
-    if (requestConfig.headers) {
-      delete requestConfig.headers['Content-Type'];
-    }
     
     const response = method === 'PUT' 
       ? await client.put<T>(url, formData, requestConfig)

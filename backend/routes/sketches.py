@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Body, Query
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Body
 from typing import List, Optional, Dict, Any
 from pymongo import MongoClient
 from datetime import datetime
@@ -109,10 +109,10 @@ async def save_sketch(
 
 @router.get("/")
 async def get_sketches(
-    skip: int = Query(0, ge=0, description="Number of records to skip"),
-    limit: int = Query(100, ge=1, le=1000, description="Maximum number of records to return"),
-    suspect: Optional[str] = Query(None, description="Filter by suspect name"),
-    officer: Optional[str] = Query(None, description="Filter by officer name")
+    skip: int = 0,
+    limit: int = 100,
+    suspect: Optional[str] = None,
+    officer: Optional[str] = None
 ):
     """Get list of all sketches with optional filtering"""
     try:

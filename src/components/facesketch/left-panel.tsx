@@ -59,40 +59,41 @@ const LeftPanel: React.FC<LeftPanelProps> = ({
   onRenameCategory,
   onDeleteCategory
 }) => {
-  const [editingCategory, setEditingCategory] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState('');
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  // Commented out edit functionality - can be reverted if needed
+  // const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  // const [editValue, setEditValue] = useState('');
+  // const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
-  const handleStartEdit = (categoryKey: string, currentName: string) => {
-    setEditingCategory(categoryKey);
-    setEditValue(currentName);
-  };
+  // const handleStartEdit = (categoryKey: string, currentName: string) => {
+  //   setEditingCategory(categoryKey);
+  //   setEditValue(currentName);
+  // };
 
-  const handleSaveEdit = (categoryKey: string) => {
-    if (editValue.trim()) {
-      onRenameCategory(categoryKey, editValue.trim());
-    }
-    setEditingCategory(null);
-    setEditValue('');
-  };
+  // const handleSaveEdit = (categoryKey: string) => {
+  //   if (editValue.trim()) {
+  //     onRenameCategory(categoryKey, editValue.trim());
+  //   }
+  //   setEditingCategory(null);
+  //   setEditValue('');
+  // };
 
-  const handleCancelEdit = () => {
-    setEditingCategory(null);
-    setEditValue('');
-  };
+  // const handleCancelEdit = () => {
+  //   setEditingCategory(null);
+  //   setEditValue('');
+  // };
 
-  const handleDeleteClick = (categoryKey: string) => {
-    setDeleteConfirm(categoryKey);
-  };
+  // const handleDeleteClick = (categoryKey: string) => {
+  //   setDeleteConfirm(categoryKey);
+  // };
 
-  const handleConfirmDelete = () => {
-    if (deleteConfirm) {
-      onDeleteCategory(deleteConfirm);
-      setDeleteConfirm(null);
-    }
-  };
+  // const handleConfirmDelete = () => {
+  //   if (deleteConfirm) {
+  //     onDeleteCategory(deleteConfirm);
+  //     setDeleteConfirm(null);
+  //   }
+  // };
   return (
-    <div className={`${leftSidebarCollapsed ? 'w-0 hidden lg:flex lg:w-16' : 'w-64 sm:w-72 md:w-80 lg:w-36 lg:sm:w-40 lg:md:w-44'} ${leftSidebarCollapsed ? '' : 'lg:relative absolute lg:static inset-y-0 left-0 z-40'} bg-white/95 backdrop-blur-sm border-r border-amber-200 flex flex-col transition-all duration-300 shadow-lg lg:shadow-sm order-2 lg:order-1 flex-shrink-0 self-stretch overflow-hidden`}>
+    <div className={`${leftSidebarCollapsed ? 'w-0 hidden lg:flex lg:w-16' : 'w-72 sm:w-80 md:w-96 lg:w-48 xl:w-56 2xl:w-64'} ${leftSidebarCollapsed ? '' : 'lg:relative absolute lg:static inset-y-0 left-0 z-40'} bg-white/95 backdrop-blur-sm border-r border-amber-200 flex flex-col transition-all duration-300 shadow-lg lg:shadow-sm order-2 lg:order-1 flex-shrink-0 self-stretch overflow-hidden`}>
       <div className={`p-1.5 sm:p-2 border-b border-amber-200 flex-shrink-0`}>
         <div className={`flex items-center ${leftSidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
           <Button 
@@ -127,8 +128,9 @@ const LeftPanel: React.FC<LeftPanelProps> = ({
 
           {/* Categories */}
           {!assetsLoading && !assetsError && Object.entries(featureCategories).map(([key, category]) => {
-            const IconComponent = category.icon;
-            const isEditing = editingCategory === key;
+            // Removed IconComponent usage - icons removed, text only
+            // const IconComponent = category.icon;
+            // const isEditing = editingCategory === key;
             
             return (
               <div
@@ -139,62 +141,65 @@ const LeftPanel: React.FC<LeftPanelProps> = ({
                     : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 hover:border-slate-300'
                 }`}
               >
-                {!isEditing ? (
-                  <>
-                    <button
-                      onClick={() => setSelectedCategory(key)}
-                      className="w-full flex items-center gap-1.5 sm:gap-2"
-                      title={category.name}
+                {/* Simplified category display - icons and edit functionality removed */}
+                <button
+                  onClick={() => setSelectedCategory(key)}
+                  className="w-full flex items-center gap-1.5 sm:gap-2"
+                  title={category.name}
+                >
+                  {/* Icon removed - keeping text only */}
+                  {/* <div className={`p-0.5 sm:p-1 rounded-md ${category.color} flex-shrink-0`}>
+                    <IconComponent className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                  </div> */}
+                  {!leftSidebarCollapsed && (
+                    <>
+                      <span className="font-medium text-[10px] sm:text-xs text-left min-w-0 flex-1 leading-tight truncate">
+                        {category.name}
+                      </span>
+                      <Badge className="bg-slate-100 text-slate-600 text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 flex-shrink-0 whitespace-nowrap">
+                        {category.assets.length}
+                      </Badge>
+                    </>
+                  )}
+                  {leftSidebarCollapsed && (
+                    <Badge className="bg-slate-100 text-slate-600 text-[8px] sm:text-[9px] px-0.5 sm:px-1 py-0 mt-0.5">
+                      {category.assets.length}
+                    </Badge>
+                  )}
+                </button>
+                
+                {/* Edit/Delete buttons commented out - can be reverted if needed */}
+                {/* {!leftSidebarCollapsed && (
+                  <div className="absolute right-1 top-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-5 w-5 p-0 text-slate-500 hover:text-blue-600"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStartEdit(key, category.name);
+                      }}
+                      title="Rename"
                     >
-                      <div className={`p-0.5 sm:p-1 rounded-md ${category.color} flex-shrink-0`}>
-                        <IconComponent className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                      </div>
-                      {!leftSidebarCollapsed && (
-                        <>
-                          <span className="font-medium text-[10px] sm:text-xs text-left min-w-0 flex-1 leading-tight truncate">
-                            {category.name}
-                          </span>
-                          <Badge className="bg-slate-100 text-slate-600 text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 flex-shrink-0 whitespace-nowrap">
-                            {category.assets.length}
-                          </Badge>
-                        </>
-                      )}
-                      {leftSidebarCollapsed && (
-                        <Badge className="bg-slate-100 text-slate-600 text-[8px] sm:text-[9px] px-0.5 sm:px-1 py-0 mt-0.5">
-                          {category.assets.length}
-                        </Badge>
-                      )}
-                    </button>
-                    {!leftSidebarCollapsed && (
-                      <div className="absolute right-1 top-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-5 w-5 p-0 text-slate-500 hover:text-blue-600"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleStartEdit(key, category.name);
-                          }}
-                          title="Rename"
-                        >
-                          <Edit2 className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-5 w-5 p-0 text-slate-500 hover:text-red-600"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteClick(key);
-                          }}
-                          title="Delete"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    )}
-                  </>
-                ) : (
+                      <Edit2 className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-5 w-5 p-0 text-slate-500 hover:text-red-600"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteClick(key);
+                      }}
+                      title="Delete"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                )} */}
+                
+                {/* Edit mode UI commented out - can be reverted if needed */}
+                {/* {isEditing ? (
                   <div className="w-full flex items-center gap-1">
                     <Input
                       value={editValue}
@@ -223,15 +228,15 @@ const LeftPanel: React.FC<LeftPanelProps> = ({
                       <X className="w-3 h-3" />
                     </Button>
                   </div>
-                )}
+                ) : null} */}
               </div>
             );
           })}
         </div>
       </ScrollArea>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+      {/* Delete Confirmation Dialog - Commented out as edit functionality is disabled */}
+      {/* <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
         <AlertDialogContent className="max-w-xs sm:max-w-sm">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-sm sm:text-base">Delete Category?</AlertDialogTitle>
@@ -249,7 +254,7 @@ const LeftPanel: React.FC<LeftPanelProps> = ({
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-      </AlertDialog>
+      </AlertDialog> */}
     </div>
   );
 };

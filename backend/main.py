@@ -128,7 +128,6 @@ mtcnn: Optional[MTCNN] = None
 facenet: Optional[InceptionResnetV1] = None
 models_ready = False
 recognition_threshold = _float_env("RECOGNITION_THRESHOLD", 0.50)
-sketch_recognition_threshold = _float_env("SKETCH_RECOGNITION_THRESHOLD", 0.35)  # Lower threshold for sketches
 rejection_threshold = _float_env("REJECTION_THRESHOLD", 0.30)
 # In memory-constrained or cold-start-prone environments (e.g. free tiers),
 # loading ML models at startup can make every first request very slow.
@@ -420,12 +419,8 @@ async def add_face(
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/recognize_face")
-async def recognize_face(
-    file: UploadFile = File(...),
-    is_sketch: bool = Form(False)
-):
+async def recognize_face(file: UploadFile = File(...)):
     try:
-        # Get embedding from uploaded image (handles both photos and sketches)
         emb = get_embedding(file)
         faces = list(collection.find())
         if not faces:
@@ -446,43 +441,12 @@ async def recognize_face(
                         "image_url": img_url
                     }
 
-        # Use lower threshold for sketches, higher threshold for photos
-        threshold = sketch_recognition_threshold if is_sketch else recognition_threshold
-        
-        if best_score >= threshold:
-            return {
-                "status":"recognized",
-                "similarity":best_score,
-                "is_sketch": is_sketch,
-                "threshold_used": threshold,
-                **best_face
-            }
+        if best_score >= recognition_threshold:
+            return {"status":"recognized","similarity":best_score, **best_face}
         else:
-            return {
-                "status":"not_recognized",
-                "best_score":best_score,
-                "is_sketch": is_sketch,
-                "threshold_used": threshold
-            }
-    except HTTPException:
-        # Re-raise HTTP exceptions (like 503 for models not loaded)
-        raise
+            return {"status":"not_recognized","best_score":best_score}
     except Exception as e:
-        # Log the error for debugging
-        import traceback
-        error_msg = str(e)
-        error_type = type(e).__name__
-        
-        # Provide more specific error messages
-        if "face" in error_msg.lower() or "detect" in error_msg.lower():
-            error_detail = f"Could not process image: {error_msg}. The image may not contain a detectable face or may be too low quality."
-        elif "ML models" in error_msg or "503" in error_msg:
-            raise HTTPException(status_code=503, detail=error_msg)
-        else:
-            error_detail = f"Recognition failed: {error_msg}"
-        
-        # Return error status instead of raising exception so frontend can handle it
-        return {"status":"error","message":error_detail,"error_type":error_type}
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/gallery")
 async def gallery():
