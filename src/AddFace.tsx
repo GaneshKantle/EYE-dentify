@@ -37,7 +37,7 @@ const AddFace: React.FC = () => {
 
     try {
       const data = await apiClient.directUploadFile<{status: string, message: string}>("/add_face", formData);
-        setToast({ message: data.message, type: "success" });
+        setToast({ message: `Successfully added ${name}`, type: "success" });
         // Reset form
         setName("");
         setAge("");
