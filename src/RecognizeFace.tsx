@@ -15,6 +15,7 @@ const RecognizeFace: React.FC = () => {
   const [loadingText, setLoadingText] = useState<string>("Initializing...");
   const [isResultFullscreen, setIsResultFullscreen] = useState<boolean>(false);
   const [fullscreenImageUrl, setFullscreenImageUrl] = useState<string>("");
+  const [isSketch, setIsSketch] = useState<boolean>(false);
 
   const forensicFacts = [
     "Analyzing facial geometry...",
@@ -51,12 +52,27 @@ const RecognizeFace: React.FC = () => {
 
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("is_sketch", isSketch.toString());
 
     try {
       const res = await apiClient.directUploadFile<RecognitionResult>("/recognize_face", formData);
       
       // Complete the loading animation
       clearInterval(textInterval);
+      
+      // Check if the response indicates an error (even if HTTP status is 200)
+      if (res.status === "error") {
+        setLoadingText("Analysis failed");
+        setTimeout(() => {
+          setResult({ 
+            status: "error", 
+            message: res.message || "Recognition failed. Please try a different image or ensure the image contains a clear face."
+          });
+          setIsProcessing(false);
+        }, 500);
+        return;
+      }
+      
       setLoadingText("Analysis complete!");
       
       // Small delay before showing result
@@ -69,10 +85,16 @@ const RecognizeFace: React.FC = () => {
       clearInterval(textInterval);
       setLoadingText("Analysis failed");
       
+      // Handle HTTP errors (4xx, 5xx) and network errors
+      const errorMessage = err?.response?.data?.detail || 
+                           err?.response?.data?.message || 
+                           err?.message || 
+                           "Recognition failed. Please ensure the image is valid and try again.";
+      
       setTimeout(() => {
         setResult({ 
           status: "error", 
-          message: err?.response?.data?.detail || err?.message || "Recognition failed"
+          message: errorMessage
         });
         setIsProcessing(false);
       }, 500);
@@ -86,6 +108,7 @@ const RecognizeFace: React.FC = () => {
     setLoadingText("Initializing...");
     setIsResultFullscreen(false);
     setFullscreenImageUrl("");
+    setIsSketch(false);
   };
 
   const openFullscreen = (imageUrl: string) => {
@@ -195,6 +218,21 @@ const RecognizeFace: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Sketch detection checkbox */}
+                <div className="mb-3 flex items-center gap-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                  <input
+                    type="checkbox"
+                    id="is-sketch-checkbox"
+                    checked={isSketch}
+                    onChange={(e) => setIsSketch(e.target.checked)}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+                  />
+                  <label htmlFor="is-sketch-checkbox" className="text-xs sm:text-sm text-slate-700 cursor-pointer flex items-center gap-1.5">
+                    <PenTool className="w-3.5 h-3.5 text-blue-600" />
+                    <span>This is a sketch (uses lower recognition threshold)</span>
+                  </label>
+                </div>
+
                 <div className="relative rounded-lg sm:rounded-xl overflow-hidden mx-auto max-w-xs sm:max-w-sm shadow-[0_2px_8px_rgba(0,0,0,0.1),0_0_0_1px_rgba(148,163,184,0.12)]">
                   {objectUrl && (
                     <div className="relative">
@@ -298,9 +336,24 @@ const RecognizeFace: React.FC = () => {
                           <span>View Fullscreen</span>
                         </button>
                       </>
+                    ) : result.status === 'error' ? (
+                      <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 lg:w-48 lg:h-48 rounded-lg sm:rounded-xl bg-amber-50 border-2 border-amber-300 flex flex-col items-center justify-center p-2">
+                        <span className="text-amber-600 text-xs sm:text-sm md:text-base font-medium text-center">Error</span>
+                        {result.message && (
+                          <span className="text-amber-500 text-xs text-center mt-1">
+                            {String(result.message).substring(0, 30)}
+                            {String(result.message).length > 30 ? '...' : ''}
+                          </span>
+                        )}
+                      </div>
                     ) : (
-                      <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 lg:w-48 lg:h-48 rounded-lg sm:rounded-xl bg-red-50 border-2 border-red-300 flex items-center justify-center">
+                      <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 lg:w-48 lg:h-48 rounded-lg sm:rounded-xl bg-red-50 border-2 border-red-300 flex flex-col items-center justify-center p-2">
                         <span className="text-red-500 text-sm sm:text-base md:text-lg font-medium">No Match</span>
+                        {result.best_score !== undefined && (
+                          <span className="text-red-400 text-xs mt-1">
+                            Score: {(result.best_score * 100).toFixed(1)}%
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
@@ -379,9 +432,14 @@ const RecognizeFace: React.FC = () => {
               <h3 className="text-xs sm:text-sm font-semibold text-slate-700 mb-2">
                 {result.status === 'recognized' 
                   ? "✓ Match Found! What's next?" 
+                  : result.status === 'error'
+                  ? "⚠ Processing Error - Try Again"
                   : "No match found. Try these options:"
                 }
               </h3>
+              {result.status === 'error' && result.message && (
+                <p className="text-xs text-amber-600 mt-1">{String(result.message)}</p>
+              )}
             </div>
             
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
@@ -432,6 +490,10 @@ const RecognizeFace: React.FC = () => {
               <p className="text-xs sm:text-sm text-slate-500">
                 {result.status === 'recognized' 
                   ? `Confidence: ${((result.similarity || 0) * 100).toFixed(1)}% • Ready for investigation`
+                  : result.status === 'error'
+                  ? "If the error persists, try using a different image format or ensure the image contains a clear face"
+                  : result.best_score !== undefined
+                  ? `Best match score: ${(result.best_score * 100).toFixed(1)}% (below threshold). Try creating a sketch or adding this person to the database`
                   : "Try creating a sketch or adding this person to the database"
                 }
               </p>
