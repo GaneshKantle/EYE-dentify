@@ -1,22 +1,16 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Body
 from typing import List, Optional, Dict, Any
-from pymongo import MongoClient
 from datetime import datetime
 from bson import ObjectId
 import cloudinary
 import cloudinary.uploader
 import json
 import os
+import gc
 
-# Database connection - require MONGO_URI environment variable
-MONGO_URI = os.getenv('MONGO_URI')
-if not MONGO_URI:
-    raise RuntimeError(
-        "MONGO_URI environment variable is required. "
-        "Copy backend/env.example to backend/.env and set MONGO_URI before starting the server."
-    )
-client = MongoClient(MONGO_URI)
-db = client["face_recognition_db"]
+# Database connection - use shared client from database.py to avoid multiple connection pools
+# This reduces memory usage by reusing a single connection pool
+from database import client, db
 
 # Cloudinary config - load from environment variables
 cloudinary_cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME')
@@ -65,42 +59,48 @@ async def save_sketch(
             raise HTTPException(status_code=400, detail="Invalid sketch state format")
         
         # Upload image to Cloudinary in Sketch folder
-        upload_result = cloudinary.uploader.upload(
-            image.file,
-            folder="Sketch",
-            public_id=f"sketch_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{name.lower().replace(' ', '_')}",
-            resource_type="image"
-        )
-        
-        # Create sketch document
-        sketch_doc = {
-            "name": name.strip(),
-            "suspect": suspect.strip() if suspect else None,
-            "eyewitness": eyewitness.strip() if eyewitness else None,
-            "officer": officer.strip() if officer else None,
-            "date": date if date else datetime.utcnow().isoformat(),
-            "reason": reason.strip() if reason else None,
-            "description": description.strip() if description else None,
-            "priority": priority,
-            "status": status,
-            "image_url": upload_result["secure_url"],  # Cloudinary URL
-            "cloudinary_url": upload_result["secure_url"],  # Alias for compatibility
-            "cloudinary_public_id": upload_result["public_id"],
-            "sketch_state": state_data,  # Full state: features, canvasSettings, etc.
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
-        }
-        
-        # Save to MongoDB
-        result = db.sketches.insert_one(sketch_doc)
-        sketch_id = str(result.inserted_id)
-        
-        return {
-            "status": "ok",
-            "message": "Sketch saved successfully",
-            "sketch_id": sketch_id,
-            "cloudinary_url": upload_result["secure_url"]
-        }
+        try:
+            upload_result = cloudinary.uploader.upload(
+                image.file,
+                folder="Sketch",
+                public_id=f"sketch_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{name.lower().replace(' ', '_')}",
+                resource_type="image"
+            )
+            
+            # Create sketch document
+            sketch_doc = {
+                "name": name.strip(),
+                "suspect": suspect.strip() if suspect else None,
+                "eyewitness": eyewitness.strip() if eyewitness else None,
+                "officer": officer.strip() if officer else None,
+                "date": date if date else datetime.utcnow().isoformat(),
+                "reason": reason.strip() if reason else None,
+                "description": description.strip() if description else None,
+                "priority": priority,
+                "status": status,
+                "image_url": upload_result["secure_url"],  # Cloudinary URL
+                "cloudinary_url": upload_result["secure_url"],  # Alias for compatibility
+                "cloudinary_public_id": upload_result["public_id"],
+                "sketch_state": state_data,  # Full state: features, canvasSettings, etc.
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+            
+            # Save to MongoDB
+            result = db.sketches.insert_one(sketch_doc)
+            sketch_id = str(result.inserted_id)
+            
+            return {
+                "status": "ok",
+                "message": "Sketch saved successfully",
+                "sketch_id": sketch_id,
+                "cloudinary_url": upload_result["secure_url"]
+            }
+        finally:
+            # Cleanup file handle and force garbage collection
+            if hasattr(image, 'file'):
+                image.file.close()
+            gc.collect()
         
     except HTTPException:
         raise
@@ -244,24 +244,30 @@ async def update_sketch(
         
         # Update image if provided
         if image:
-            # Delete old image from Cloudinary if exists
-            old_public_id = sketch.get("cloudinary_public_id")
-            if old_public_id:
-                try:
-                    cloudinary.uploader.destroy(old_public_id)
-                except:
-                    pass  # Continue even if deletion fails
-            
-            # Upload new image
-            upload_result = cloudinary.uploader.upload(
-                image.file,
-                folder="Sketch",
-                public_id=f"sketch_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{name.lower().replace(' ', '_') if name else 'updated'}",
-                resource_type="image"
-            )
-            update_data["image_url"] = upload_result["secure_url"]
-            update_data["cloudinary_url"] = upload_result["secure_url"]  # Alias
-            update_data["cloudinary_public_id"] = upload_result["public_id"]
+            try:
+                # Delete old image from Cloudinary if exists
+                old_public_id = sketch.get("cloudinary_public_id")
+                if old_public_id:
+                    try:
+                        cloudinary.uploader.destroy(old_public_id)
+                    except:
+                        pass  # Continue even if deletion fails
+                
+                # Upload new image
+                upload_result = cloudinary.uploader.upload(
+                    image.file,
+                    folder="Sketch",
+                    public_id=f"sketch_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{name.lower().replace(' ', '_') if name else 'updated'}",
+                    resource_type="image"
+                )
+                update_data["image_url"] = upload_result["secure_url"]
+                update_data["cloudinary_url"] = upload_result["secure_url"]  # Alias
+                update_data["cloudinary_public_id"] = upload_result["public_id"]
+            finally:
+                # Cleanup file handle and force garbage collection
+                if hasattr(image, 'file'):
+                    image.file.close()
+                gc.collect()
         
         update_data["updated_at"] = datetime.utcnow()
         

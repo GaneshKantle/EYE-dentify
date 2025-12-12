@@ -97,20 +97,8 @@ def _float_env(key: str, default: float) -> float:
 
 
 # ---------------- MongoDB ---------------- 
-MONGO_URI = os.getenv("MONGO_URI")
-DATABASE_NAME = os.getenv("DATABASE_NAME", "face_recognition_db")
-# Configure MongoDB connection with connection pooling and timeouts for production
-client = MongoClient(
-    MONGO_URI,
-    serverSelectionTimeoutMS=5000,  # 5s to find server
-    connectTimeoutMS=10000,          # 10s to connect
-    socketTimeoutMS=30000,           # 30s socket timeout
-    maxPoolSize=10,                 # Connection pool max size
-    minPoolSize=1,                  # Keep 1 connection alive
-    retryWrites=True,
-    retryReads=True
-)
-db = client[DATABASE_NAME]
+# Use shared database connection from database.py to avoid multiple connection pools
+from database import client, db
 collection = db["faces"]
 
 # ---------------- Cloudinary ---------------- 
@@ -204,27 +192,42 @@ def _load_models():
 
 
 def get_embedding(file: UploadFile):
-    """Get face embedding from uploaded image"""
+    """Get face embedding from uploaded image with memory cleanup"""
     if mtcnn is None or facenet is None or not models_ready:
         _load_models()
     if mtcnn is None or facenet is None or not models_ready:
         raise HTTPException(status_code=503, detail="ML models not loaded yet. Please wait and try again.")
     
-    file.file.seek(0)
-    img = Image.open(file.file).convert("RGB")
-    with torch.no_grad():
-        face = mtcnn(img)
-        if face is None:
-            img_resized = img.resize((160,160))
-            face = torch.from_numpy(np.array(img_resized)).permute(2,0,1).float()/255.0
-            face = _fixed_image_standardization(face)
-        if face.ndim == 3:
-            face = face.unsqueeze(0)
-        face = face.to(device)
-        emb = facenet(face)
-        emb = emb.squeeze(0).cpu().numpy().astype("float32")
-        emb = emb / (np.linalg.norm(emb)+1e-10)
-        return emb
+    img = None
+    face = None
+    emb = None
+    try:
+        file.file.seek(0)
+        img = Image.open(file.file).convert("RGB")
+        with torch.no_grad():
+            face = mtcnn(img)
+            if face is None:
+                img_resized = img.resize((160,160))
+                face = torch.from_numpy(np.array(img_resized)).permute(2,0,1).float()/255.0
+                face = _fixed_image_standardization(face)
+            if face.ndim == 3:
+                face = face.unsqueeze(0)
+            face = face.to(device)
+            emb = facenet(face)
+            emb = emb.squeeze(0).cpu().numpy().astype("float32")
+            emb = emb / (np.linalg.norm(emb)+1e-10)
+            result = emb.copy()  # Create a copy to return
+            return result
+    finally:
+        # Explicit memory cleanup
+        if img is not None:
+            img.close()
+        if face is not None:
+            del face
+        if emb is not None:
+            del emb
+        # Force garbage collection after image processing
+        gc.collect()
 
 def _encode_embedding(embedding: np.ndarray) -> str:
     return base64.b64encode(pickle.dumps(embedding.astype("float32"))).decode("utf-8")
@@ -344,6 +347,10 @@ app.add_middleware(
 # Add CORS logging middleware AFTER CORSMiddleware (for logging only)
 app.add_middleware(CORSLoggingMiddleware)
 
+# Add memory cleanup middleware to prevent memory leaks
+from middleware.memory import MemoryCleanupMiddleware
+app.add_middleware(MemoryCleanupMiddleware, gc_interval=10)  # Run GC every 10 requests
+
 # Include routes
 app.include_router(assets_router)
 app.include_router(sketches_router)
@@ -380,6 +387,7 @@ async def add_face(
     description: str = Form(...),
     file: UploadFile = File(...)
 ):
+    emb = None
     try:
         emb = get_embedding(file)
         file.file.seek(0)
@@ -388,13 +396,16 @@ async def add_face(
         upload_res = cloudinary.uploader.upload(file.file, folder="faces", public_id=name)
         image_url = upload_res["secure_url"]
 
+        encoded_emb = _encode_embedding(emb)
+        del emb  # Clean up embedding after encoding
+        
         doc = collection.find_one({"name": name})
         if doc:
             # update existing
             collection.update_one(
                 {"_id": doc["_id"]},
                 {"$push":{
-                    "embeddings": _encode_embedding(emb),
+                    "embeddings": encoded_emb,
                     "image_urls": image_url
                 },
                  "$set":{
@@ -410,27 +421,42 @@ async def add_face(
                 "age": age,
                 "crime": crime,
                 "description": description,
-                "embeddings": [_encode_embedding(emb)],
+                "embeddings": [encoded_emb],
                 "image_urls": [image_url]
             })
 
         return {"status":"ok","message":f"Face registered for {name}","image_url":image_url}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        # Cleanup and force garbage collection
+        if emb is not None:
+            del emb
+        gc.collect()
 
 @app.post("/recognize_face")
 async def recognize_face(file: UploadFile = File(...)):
+    """Recognize face using cursor iteration to avoid loading all data into memory"""
+    emb = None
     try:
         emb = get_embedding(file)
-        faces = list(collection.find())
-        if not faces:
-            return {"status":"empty_db","message":"No faces stored"}
-
+        
+        # Use cursor iteration instead of loading all faces into memory
+        cursor = collection.find({}, {"name": 1, "age": 1, "crime": 1, "description": 1, "embeddings": 1, "image_urls": 1})
+        
         best_score = -1
         best_face = None
-        for doc in faces:
-            for emb_b64, img_url in zip(doc.get("embeddings", []), doc.get("image_urls", [])):
-                sim = cos_sim(emb, _decode_embedding(emb_b64))
+        
+        # Process one document at a time to minimize memory usage
+        for doc in cursor:
+            embeddings_list = doc.get("embeddings", [])
+            image_urls_list = doc.get("image_urls", [])
+            
+            for emb_b64, img_url in zip(embeddings_list, image_urls_list):
+                decoded_emb = _decode_embedding(emb_b64)
+                sim = cos_sim(emb, decoded_emb)
+                del decoded_emb  # Clean up decoded embedding immediately
+                
                 if sim > best_score:
                     best_score = sim
                     best_face = {
@@ -440,25 +466,42 @@ async def recognize_face(file: UploadFile = File(...)):
                         "description": doc.get("description",""),
                         "image_url": img_url
                     }
-
+            
+            # Clean up document data after processing
+            del embeddings_list, image_urls_list
+        
+        # Clean up cursor
+        cursor.close()
+        
         if best_score >= recognition_threshold:
             return {"status":"recognized","similarity":best_score, **best_face}
         else:
             return {"status":"not_recognized","best_score":best_score}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        # Cleanup embedding and force garbage collection
+        if emb is not None:
+            del emb
+        gc.collect()
 
 @app.get("/gallery")
 async def gallery():
+    """Get gallery with projection to exclude large embeddings field"""
     faces_list = []
-    for doc in collection.find():
-        faces_list.append({
-            "name": doc.get("name","Unknown"),
-            "age": doc.get("age",""),
-            "crime": doc.get("crime",""),
-            "description": doc.get("description",""),
-            "image_urls": doc.get("image_urls", [])
-        })
+    # Use projection to exclude embeddings (large field) to save memory
+    cursor = collection.find({}, {"name": 1, "age": 1, "crime": 1, "description": 1, "image_urls": 1})
+    try:
+        for doc in cursor:
+            faces_list.append({
+                "name": doc.get("name","Unknown"),
+                "age": doc.get("age",""),
+                "crime": doc.get("crime",""),
+                "description": doc.get("description",""),
+                "image_urls": doc.get("image_urls", [])
+            })
+    finally:
+        cursor.close()
     return {"faces": faces_list}
 
 @app.post("/clear_db")
@@ -514,6 +557,11 @@ async def replace_primary_image(name: str, file: UploadFile = File(...)):
         return {"status": "ok", "image_url": image_url}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        # Cleanup file handle and force garbage collection
+        if hasattr(file, 'file'):
+            file.file.close()
+        gc.collect()
 
 @app.get("/")
 async def root():

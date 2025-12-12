@@ -42,25 +42,9 @@ class VerifyMojoAuthOTPRequest(BaseModel):
     state_id: str
     otp: str
 
-# Database connection - require MONGO_URI environment variable
-MONGO_URI = os.getenv('MONGO_URI')
-if not MONGO_URI:
-    raise RuntimeError(
-        "MONGO_URI environment variable is required. "
-        "Copy backend/env.example to backend/.env and set MONGO_URI before starting the server."
-    )
-# Configure MongoDB connection with connection pooling and timeouts for production
-client = MongoClient(
-    MONGO_URI,
-    serverSelectionTimeoutMS=5000,  # 5s to find server
-    connectTimeoutMS=10000,          # 10s to connect
-    socketTimeoutMS=30000,           # 30s socket timeout
-    maxPoolSize=10,                 # Connection pool max size
-    minPoolSize=1,                  # Keep 1 connection alive
-    retryWrites=True,
-    retryReads=True
-)
-db = client["face_recognition_db"]
+# Database connection - use shared client from database.py to avoid multiple connection pools
+# This reduces memory usage by reusing a single connection pool
+from database import client, db
 users_collection = db["users"]
 otps_collection = db["otps"]
 

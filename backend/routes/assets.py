@@ -19,20 +19,9 @@ else:
     load_dotenv()
 
 
-def _get_mongo_client() -> MongoClient:
-    mongo_uri = os.getenv("MONGO_URI")
-    if not mongo_uri:
-        raise RuntimeError("MONGO_URI is not set. Update backend/.env before starting the server.")
-    return MongoClient(mongo_uri)
-
-
-def _get_database():
-    client = _get_mongo_client()
-    database_name = os.getenv("DATABASE_NAME", "face_recognition_db")
-    return client[database_name]
-
-
-db = _get_database()
+# Database connection - use shared client from database.py to avoid multiple connection pools
+# This reduces memory usage by reusing a single connection pool
+from database import client, db
 
 router = APIRouter(prefix="/assets", tags=["assets"])
 cloudinary_service = CloudinaryService()
@@ -51,35 +40,41 @@ async def upload_asset(
         if file.content_type not in allowed_types:
             raise HTTPException(status_code=400, detail="Invalid file type")
         
-        # Upload to Cloudinary
-        cloudinary_result = await cloudinary_service.upload_asset(file.file, type, name)
-        
-        # Parse tags
-        tags_list = json.loads(tags) if tags else []
-        
-        # Create asset document
-        asset_data = {
-            "name": name,
-            "type": type,
-            "category": type,  # Same as type for simplicity
-            "cloudinary_url": cloudinary_result["url"],
-            "cloudinary_public_id": cloudinary_result["public_id"],
-            "tags": tags_list,
-            "description": description,
-            "upload_date": datetime.utcnow(),
-            "is_active": True,
-            "usage_count": 0,
-            "metadata": {
-                "width": cloudinary_result["width"],
-                "height": cloudinary_result["height"],
-                "file_size": cloudinary_result["file_size"],
-                "format": cloudinary_result["format"]
+        try:
+            # Upload to Cloudinary
+            cloudinary_result = await cloudinary_service.upload_asset(file.file, type, name)
+            
+            # Parse tags
+            tags_list = json.loads(tags) if tags else []
+            
+            # Create asset document
+            asset_data = {
+                "name": name,
+                "type": type,
+                "category": type,  # Same as type for simplicity
+                "cloudinary_url": cloudinary_result["url"],
+                "cloudinary_public_id": cloudinary_result["public_id"],
+                "tags": tags_list,
+                "description": description,
+                "upload_date": datetime.utcnow(),
+                "is_active": True,
+                "usage_count": 0,
+                "metadata": {
+                    "width": cloudinary_result["width"],
+                    "height": cloudinary_result["height"],
+                    "file_size": cloudinary_result["file_size"],
+                    "format": cloudinary_result["format"]
+                }
             }
-        }
-        
-        # Save to MongoDB
-        result = db.assets.insert_one(asset_data)
-        return AssetResponse(**{**asset_data, "id": str(result.inserted_id)})
+            
+            # Save to MongoDB
+            result = db.assets.insert_one(asset_data)
+            return AssetResponse(**{**asset_data, "id": str(result.inserted_id)})
+        finally:
+            # Cleanup file handle and force garbage collection
+            if hasattr(file, 'file'):
+                file.file.close()
+            gc.collect()
         
     except Exception as e:
         print(f"❌ Asset upload failed: {e}")
