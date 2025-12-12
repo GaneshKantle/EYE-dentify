@@ -440,8 +440,8 @@ const About = () => {
             <h3 className="text-base xs:text-lg sm:text-xl font-bold text-slate-900 mb-2 xs:mb-3">Need Support?</h3>
             <p className="text-xs xs:text-sm text-slate-600 mb-3 xs:mb-4">24/7 Technical Support Available</p>
             <div className="flex flex-col xs:flex-row items-center justify-center space-y-2 xs:space-y-0 xs:space-x-6">
-              <span className="text-xs xs:text-sm text-slate-700">📧 support@eyedentify.com</span>
-              <span className="text-xs xs:text-sm text-slate-700">📞 +1 (555) 123-4567</span>
+              <span className="text-xs xs:text-sm text-slate-700">📧 eyedentify26@gmail.com</span>
+              <span className="text-xs xs:text-sm text-slate-700">📞 +91 8861435167</span>
             </div>
           </div>
         </div>
