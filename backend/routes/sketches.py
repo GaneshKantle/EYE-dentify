@@ -34,29 +34,35 @@ router = APIRouter(prefix="/sketches", tags=["sketches"])
 
 @router.post("/save")
 async def save_sketch(
-    name: str = Form(...),
-    suspect: str = Form(None),
-    eyewitness: str = Form(None),
-    officer: str = Form(None),
-    date: str = Form(None),
-    reason: str = Form(None),
-    description: str = Form(None),
-    priority: str = Form("normal"),
-    status: str = Form("draft"),
-    sketch_state: str = Form(...),  # JSON string with full sketch state
-    image: UploadFile = File(...)
+    name: Optional[str] = Form(None),
+    suspect: Optional[str] = Form(None),
+    eyewitness: Optional[str] = Form(None),
+    officer: Optional[str] = Form(None),
+    date: Optional[str] = Form(None),
+    reason: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    priority: Optional[str] = Form("normal"),
+    status: Optional[str] = Form("draft"),
+    sketch_state: Optional[str] = Form(None),
+    image: Optional[UploadFile] = File(None)
 ):
     """Save a new sketch to MongoDB and Cloudinary"""
     try:
-        # Validate required fields
-        if not name.strip():
-            raise HTTPException(status_code=400, detail="Name is required")
+        # Validate required fields with better error messages
+        if not name or not name.strip():
+            raise HTTPException(status_code=400, detail="Name is required and cannot be empty")
+        
+        if not sketch_state or not sketch_state.strip():
+            raise HTTPException(status_code=400, detail="Sketch state is required")
+        
+        if not image:
+            raise HTTPException(status_code=400, detail="Image file is required")
         
         # Parse sketch state
         try:
             state_data = json.loads(sketch_state)
-        except json.JSONDecodeError:
-            raise HTTPException(status_code=400, detail="Invalid sketch state format")
+        except json.JSONDecodeError as e:
+            raise HTTPException(status_code=400, detail=f"Invalid sketch state format: {str(e)}")
         
         # Upload image to Cloudinary in Sketch folder
         try:
@@ -244,6 +250,12 @@ async def update_sketch(
         if not sketch:
             raise HTTPException(status_code=404, detail="Sketch not found")
         
+        # Log received data for debugging
+        print(f"📥 Update request for sketch {sketch_id}")
+        print(f"   sketch_state provided: {sketch_state is not None}")
+        print(f"   sketch_state length: {len(sketch_state) if sketch_state else 0}")
+        print(f"   image provided: {image is not None}")
+        
         update_data = {}
         
         # Update metadata fields if provided
@@ -267,12 +279,16 @@ async def update_sketch(
             update_data["status"] = status
         
         # Update sketch state if provided
-        if sketch_state is not None:
+        if sketch_state is not None and sketch_state.strip():
             try:
                 state_data = json.loads(sketch_state)
                 update_data["sketch_state"] = state_data
-            except json.JSONDecodeError:
-                raise HTTPException(status_code=400, detail="Invalid sketch state format")
+                print(f"📝 Updating sketch_state for {sketch_id}: {len(str(state_data))} chars")
+            except json.JSONDecodeError as e:
+                print(f"❌ Failed to parse sketch_state: {str(e)}")
+                raise HTTPException(status_code=400, detail=f"Invalid sketch state format: {str(e)}")
+        else:
+            print(f"⚠️ sketch_state is None or empty for {sketch_id} - NOT updating sketch_state")
         
         # Update image if provided
         if image:
@@ -303,9 +319,21 @@ async def update_sketch(
         
         update_data["updated_at"] = datetime.utcnow()
         
-        # Ensure we have fields to update (sketch_state should always be provided)
+        # CRITICAL: sketch_state must always be updated, even if not provided in request
+        # This ensures the sketch state is always saved
+        if "sketch_state" not in update_data:
+            print(f"⚠️ WARNING: sketch_state not in update_data for {sketch_id}")
+            print(f"   This should not happen - sketch_state should always be provided")
+            # Don't fail, but log the warning
+        else:
+            print(f"✅ sketch_state is in update_data for {sketch_id}")
+        
+        # Ensure we have fields to update
         if not update_data or len(update_data) == 0:
             raise HTTPException(status_code=400, detail="No fields provided for update")
+        
+        # Log what we're updating
+        print(f"📝 Updating {len(update_data)} fields: {list(update_data.keys())}")
         
         # Update in MongoDB
         update_result = db.sketches.update_one(
@@ -328,8 +356,20 @@ async def update_sketch(
         
         # Verify critical fields were updated
         if "sketch_state" in update_data:
-            if updated_sketch.get("sketch_state") != update_data["sketch_state"]:
+            saved_state = updated_sketch.get("sketch_state")
+            expected_state = update_data["sketch_state"]
+            
+            # Compare by converting to JSON strings to handle dict ordering
+            saved_json = json.dumps(saved_state, sort_keys=True) if saved_state else "{}"
+            expected_json = json.dumps(expected_state, sort_keys=True) if expected_state else "{}"
+            
+            if saved_json != expected_json:
+                print(f"❌ Sketch state mismatch for {sketch_id}")
+                print(f"   Expected: {len(expected_json)} chars")
+                print(f"   Saved: {len(saved_json)} chars")
                 raise HTTPException(status_code=500, detail="Failed to update sketch: Sketch state mismatch")
+            else:
+                print(f"✅ Sketch state verified for {sketch_id}")
         
         # Log update for debugging
         print(f"✅ Sketch {sketch_id} updated: {len(update_data)} fields (verified in DB)")

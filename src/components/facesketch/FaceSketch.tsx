@@ -1636,19 +1636,45 @@ const FaceSketch: React.FC = () => {
         }
       };
       
+      // Validate required data before creating FormData
+      if (!saveData.name || !saveData.name.trim()) {
+        throw new Error('Sketch name is required');
+      }
+      
+      if (!imageBlob) {
+        throw new Error('Image is required. Please ensure the canvas has content.');
+      }
+      
       // Create FormData
       const formData = new FormData();
-      formData.append('name', saveData.name);
+      formData.append('name', saveData.name.trim());
       formData.append('suspect', saveData.suspect || '');
       formData.append('eyewitness', saveData.eyewitness || '');
       formData.append('officer', saveData.officer || '');
       formData.append('date', saveData.date || new Date().toISOString());
       formData.append('reason', saveData.reason || '');
       formData.append('description', saveData.description || '');
-      formData.append('priority', saveData.priority);
-      formData.append('status', saveData.status);
-      formData.append('sketch_state', JSON.stringify(sketchState));
-      formData.append('image', imageBlob, `${saveData.name.replace(/\s+/g, '_')}.png`);
+      formData.append('priority', saveData.priority || 'normal');
+      formData.append('status', saveData.status || 'draft');
+      
+      // Ensure sketch_state is valid JSON
+      const sketchStateJson = JSON.stringify(sketchState);
+      if (!sketchStateJson || sketchStateJson === '{}') {
+        throw new Error('Sketch state is empty. Please add some content to the sketch.');
+      }
+      
+      // Log sketch state for debugging
+      console.log('💾 Saving sketch_state:', {
+        featuresCount: sketchState.features?.length || 0,
+        hasCanvasSettings: !!sketchState.canvasSettings,
+        jsonLength: sketchStateJson.length
+      });
+      
+      formData.append('sketch_state', sketchStateJson);
+      
+      // Ensure image has proper filename
+      const filename = `${saveData.name.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '')}.png`;
+      formData.append('image', imageBlob, filename);
       
       // Call API
       if (currentSketchId) {
@@ -1683,22 +1709,31 @@ const FaceSketch: React.FC = () => {
         });
         setLastSavedStateHash(stateHash);
 
-        // Invalidate caches first
+        // Invalidate caches first - CRITICAL: must invalidate detail cache
         invalidateSketchList();
         invalidateSketchDetail(currentSketchId ?? undefined);
+        
+        // Clear localStorage to prevent it from overriding database data
+        clearLocalStorage();
+        
+        // Reset loaded sketch ID so it will reload from database next time
+        if (loadedSketchIdRef.current === currentSketchId) {
+          loadedSketchIdRef.current = null;
+        }
         
         // Force immediate refetch to ensure data is up to date
         // Wait for refetch to complete before showing success
         try {
           await listSketches(true);
-          console.log('✅ Sketch list refetched after update');
+          // Also refetch the detail to update cache
+          await getSketchById(currentSketchId, true);
+          console.log('✅ Sketch list and detail refetched after update');
         } catch (err) {
-          console.error('❌ Failed to refetch sketch list after update:', err);
+          console.error('❌ Failed to refetch after update:', err);
           // Don't fail the save operation if refetch fails, but log it
         }
 
         notifications.success('Sketch updated', 'All changes saved to the database.');
-        clearLocalStorage(); // Clear localStorage after successful save
         setSaveDetails(saveData);
         setCaseInfo((prev) => ({
           ...prev,
@@ -1741,22 +1776,31 @@ const FaceSketch: React.FC = () => {
         });
         setLastSavedStateHash(stateHash);
         
-        // Invalidate caches first
+        // Invalidate caches first - CRITICAL: must invalidate detail cache
         invalidateSketchList();
         invalidateSketchDetail(sketchId);
+        
+        // Clear localStorage to prevent it from overriding database data
+        clearLocalStorage();
+        
+        // Reset loaded sketch ID so it will reload from database next time
+        if (loadedSketchIdRef.current === sketchId) {
+          loadedSketchIdRef.current = null;
+        }
         
         // Force immediate refetch to ensure data is up to date
         // Wait for refetch to complete before showing success
         try {
           await listSketches(true);
-          console.log('✅ Sketch list refetched after save');
+          // Also refetch the detail to update cache
+          await getSketchById(sketchId, true);
+          console.log('✅ Sketch list and detail refetched after save');
         } catch (err) {
-          console.error('❌ Failed to refetch sketch list after save:', err);
+          console.error('❌ Failed to refetch after save:', err);
           // Don't fail the save operation if refetch fails, but log it
         }
         
         notifications.success('Sketch saved', 'Your sketch is now available in recent sketches.');
-        clearLocalStorage(); // Clear localStorage after successful save
         setSaveDetails(saveData);
         setCaseInfo((prev) => ({
           ...prev,
@@ -1778,10 +1822,34 @@ const FaceSketch: React.FC = () => {
       setShowSaveModal(false);
     } catch (error: any) {
       console.error('Error saving sketch:', error);
-      notifications.error(
-        'Save failed',
-        error?.response?.data?.detail || error?.message || 'Unknown error'
-      );
+      
+      // Extract detailed error message from FastAPI validation errors
+      let errorMessage = 'Failed to save sketch';
+      
+      if (error?.response?.status === 422) {
+        // FastAPI validation error - extract details
+        const detail = error.response?.data?.detail;
+        if (Array.isArray(detail)) {
+          // Multiple validation errors
+          const errors = detail.map((err: any) => {
+            const field = err.loc?.join('.') || 'field';
+            return `${field}: ${err.msg}`;
+          }).join(', ');
+          errorMessage = `Validation error: ${errors}`;
+        } else if (typeof detail === 'string') {
+          errorMessage = `Validation error: ${detail}`;
+        } else if (detail?.message) {
+          errorMessage = `Validation error: ${detail.message}`;
+        } else {
+          errorMessage = 'Validation error: Invalid request format. Please check all fields are filled correctly.';
+        }
+      } else if (error?.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      notifications.error('Save failed', errorMessage);
     } finally {
       setIsSaving(false);
     }
@@ -2313,9 +2381,9 @@ const FaceSketch: React.FC = () => {
       return;
     }
 
-    if (loadedSketchIdRef.current === requestedSketchId) {
-      return;
-    }
+    // Always reload from database when sketch ID is requested
+    // Don't skip reload - we need fresh data from database
+    // The cache will be used by getSketchById, but we force refresh with true
 
     let cancelled = false;
 
@@ -2445,6 +2513,9 @@ const FaceSketch: React.FC = () => {
         setCurrentSketchId(sketchId);
         loadedSketchIdRef.current = sketchId;
         hasRestoredFromLocalStorageRef.current = false; // Allow localStorage restore if server fails next time
+        
+        // Clear any localStorage data for this sketch to prevent conflicts with database data
+        clearLocalStorage();
       } catch (error: any) {
         if (cancelled) {
           return;
