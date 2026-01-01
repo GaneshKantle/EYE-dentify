@@ -31,6 +31,7 @@ import {
 import { Asset, AssetUpload as AssetUploadType } from '../../types/asset';
 import { apiClient } from '../../lib/api';
 import { getSketchById, invalidateSketchDetail, invalidateSketchList } from '../../lib/sketchService';
+import { loadAssets, getCachedAssets, invalidateAssetsCache, getCategoryCounts } from '../../lib/assetService';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 
@@ -128,14 +129,90 @@ const FaceSketch: React.FC = () => {
   const requestedSketchId = searchParams.get('id');
   const isNewSketchRequested = searchParams.get('mode') === 'new';
 
+  // Helper function to build categories from assets data
+  const buildCategoriesFromAssets = useCallback((assets: any[]): Record<string, {
+    name: string;
+    icon: LucideIcon;
+    color: string;
+    assets: FeatureAsset[];
+  }> => {
+    const categories: Record<string, {
+      name: string;
+      icon: LucideIcon;
+      color: string;
+      assets: FeatureAsset[];
+    }> = {};
+
+    // Use current assetCategories state to get latest names (including renames)
+    const categoryConfig = assetCategories;
+
+    // Initialize all categories with empty assets
+    Object.entries(categoryConfig).forEach(([categoryKey, config]) => {
+      categories[categoryKey] = {
+        name: config.name,
+        icon: config.icon,
+        color: config.color,
+        assets: []
+      };
+    });
+
+    // Add assets to their respective categories
+    assets.forEach((asset: any) => {
+      if (categories[asset.type]) {
+        const featureAsset: FeatureAsset = {
+          id: asset.id,
+          name: asset.name,
+          path: asset.cloudinary_url,
+          category: asset.type,
+          tags: asset.tags || [],
+          description: asset.description
+        };
+        categories[asset.type].assets.push(featureAsset);
+      }
+    });
+
+    return categories;
+  }, [assetCategories]);
+
+  // Initialize from cache immediately for instant loading
+  const cachedAssets = getCachedAssets();
+  // Build initial categories helper (before state is available)
+  const buildInitialCategories = (assets: any[], config: Record<string, { name: string; icon: LucideIcon; color: string }>) => {
+    const categories: Record<string, { name: string; icon: LucideIcon; color: string; assets: FeatureAsset[] }> = {};
+    Object.entries(config).forEach(([categoryKey, categoryConfig]) => {
+      categories[categoryKey] = {
+        name: categoryConfig.name,
+        icon: categoryConfig.icon,
+        color: categoryConfig.color,
+        assets: []
+      };
+    });
+    assets.forEach((asset: any) => {
+      if (categories[asset.type]) {
+        categories[asset.type].assets.push({
+          id: asset.id,
+          name: asset.name,
+          path: asset.cloudinary_url,
+          category: asset.type,
+          tags: asset.tags || [],
+          description: asset.description
+        });
+      }
+    });
+    return categories;
+  };
+  const initialCategories = cachedAssets 
+    ? buildInitialCategories(cachedAssets.data, assetCategoriesConfigRef.current)
+    : {};
+
   // Dynamic asset loading system
   const [featureCategories, setFeatureCategories] = useState<Record<string, {
     name: string;
     icon: LucideIcon;
     color: string;
     assets: FeatureAsset[];
-  }>>({});
-  const [assetsLoading, setAssetsLoading] = useState(true);
+  }>>(initialCategories);
+  const [assetsLoading, setAssetsLoading] = useState(!cachedAssets); // Only loading if no cache
   const [assetsError, setAssetsError] = useState<string | null>(null);
 
   // Asset management state
@@ -319,8 +396,8 @@ const FaceSketch: React.FC = () => {
     }
   }, [getLocalStorageKey]);
 
-  // Asset category configuration - now state for dynamic updates
-  const [assetCategories, setAssetCategories] = useState<Record<string, {
+  // Asset category configuration - stable constant (moved to ref for stability)
+  const assetCategoriesConfigRef = useRef<Record<string, {
     name: string;
     icon: LucideIcon;
     color: string;
@@ -377,55 +454,35 @@ const FaceSketch: React.FC = () => {
     }
   });
 
-  // Reload assets function for real-time updates
-  const reloadAssets = useCallback(async () => {
+  // Keep state for dynamic updates (renaming categories)
+  const [assetCategories, setAssetCategories] = useState(assetCategoriesConfigRef.current);
+
+  // Reload assets function for real-time updates - optimized with cache
+  const reloadAssets = useCallback(async (force = false) => {
     try {
-      setAssetsLoading(true);
-      setAssetsError(null);
-      
-      const categories: Record<string, {
-        name: string;
-        icon: LucideIcon;
-        color: string;
-        assets: FeatureAsset[];
-      }> = {};
-
-      // Initialize empty categories; assets are sourced from user uploads
-      Object.entries(assetCategories).forEach(([categoryKey, categoryConfig]) => {
-        categories[categoryKey] = {
-          name: categoryConfig.name,
-          icon: categoryConfig.icon,
-          color: categoryConfig.color,
-          assets: []
-        };
-      });
-
-      // Load uploaded assets from API
-      try {
-        const uploadedAssetsData = await apiClient.directGet<any[]>('/assets');
-        
-        // Update uploadedAssets state
-        setUploadedAssets(uploadedAssetsData);
-        
-        // Add uploaded assets to their respective categories
-        uploadedAssetsData.forEach((asset: any) => {
-          if (categories[asset.type]) {
-            const featureAsset: FeatureAsset = {
-              id: asset.id,
-              name: asset.name,
-              path: asset.cloudinary_url,
-              category: asset.type,
-              tags: asset.tags || [],
-              description: asset.description
-            };
-            categories[asset.type].assets.push(featureAsset);
-          }
-        });
-      } catch (apiError) {
-        console.warn('Failed to load uploaded assets:', apiError);
-        setUploadedAssets([]);
+      // Check cache first - instant return if valid
+      const cache = getCachedAssets();
+      if (!force && cache) {
+        const categories = buildCategoriesFromAssets(cache.data);
+        setFeatureCategories(categories);
+        setUploadedAssets(cache.data);
+        setAssetsLoading(false);
+        setAssetsError(null);
+        return;
       }
 
+      // Only show loading if we don't have cache
+      if (!cache) {
+        setAssetsLoading(true);
+      }
+      setAssetsError(null);
+
+      // Load assets from API (uses cache internally)
+      const uploadedAssetsData = await loadAssets(force);
+      
+      // Update state with fresh data
+      setUploadedAssets(uploadedAssetsData);
+      const categories = buildCategoriesFromAssets(uploadedAssetsData);
       setFeatureCategories(categories);
       setAssetsLoading(false);
     } catch (error) {
@@ -433,11 +490,21 @@ const FaceSketch: React.FC = () => {
       setAssetsError('Failed to load assets. Please refresh the page.');
       setAssetsLoading(false);
     }
-  }, [assetCategories]);
+  }, [buildCategoriesFromAssets]);
 
   // Category management functions
   const handleRenameCategory = useCallback((categoryKey: string, newName: string) => {
     if (!newName.trim()) return;
+    
+    const trimmedName = newName.trim();
+    
+    // Update ref to persist rename
+    if (assetCategoriesConfigRef.current[categoryKey]) {
+      assetCategoriesConfigRef.current[categoryKey] = {
+        ...assetCategoriesConfigRef.current[categoryKey],
+        name: trimmedName
+      };
+    }
     
     setAssetCategories(prev => {
       if (!prev[categoryKey]) return prev;
@@ -445,7 +512,7 @@ const FaceSketch: React.FC = () => {
         ...prev,
         [categoryKey]: {
           ...prev[categoryKey],
-          name: newName.trim()
+          name: trimmedName
         }
       };
     });
@@ -457,7 +524,7 @@ const FaceSketch: React.FC = () => {
         ...prev,
         [categoryKey]: {
           ...prev[categoryKey],
-          name: newName.trim()
+          name: trimmedName
         }
       };
     });
@@ -483,10 +550,20 @@ const FaceSketch: React.FC = () => {
     });
   }, [selectedCategory]);
 
-  // Load assets dynamically
+  // Load assets dynamically - only if cache is missing/expired
   useEffect(() => {
-    reloadAssets();
-  }, [reloadAssets]);
+    const cache = getCachedAssets();
+    if (!cache) {
+      // Only fetch if no cache exists
+      reloadAssets(false);
+    } else {
+      // Cache exists, ensure state is synced
+      const categories = buildCategoriesFromAssets(cache.data);
+      setFeatureCategories(categories);
+      setUploadedAssets(cache.data);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - only run on mount
 
 
   // Filter uploaded assets based on search term
@@ -540,8 +617,9 @@ const FaceSketch: React.FC = () => {
 
       await apiClient.directUploadFile<any>('/assets/upload', formData);
       setShowAssetUpload(false);
-      // Reload assets to show new upload in real-time
-      await reloadAssets();
+      // Invalidate cache and reload assets to show new upload in real-time
+      invalidateAssetsCache();
+      await reloadAssets(true);
       notifications.success('Asset uploaded', 'Your asset is now available.');
     } catch (error) {
       console.error('Upload error:', error);
@@ -553,8 +631,9 @@ const FaceSketch: React.FC = () => {
   const handleAssetDelete = async (assetId: string) => {
     try {
       await apiClient.directDelete(`/assets/${assetId}`);
-      // Reload assets to update both featureCategories and uploadedAssets in real-time
-      await reloadAssets();
+      // Invalidate cache and reload assets to update both featureCategories and uploadedAssets in real-time
+      invalidateAssetsCache();
+      await reloadAssets(true);
       notifications.success('Asset deleted', 'Asset has been removed.');
     } catch (error) {
       console.error('Delete error:', error);
@@ -607,8 +686,9 @@ const FaceSketch: React.FC = () => {
   const handleAssetEdit = async (assetId: string, newName: string) => {
     try {
       await apiClient.directPut(`/assets/${assetId}/name`, { name: newName });
-      // Reload assets to update both featureCategories and uploadedAssets in real-time
-      await reloadAssets();
+      // Invalidate cache and reload assets to update both featureCategories and uploadedAssets in real-time
+      invalidateAssetsCache();
+      await reloadAssets(true);
       notifications.success('Asset updated', 'Asset name has been changed.');
     } catch (error) {
       console.error('Edit error:', error);

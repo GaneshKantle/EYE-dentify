@@ -287,18 +287,37 @@ class CORSLoggingMiddleware(BaseHTTPMiddleware):
         # Let CORSMiddleware handle OPTIONS requests - just pass through
         response = await call_next(request)
         
-        # Add CORS headers for localhost origins in development (as backup)
-        # CORSMiddleware should handle this, but this ensures it works
+        # Add CORS headers as backup if not already set by CORSMiddleware
+        # This ensures CORS works even if there's a configuration issue
         environment = os.getenv('ENVIRONMENT', 'development')
-        if environment == 'development' and origin and origin != "No origin":
-            if origin.startswith('http://localhost:') or origin.startswith('http://127.0.0.1:'):
-                # Only add if not already set by CORSMiddleware
-                if "Access-Control-Allow-Origin" not in response.headers:
-                    response.headers["Access-Control-Allow-Origin"] = origin
-                    response.headers["Access-Control-Allow-Credentials"] = "true"
-                    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD"
-                    response.headers["Access-Control-Allow-Headers"] = "*"
-                    response.headers["Access-Control-Expose-Headers"] = "*"
+        if origin and origin != "No origin":
+            # Check if CORS headers are missing (shouldn't happen, but safety net)
+            if "Access-Control-Allow-Origin" not in response.headers:
+                # For development: allow localhost origins
+                if environment == 'development':
+                    if origin.startswith('http://localhost:') or origin.startswith('http://127.0.0.1:'):
+                        response.headers["Access-Control-Allow-Origin"] = origin
+                        response.headers["Access-Control-Allow-Credentials"] = "true"
+                        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD"
+                        response.headers["Access-Control-Allow-Headers"] = "*"
+                        response.headers["Access-Control-Expose-Headers"] = "*"
+                # For production: check if origin is in allowed list
+                else:
+                    # Get allowed origins from environment or use defaults
+                    allowed_origins_env = os.getenv('ALLOWED_ORIGINS', '')
+                    if allowed_origins_env:
+                        allowed_origins_list = [o.strip() for o in allowed_origins_env.split(',') if o.strip()]
+                    else:
+                        # Default production origins
+                        allowed_origins_list = ['https://eye-dentify.vercel.app']
+                    
+                    # If origin matches allowed origins, add CORS headers
+                    if origin in allowed_origins_list:
+                        response.headers["Access-Control-Allow-Origin"] = origin
+                        response.headers["Access-Control-Allow-Credentials"] = "true"
+                        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD"
+                        response.headers["Access-Control-Allow-Headers"] = "*"
+                        response.headers["Access-Control-Expose-Headers"] = "*"
         
         return response
 

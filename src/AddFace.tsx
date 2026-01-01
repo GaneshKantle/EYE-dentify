@@ -4,8 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { UserPlus, Upload, Shield, CheckCircle, Database } from "lucide-react";
 import Toast from "./Toast";
-import axios from "axios";
-import { config } from "./lib/api";
+import { apiClient } from "./lib/api";
 
 interface ToastState {
   message: string;
@@ -37,18 +36,17 @@ const AddFace: React.FC = () => {
     formData.append("description", description);
 
     try {
-      const token = localStorage.getItem('token');
-      const headers: Record<string, string> = {};
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-      
-      const response = await axios.post<{status: string, message: string}>(
-        `${config.apiUrl}/add_face`,
+      const response = await apiClient.directPost<{status: string, message: string, image_url?: string}>(
+        '/add_face',
         formData,
-        { headers }
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
       );
       
+      // Success - show toast and reset form
       setToast({ message: `Successfully added ${name}`, type: "success" });
       // Reset form
       setName("");
@@ -59,9 +57,12 @@ const AddFace: React.FC = () => {
       const fileInput = document.getElementById('file-input') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
     } catch (err: any) {
-      let errorMessage = "Network error";
+      let errorMessage = "Failed to upload. Please try again.";
       
-      if (err?.response?.data?.detail) {
+      // Handle CORS errors specifically
+      if (err?.message?.includes('CORS') || err?.code === 'ERR_NETWORK' || err?.response?.status === 0) {
+        errorMessage = "CORS error: Unable to connect to server. Please check your connection and try again.";
+      } else if (err?.response?.data?.detail) {
         const detail = err.response.data.detail;
         if (Array.isArray(detail)) {
           errorMessage = detail.map((e: any) => e.msg || e.message || String(e)).join(", ");
