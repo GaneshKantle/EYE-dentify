@@ -168,8 +168,8 @@ const More = () => {
             />
             <TechCard 
               iconUrl="https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/ieee.svg"
-              name="IEEE"
-              category="Research Database"
+              name="IJIRCST"
+              category="Research Paper"
               gradient="from-red-500 via-orange-500 to-amber-500"
               bgGradient="from-red-50 to-orange-50"
               iconColor="#00629B"

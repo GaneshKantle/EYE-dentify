@@ -86,9 +86,22 @@ async def save_sketch(
                 "updated_at": datetime.utcnow()
             }
             
-            # Save to MongoDB
+            # Save to MongoDB with write concern verification
             result = db.sketches.insert_one(sketch_doc)
+            
+            # Verify the insert was successful
+            if not result.inserted_id:
+                raise HTTPException(status_code=500, detail="Failed to save sketch: No ID returned from database")
+            
             sketch_id = str(result.inserted_id)
+            
+            # Verify the document was actually saved by reading it back
+            saved_sketch = db.sketches.find_one({"_id": result.inserted_id})
+            if not saved_sketch:
+                raise HTTPException(status_code=500, detail="Failed to save sketch: Document not found after insert")
+            
+            # Log save for debugging
+            print(f"✅ Sketch saved: {sketch_id} - {name} (verified in DB)")
             
             return {
                 "status": "ok",
@@ -105,6 +118,9 @@ async def save_sketch(
     except HTTPException:
         raise
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"❌ Error saving sketch: {str(e)}\n{error_details}")
         raise HTTPException(status_code=500, detail=f"Failed to save sketch: {str(e)}")
 
 @router.get("/")
@@ -122,10 +138,20 @@ async def get_sketches(
         if officer:
             query["officer"] = {"$regex": officer, "$options": "i"}
         
-        sketches = list(db.sketches.find(query).sort("created_at", -1).skip(skip).limit(limit))
+        # Sort by created_at descending, handling None values
+        # Use a compound sort to handle missing created_at fields
+        sketches_cursor = db.sketches.find(query).sort([
+            ("created_at", -1),
+            ("_id", -1)  # Secondary sort by _id for consistent ordering
+        ]).skip(skip).limit(limit)
+        
+        sketches = list(sketches_cursor)
         
         result = []
         for sketch in sketches:
+            created_at = sketch.get("created_at")
+            updated_at = sketch.get("updated_at")
+            
             result.append({
                 "_id": str(sketch["_id"]),
                 "name": sketch.get("name", "Untitled"),
@@ -139,18 +165,24 @@ async def get_sketches(
                 "status": sketch.get("status", "draft"),
                 "image_url": sketch.get("image_url") or sketch.get("cloudinary_url"),
                 "cloudinary_url": sketch.get("image_url") or sketch.get("cloudinary_url"),
-                "created_at": sketch.get("created_at").isoformat() if sketch.get("created_at") else None,
-                "updated_at": sketch.get("updated_at").isoformat() if sketch.get("updated_at") else None
+                "created_at": created_at.isoformat() if created_at else None,
+                "updated_at": updated_at.isoformat() if updated_at else None
             })
+        
+        # Get total count for accurate pagination
+        total_count = db.sketches.count_documents(query)
         
         return {
             "sketches": result,
-            "total": len(result),
+            "total": total_count,
             "skip": skip,
             "limit": limit
         }
         
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"❌ Error fetching sketches: {str(e)}\n{error_details}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch sketches: {str(e)}")
 
 @router.get("/{sketch_id}")
@@ -271,11 +303,36 @@ async def update_sketch(
         
         update_data["updated_at"] = datetime.utcnow()
         
+        # Ensure we have fields to update (sketch_state should always be provided)
+        if not update_data or len(update_data) == 0:
+            raise HTTPException(status_code=400, detail="No fields provided for update")
+        
         # Update in MongoDB
-        db.sketches.update_one(
+        update_result = db.sketches.update_one(
             {"_id": ObjectId(sketch_id)},
             {"$set": update_data}
         )
+        
+        # Verify the update was successful
+        if update_result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Sketch not found")
+        
+        if update_result.modified_count == 0 and len(update_data) > 1:
+            # This might indicate the data is the same, but we should still verify
+            print(f"⚠️ Sketch {sketch_id} update: no fields modified (data may be identical)")
+        
+        # Verify the document was actually updated by reading it back
+        updated_sketch = db.sketches.find_one({"_id": ObjectId(sketch_id)})
+        if not updated_sketch:
+            raise HTTPException(status_code=500, detail="Failed to update sketch: Document not found after update")
+        
+        # Verify critical fields were updated
+        if "sketch_state" in update_data:
+            if updated_sketch.get("sketch_state") != update_data["sketch_state"]:
+                raise HTTPException(status_code=500, detail="Failed to update sketch: Sketch state mismatch")
+        
+        # Log update for debugging
+        print(f"✅ Sketch {sketch_id} updated: {len(update_data)} fields (verified in DB)")
         
         return {
             "status": "ok",
@@ -286,6 +343,9 @@ async def update_sketch(
     except HTTPException:
         raise
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"❌ Error updating sketch: {str(e)}\n{error_details}")
         raise HTTPException(status_code=500, detail=f"Failed to update sketch: {str(e)}")
 
 @router.delete("/{sketch_id}")

@@ -30,7 +30,7 @@ import {
 } from '../../types/facesketch';
 import { Asset, AssetUpload as AssetUploadType } from '../../types/asset';
 import { apiClient } from '../../lib/api';
-import { getSketchById, invalidateSketchDetail, invalidateSketchList } from '../../lib/sketchService';
+import { getSketchById, invalidateSketchDetail, invalidateSketchList, listSketches } from '../../lib/sketchService';
 import { loadAssets, getCachedAssets, invalidateAssetsCache, getCategoryCounts } from '../../lib/assetService';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
@@ -1653,11 +1653,16 @@ const FaceSketch: React.FC = () => {
       // Call API
       if (currentSketchId) {
         // Update existing sketch - use PUT with FormData
-        await apiClient.directUploadFile<{ status: string; message: string; sketch_id: string }>(
+        const updateResult = await apiClient.directUploadFile<{ status: string; message: string; sketch_id: string }>(
           `/sketches/${currentSketchId}`,
           formData,
           'PUT'
         );
+        
+        // Verify response
+        if (!updateResult || updateResult.status !== 'ok') {
+          throw new Error(updateResult?.message || 'Failed to update sketch');
+        }
         
         // Update state hash for auto-save tracking
         const stateHash = JSON.stringify({
@@ -1678,8 +1683,19 @@ const FaceSketch: React.FC = () => {
         });
         setLastSavedStateHash(stateHash);
 
+        // Invalidate caches first
         invalidateSketchList();
         invalidateSketchDetail(currentSketchId ?? undefined);
+        
+        // Force immediate refetch to ensure data is up to date
+        // Wait for refetch to complete before showing success
+        try {
+          await listSketches(true);
+          console.log('✅ Sketch list refetched after update');
+        } catch (err) {
+          console.error('❌ Failed to refetch sketch list after update:', err);
+          // Don't fail the save operation if refetch fails, but log it
+        }
 
         notifications.success('Sketch updated', 'All changes saved to the database.');
         clearLocalStorage(); // Clear localStorage after successful save
@@ -1697,6 +1713,12 @@ const FaceSketch: React.FC = () => {
       } else {
         // Create new sketch
         const result = await apiClient.directUploadFile<{ status: string; message: string; sketch_id: string }>('/sketches/save', formData);
+        
+        // Verify response
+        if (!result || result.status !== 'ok' || !result.sketch_id) {
+          throw new Error(result?.message || 'Failed to save sketch: Invalid response');
+        }
+        
         const sketchId = result.sketch_id;
         setCurrentSketchId(sketchId);
         
@@ -1719,6 +1741,20 @@ const FaceSketch: React.FC = () => {
         });
         setLastSavedStateHash(stateHash);
         
+        // Invalidate caches first
+        invalidateSketchList();
+        invalidateSketchDetail(sketchId);
+        
+        // Force immediate refetch to ensure data is up to date
+        // Wait for refetch to complete before showing success
+        try {
+          await listSketches(true);
+          console.log('✅ Sketch list refetched after save');
+        } catch (err) {
+          console.error('❌ Failed to refetch sketch list after save:', err);
+          // Don't fail the save operation if refetch fails, but log it
+        }
+        
         notifications.success('Sketch saved', 'Your sketch is now available in recent sketches.');
         clearLocalStorage(); // Clear localStorage after successful save
         setSaveDetails(saveData);
@@ -1737,9 +1773,6 @@ const FaceSketch: React.FC = () => {
         const url = new URL(window.location.href);
         url.searchParams.set('id', sketchId);
         window.history.pushState({}, '', url.toString());
-
-        invalidateSketchList();
-        invalidateSketchDetail(sketchId);
       }
       
       setShowSaveModal(false);
