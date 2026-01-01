@@ -129,6 +129,67 @@ const FaceSketch: React.FC = () => {
   const requestedSketchId = searchParams.get('id');
   const isNewSketchRequested = searchParams.get('mode') === 'new';
 
+  // Asset category configuration - stable constant (moved to ref for stability)
+  const assetCategoriesConfigRef = useRef<Record<string, {
+    name: string;
+    icon: LucideIcon;
+    color: string;
+  }>>({
+    'face-shapes': {
+      name: 'Face Shapes',
+      icon: User,
+      color: 'bg-blue-100 text-blue-700'
+    },
+    'eyes': {
+      name: 'Eyes',
+      icon: Eye,
+      color: 'bg-green-100 text-green-700'
+    },
+    'eyebrows': {
+      name: 'Eyebrows',
+      icon: Minus,
+      color: 'bg-purple-100 text-purple-700'
+    },
+    'nose': {
+      name: 'Nose',
+      icon: Triangle,
+      color: 'bg-orange-100 text-orange-700'
+    },
+    'lips': {
+      name: 'Lips',
+      icon: Smile,
+      color: 'bg-pink-100 text-pink-700'
+    },
+    'hair': {
+      name: 'Hair',
+      icon: Waves,
+      color: 'bg-yellow-100 text-yellow-700'
+    },
+    'facial-hair': {
+      name: 'Facial Hair',
+      icon: Zap,
+      color: 'bg-gray-100 text-gray-700'
+    },
+    'ears': {
+      name: 'Ears',
+      icon: Headphones,
+      color: 'bg-teal-100 text-teal-700'
+    },
+    'neck': {
+      name: 'Neck',
+      icon: Circle,
+      color: 'bg-cyan-100 text-cyan-700'
+    },
+    'accessories': {
+      name: 'More',
+      icon: Settings,
+      color: 'bg-indigo-100 text-indigo-700'
+    }
+  });
+
+  // Keep state for dynamic updates (renaming categories)
+  const [assetCategories, setAssetCategories] = useState(assetCategoriesConfigRef.current);
+
   // Helper function to build categories from assets data
   const buildCategoriesFromAssets = useCallback((assets: any[]): Record<string, {
     name: string;
@@ -395,67 +456,6 @@ const FaceSketch: React.FC = () => {
       console.error('Failed to clear localStorage:', error);
     }
   }, [getLocalStorageKey]);
-
-  // Asset category configuration - stable constant (moved to ref for stability)
-  const assetCategoriesConfigRef = useRef<Record<string, {
-    name: string;
-    icon: LucideIcon;
-    color: string;
-  }>>({
-    'face-shapes': {
-      name: 'Face Shapes',
-      icon: User,
-      color: 'bg-blue-100 text-blue-700'
-    },
-    'eyes': {
-      name: 'Eyes',
-      icon: Eye,
-      color: 'bg-green-100 text-green-700'
-    },
-    'eyebrows': {
-      name: 'Eyebrows',
-      icon: Minus,
-      color: 'bg-purple-100 text-purple-700'
-    },
-    'nose': {
-      name: 'Nose',
-      icon: Triangle,
-      color: 'bg-orange-100 text-orange-700'
-    },
-    'lips': {
-      name: 'Lips',
-      icon: Smile,
-      color: 'bg-pink-100 text-pink-700'
-    },
-    'hair': {
-      name: 'Hair',
-      icon: Waves,
-      color: 'bg-yellow-100 text-yellow-700'
-    },
-    'facial-hair': {
-      name: 'Facial Hair',
-      icon: Zap,
-      color: 'bg-gray-100 text-gray-700'
-    },
-    'ears': {
-      name: 'Ears',
-      icon: Headphones,
-      color: 'bg-teal-100 text-teal-700'
-    },
-    'neck': {
-      name: 'Neck',
-      icon: Circle,
-      color: 'bg-cyan-100 text-cyan-700'
-    },
-    'accessories': {
-      name: 'More',
-      icon: Settings,
-      color: 'bg-indigo-100 text-indigo-700'
-    }
-  });
-
-  // Keep state for dynamic updates (renaming categories)
-  const [assetCategories, setAssetCategories] = useState(assetCategoriesConfigRef.current);
 
   // Reload assets function for real-time updates - optimized with cache
   const reloadAssets = useCallback(async (force = false) => {
