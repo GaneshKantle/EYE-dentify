@@ -140,7 +140,7 @@ class APIClient {
     }
 
     // Remove Content-Type to let axios set it automatically with boundary for FormData
-    const headers = { ...config?.headers };
+    const headers: Record<string, any> = { ...config?.headers };
     delete headers['Content-Type'];
 
     return this.request<T>({
@@ -265,7 +265,7 @@ class APIClient {
       const client = this.getDirectClient();
       // If data is FormData, remove Content-Type to let axios set it automatically with boundary
       // Otherwise, keep the default application/json
-      const headers = { ...requestConfig?.headers };
+      const headers: Record<string, any> = { ...requestConfig?.headers };
       if (data instanceof FormData) {
         delete headers['Content-Type'];
       }
@@ -293,7 +293,7 @@ class APIClient {
     const client = this.getDirectClient();
     // If data is FormData, remove Content-Type to let axios set it automatically with boundary
     // Otherwise, keep the default application/json
-    const headers = { ...config?.headers };
+    const headers: Record<string, any> = { ...config?.headers };
     if (data instanceof FormData) {
       delete headers['Content-Type'];
     }
@@ -311,7 +311,7 @@ class APIClient {
     const client = this.getDirectClient();
     // If data is FormData, remove Content-Type to let axios set it automatically with boundary
     // Otherwise, keep the default application/json
-    const headers = { ...config?.headers };
+    const headers: Record<string, any> = { ...config?.headers };
     if (data instanceof FormData) {
       delete headers['Content-Type'];
     }
@@ -339,7 +339,7 @@ class APIClient {
   ): Promise<T> {
     const client = this.getDirectClient();
     // Create headers without Content-Type to let axios set it automatically for FormData
-    const headers = { ...config?.headers };
+    const headers: Record<string, any> = { ...config?.headers };
     delete headers['Content-Type'];
     
     const requestConfig = {
