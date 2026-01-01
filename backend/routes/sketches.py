@@ -129,7 +129,7 @@ async def save_sketch(
         print(f"❌ Error saving sketch: {str(e)}\n{error_details}")
         raise HTTPException(status_code=500, detail=f"Failed to save sketch: {str(e)}")
 
-@router.get("/")
+@router.get("")
 async def get_sketches(
     skip: int = 0,
     limit: int = 100,

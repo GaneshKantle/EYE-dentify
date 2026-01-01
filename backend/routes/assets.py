@@ -82,7 +82,7 @@ async def upload_asset(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/", response_model=List[AssetResponse])
+@router.get("", response_model=List[AssetResponse])
 async def get_assets(type: Optional[str] = None):
     try:
         query = {"is_active": True}

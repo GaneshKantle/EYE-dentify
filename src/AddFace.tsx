@@ -36,14 +36,10 @@ const AddFace: React.FC = () => {
     formData.append("description", description);
 
     try {
+      // Don't set Content-Type manually - let axios set it automatically with boundary for FormData
       const response = await apiClient.directPost<{status: string, message: string, image_url?: string}>(
         '/add_face',
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        }
+        formData
       );
       
       // Success - show toast and reset form

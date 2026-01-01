@@ -139,14 +139,16 @@ class APIClient {
       });
     }
 
+    // Remove Content-Type to let axios set it automatically with boundary for FormData
+    const headers = { ...config?.headers };
+    delete headers['Content-Type'];
+
     return this.request<T>({
       ...config,
       method: 'POST',
       url,
       data: formData,
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+      headers,
     });
   }
 
@@ -261,7 +263,19 @@ class APIClient {
   async directPost<T = any>(url: string, data?: any, requestConfig?: AxiosRequestConfig): Promise<T> {
     try {
       const client = this.getDirectClient();
-      const response = await client.post<T>(url, data, requestConfig);
+      // If data is FormData, remove Content-Type to let axios set it automatically with boundary
+      // Otherwise, keep the default application/json
+      const headers = { ...requestConfig?.headers };
+      if (data instanceof FormData) {
+        delete headers['Content-Type'];
+      }
+      
+      const config = {
+        ...requestConfig,
+        headers,
+      };
+      
+      const response = await client.post<T>(url, data, config);
       return response.data;
     } catch (error: any) {
       // Better error handling for network/CORS errors
@@ -277,13 +291,37 @@ class APIClient {
 
   async directPut<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     const client = this.getDirectClient();
-    const response = await client.put<T>(url, data, config);
+    // If data is FormData, remove Content-Type to let axios set it automatically with boundary
+    // Otherwise, keep the default application/json
+    const headers = { ...config?.headers };
+    if (data instanceof FormData) {
+      delete headers['Content-Type'];
+    }
+    
+    const requestConfig = {
+      ...config,
+      headers,
+    };
+    
+    const response = await client.put<T>(url, data, requestConfig);
     return response.data;
   }
 
   async directPatch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     const client = this.getDirectClient();
-    const response = await client.patch<T>(url, data, config);
+    // If data is FormData, remove Content-Type to let axios set it automatically with boundary
+    // Otherwise, keep the default application/json
+    const headers = { ...config?.headers };
+    if (data instanceof FormData) {
+      delete headers['Content-Type'];
+    }
+    
+    const requestConfig = {
+      ...config,
+      headers,
+    };
+    
+    const response = await client.patch<T>(url, data, requestConfig);
     return response.data;
   }
 
@@ -300,12 +338,14 @@ class APIClient {
     config?: AxiosRequestConfig
   ): Promise<T> {
     const client = this.getDirectClient();
+    // Create headers without Content-Type to let axios set it automatically for FormData
+    const headers = { ...config?.headers };
+    delete headers['Content-Type'];
+    
     const requestConfig = {
       ...config,
       method,
-      headers: {
-        ...config?.headers,
-      },
+      headers,
     };
     
     const response = method === 'PUT' 
