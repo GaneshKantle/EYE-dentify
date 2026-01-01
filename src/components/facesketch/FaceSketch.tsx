@@ -1670,6 +1670,16 @@ const FaceSketch: React.FC = () => {
         jsonLength: sketchStateJson.length
       });
       
+      // Verify FormData contents before sending
+      console.log('📦 FormData contents:', {
+        hasName: formData.has('name'),
+        hasSketchState: formData.has('sketch_state'),
+        hasImage: formData.has('image'),
+        nameValue: saveData.name.trim(),
+        sketchStateLength: sketchStateJson.length,
+        imageSize: imageBlob?.size || 0
+      });
+      
       formData.append('sketch_state', sketchStateJson);
       
       // Ensure image has proper filename
@@ -1678,12 +1688,15 @@ const FaceSketch: React.FC = () => {
       
       // Call API
       if (currentSketchId) {
+        console.log('🔄 Updating existing sketch:', currentSketchId);
         // Update existing sketch - use PUT with FormData
         const updateResult = await apiClient.directUploadFile<{ status: string; message: string; sketch_id: string }>(
           `/sketches/${currentSketchId}`,
           formData,
           'PUT'
         );
+        
+        console.log('📥 Update response:', updateResult);
         
         // Verify response
         if (!updateResult || updateResult.status !== 'ok') {
@@ -1726,8 +1739,51 @@ const FaceSketch: React.FC = () => {
         try {
           await listSketches(true);
           // Also refetch the detail to update cache
-          await getSketchById(currentSketchId, true);
+          const updatedSketch = await getSketchById(currentSketchId, true);
           console.log('✅ Sketch list and detail refetched after update');
+          console.log('📊 Updated sketch state:', {
+            featuresCount: updatedSketch.sketch_state?.features?.length || 0,
+            hasCanvasSettings: !!updatedSketch.sketch_state?.canvasSettings,
+          });
+          
+          // Reload sketch state from database to ensure UI shows latest saved data
+          if (updatedSketch.sketch_state) {
+            const state = updatedSketch.sketch_state;
+            const restoredFeatures: PlacedFeature[] = state?.features && Array.isArray(state.features)
+              ? state.features.map((f: any) => ({
+                  id: f.id,
+                  asset: {
+                    id: f.asset.id,
+                    name: f.asset.name,
+                    path: f.asset.path,
+                    category: f.asset.category,
+                    tags: f.asset.tags || [],
+                    description: f.asset.description
+                  },
+                  x: f.x || 0,
+                  y: f.y || 0,
+                  width: f.width || 100,
+                  height: f.height || 100,
+                  rotation: f.rotation || 0,
+                  opacity: f.opacity ?? 1,
+                  zIndex: f.zIndex ?? 0,
+                  selected: false,
+                  locked: f.locked || false,
+                  visible: f.visible !== undefined ? f.visible : true,
+                  flipH: f.flipH || false,
+                  flipV: f.flipV || false,
+                  brightness: f.brightness ?? 100,
+                  contrast: f.contrast ?? 100,
+                  scale: f.scale ?? 1
+                }))
+              : [];
+            
+            setFeatures(restoredFeatures);
+            if (state?.zoom !== undefined) setZoom(state.zoom);
+            if (state?.panOffset) setPanOffset(state.panOffset);
+            if (state?.canvasSettings) setCanvasSettings({ ...createInitialCanvasSettings(), ...state.canvasSettings });
+            console.log('✅ Sketch state reloaded from database after save');
+          }
         } catch (err) {
           console.error('❌ Failed to refetch after update:', err);
           // Don't fail the save operation if refetch fails, but log it
@@ -1747,7 +1803,10 @@ const FaceSketch: React.FC = () => {
         }));
       } else {
         // Create new sketch
+        console.log('🆕 Creating new sketch');
         const result = await apiClient.directUploadFile<{ status: string; message: string; sketch_id: string }>('/sketches/save', formData);
+        
+        console.log('📥 Save response:', result);
         
         // Verify response
         if (!result || result.status !== 'ok' || !result.sketch_id) {
@@ -1793,8 +1852,51 @@ const FaceSketch: React.FC = () => {
         try {
           await listSketches(true);
           // Also refetch the detail to update cache
-          await getSketchById(sketchId, true);
+          const savedSketch = await getSketchById(sketchId, true);
           console.log('✅ Sketch list and detail refetched after save');
+          console.log('📊 Saved sketch state:', {
+            featuresCount: savedSketch.sketch_state?.features?.length || 0,
+            hasCanvasSettings: !!savedSketch.sketch_state?.canvasSettings,
+          });
+          
+          // Reload sketch state from database to ensure UI shows latest saved data
+          if (savedSketch.sketch_state) {
+            const state = savedSketch.sketch_state;
+            const restoredFeatures: PlacedFeature[] = state?.features && Array.isArray(state.features)
+              ? state.features.map((f: any) => ({
+                  id: f.id,
+                  asset: {
+                    id: f.asset.id,
+                    name: f.asset.name,
+                    path: f.asset.path,
+                    category: f.asset.category,
+                    tags: f.asset.tags || [],
+                    description: f.asset.description
+                  },
+                  x: f.x || 0,
+                  y: f.y || 0,
+                  width: f.width || 100,
+                  height: f.height || 100,
+                  rotation: f.rotation || 0,
+                  opacity: f.opacity ?? 1,
+                  zIndex: f.zIndex ?? 0,
+                  selected: false,
+                  locked: f.locked || false,
+                  visible: f.visible !== undefined ? f.visible : true,
+                  flipH: f.flipH || false,
+                  flipV: f.flipV || false,
+                  brightness: f.brightness ?? 100,
+                  contrast: f.contrast ?? 100,
+                  scale: f.scale ?? 1
+                }))
+              : [];
+            
+            setFeatures(restoredFeatures);
+            if (state?.zoom !== undefined) setZoom(state.zoom);
+            if (state?.panOffset) setPanOffset(state.panOffset);
+            if (state?.canvasSettings) setCanvasSettings({ ...createInitialCanvasSettings(), ...state.canvasSettings });
+            console.log('✅ Sketch state reloaded from database after save');
+          }
         } catch (err) {
           console.error('❌ Failed to refetch after save:', err);
           // Don't fail the save operation if refetch fails, but log it
