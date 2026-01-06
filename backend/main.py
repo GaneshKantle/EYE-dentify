@@ -301,18 +301,24 @@ class CORSLoggingMiddleware(BaseHTTPMiddleware):
                         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD"
                         response.headers["Access-Control-Allow-Headers"] = "*"
                         response.headers["Access-Control-Expose-Headers"] = "*"
-                # For production: check if origin is in allowed list
+                # For production: check if origin is in allowed list or allow common patterns
                 else:
                     # Get allowed origins from environment or use defaults
                     allowed_origins_env = os.getenv('ALLOWED_ORIGINS', '')
                     if allowed_origins_env:
                         allowed_origins_list = [o.strip() for o in allowed_origins_env.split(',') if o.strip()]
                     else:
-                        # Default production origins
-                        allowed_origins_list = ['https://eye-dentify.vercel.app']
+                        # Default production origins - include common deployment platforms
+                        allowed_origins_list = [
+                            'https://eye-dentify.vercel.app',
+                            'https://eye-dentify.onrender.com',
+                            'http://localhost:3000',
+                            'http://localhost:5000',
+                            'http://localhost:5173',
+                        ]
                     
-                    # If origin matches allowed origins, add CORS headers
-                    if origin in allowed_origins_list:
+                    # If origin matches allowed origins or is localhost, add CORS headers
+                    if origin in allowed_origins_list or origin.startswith('http://localhost:') or origin.startswith('http://127.0.0.1:'):
                         response.headers["Access-Control-Allow-Origin"] = origin
                         response.headers["Access-Control-Allow-Credentials"] = "true"
                         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD"
@@ -329,9 +335,10 @@ environment = os.getenv('ENVIRONMENT', 'development')
 if allowed_origins_env:
     allowed_origins = [origin.strip() for origin in allowed_origins_env.split(',') if origin.strip()]
 else:
-    # Default: Allow common localhost origins for development + production domain
+    # Default: Allow common localhost origins for development + production domains
     allowed_origins = [
         'https://eye-dentify.vercel.app',
+        'https://eye-dentify.onrender.com',  # Add Render deployment URL
         'http://localhost:3000',
         'http://localhost:5000',
         'http://localhost:5173',

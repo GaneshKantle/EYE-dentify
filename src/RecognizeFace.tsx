@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import axios, { AxiosError } from "axios";
 import { RecognitionResult } from "./types";
 import { Upload, RotateCcw, PenTool, Target, CheckCircle, Eye, Zap, ArrowRight, Maximize2, Download, X } from "lucide-react";
-import { config } from "./lib/api";
+import { config, apiClient } from "./lib/api";
 
 const RecognizeFace: React.FC = () => {
   const navigate = useNavigate();
@@ -53,16 +53,10 @@ const RecognizeFace: React.FC = () => {
     formData.append("file", file);
 
     try {
-      const token = localStorage.getItem('token');
-      const headers: Record<string, string> = {};
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-      
-      const res = await axios.post<RecognitionResult>(
-        `${config.apiUrl}/recognize_face`,
-        formData,
-        { headers }
+      // Use apiClient for better error handling and CORS support
+      const res = await apiClient.directPost<RecognitionResult>(
+        '/recognize_face',
+        formData
       );
       
       // Complete the loading animation
@@ -81,7 +75,12 @@ const RecognizeFace: React.FC = () => {
       
       let errorMessage = "Recognition failed";
       
-      if (err?.response?.data?.detail) {
+      // Handle CORS errors specifically
+      if (err?.code === 'ERR_NETWORK' || err?.message?.includes('CORS') || err?.message?.includes('Network Error')) {
+        errorMessage = `Connection error: Cannot reach the server at ${config.apiUrl}. The server may be down or there's a network issue. Please check your connection and try again.`;
+      } else if (err?.response?.status === 0 || (!err?.response && err?.request)) {
+        errorMessage = `Network error: Unable to connect to the server. This could be a CORS issue or the server may be unavailable. Please check if the backend server is running.`;
+      } else if (err?.response?.data?.detail) {
         const detail = err.response.data.detail;
         if (Array.isArray(detail)) {
           errorMessage = detail.map((e: any) => e.msg || e.message || String(e)).join(", ");
@@ -95,6 +94,15 @@ const RecognizeFace: React.FC = () => {
       } else if (err?.message) {
         errorMessage = err.message;
       }
+      
+      console.error('Recognition error:', {
+        error: err,
+        message: errorMessage,
+        apiUrl: config.apiUrl,
+        hasResponse: !!err?.response,
+        status: err?.response?.status,
+        code: err?.code
+      });
       
       setTimeout(() => {
         setResult({ 
