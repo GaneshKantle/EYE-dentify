@@ -2,6 +2,13 @@
 
 A comprehensive forensic face recognition system designed for law enforcement and criminal investigation. The platform enables real-time facial recognition, composite sketch creation, and criminal database management using advanced AI-powered face recognition technology.
 
+## 🔗 Quick Links
+
+- **🌐 Live Application**: [https://eye-dentify.vercel.app/](https://eye-dentify.vercel.app/)
+- **🔌 Backend API**: [https://eye-dentify.onrender.com](https://eye-dentify.onrender.com)
+- **📚 API Documentation**: [https://eye-dentify.onrender.com/docs](https://eye-dentify.onrender.com/docs)
+- **💻 GitHub Repository**: [https://github.com/GaneshKantle/EYE-dentify](https://github.com/GaneshKantle/EYE-dentify)
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -20,6 +27,12 @@ A comprehensive forensic face recognition system designed for law enforcement an
 ## Overview
 
 Eye-dentify is a full-stack forensic investigation platform that combines machine learning-based face recognition with an intuitive web interface. The system uses FaceNet (InceptionResnetV1) models trained on VGGFace2 dataset to generate 512-dimensional facial embeddings for accurate identity matching. It supports real-time face recognition, composite sketch creation, and comprehensive criminal database management.
+
+**Live Application:**
+- **Frontend**: [https://eye-dentify.vercel.app/](https://eye-dentify.vercel.app/)
+- **Backend API**: [https://eye-dentify.onrender.com](https://eye-dentify.onrender.com)
+- **API Documentation**: [https://eye-dentify.onrender.com/docs](https://eye-dentify.onrender.com/docs)
+- **GitHub Repository**: [https://github.com/GaneshKantle/EYE-dentify](https://github.com/GaneshKantle/EYE-dentify)
 
 **Key Capabilities:**
 - Real-time face recognition with 98.5% accuracy
@@ -186,7 +199,7 @@ Eye-denitfy/
 ### 1. Clone the Repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/GaneshKantle/EYE-dentify.git
 cd Eye-denitfy
 ```
 
@@ -260,13 +273,24 @@ MOJOAUTH_BASE_URL=https://your-domain.auth.mojoauth.com
 MOJOAUTH_ENV=test
 
 # CORS Configuration
-ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5000,http://localhost:5173
+ALLOWED_ORIGINS=https://eye-dentify.vercel.app,https://eye-dentify.vercel.app/,http://localhost:3000,http://localhost:5000,http://localhost:5173
 ```
 
 ### Frontend Environment Variables
 
 Create `.env` file in project root (optional, defaults to production API):
 
+**For Production (default):**
+```env
+REACT_APP_API_URL=https://eye-dentify.onrender.com
+REACT_APP_API_VERSION=v1
+REACT_APP_ENVIRONMENT=production
+REACT_APP_DEBUG=false
+REACT_APP_VERSION=1.0.0
+REACT_APP_API_TIMEOUT_MS=90000
+```
+
+**For Local Development:**
 ```env
 REACT_APP_API_URL=http://localhost:8000
 REACT_APP_API_VERSION=v1
@@ -302,6 +326,9 @@ Backend will be available at `http://localhost:8000`
 - API Documentation: `http://localhost:8000/docs` (Swagger UI)
 - Alternative Docs: `http://localhost:8000/redoc` (ReDoc)
 
+**Production Backend**: `https://eye-dentify.onrender.com`
+- Production API Docs: `https://eye-dentify.onrender.com/docs`
+
 #### Start Frontend Development Server
 
 ```bash
@@ -310,6 +337,8 @@ npm start
 ```
 
 Frontend will be available at `http://localhost:3000`
+
+**Production Frontend**: `https://eye-dentify.vercel.app/`
 
 ### Production Mode
 
@@ -340,42 +369,46 @@ docker-compose -f docker-compose.production.yml up -d
 
 Complete API documentation is available at:
 
-- **Interactive Swagger UI**: `http://localhost:8000/docs` (development) or `https://your-domain.com/docs` (production)
-- **ReDoc**: `http://localhost:8000/redoc` (development) or `https://your-domain.com/redoc` (production)
+- **Production API Base URL**: `https://eye-dentify.onrender.com`
+- **Interactive Swagger UI**: `https://eye-dentify.onrender.com/docs`
+- **ReDoc**: `https://eye-dentify.onrender.com/redoc`
+- **Development**: `http://localhost:8000/docs` (when running locally)
 
 For detailed endpoint documentation, see [API_DOCUMENTATION.md](./API_DOCUMENTATION.md)
 
 ### Key API Endpoints
 
+**Base URL**: `https://eye-dentify.onrender.com`
+
 **Authentication:**
-- `POST /auth/register` - Register new user
-- `POST /auth/login` - User login
-- `POST /auth/logout` - User logout
-- `GET /auth/me` - Get current user
+- `POST https://eye-dentify.onrender.com/auth/register` - Register new user
+- `POST https://eye-dentify.onrender.com/auth/login` - User login
+- `POST https://eye-dentify.onrender.com/auth/logout` - User logout
+- `GET https://eye-dentify.onrender.com/auth/me` - Get current user
 
 **Face Recognition:**
-- `POST /recognize_face` - Recognize face from image
-- `POST /add_face` - Add face to database
-- `GET /gallery` - Get all faces
-- `PATCH /face/{name}` - Update face record
-- `DELETE /face/{name}` - Delete face record
+- `POST https://eye-dentify.onrender.com/recognize_face` - Recognize face from image
+- `POST https://eye-dentify.onrender.com/add_face` - Add face to database
+- `GET https://eye-dentify.onrender.com/gallery` - Get all faces
+- `PATCH https://eye-dentify.onrender.com/face/{name}` - Update face record
+- `DELETE https://eye-dentify.onrender.com/face/{name}` - Delete face record
 
 **Sketches:**
-- `POST /sketches/save` - Save composite sketch
-- `GET /sketches` - Get all sketches
-- `GET /sketches/{sketch_id}` - Get sketch by ID
-- `DELETE /sketches/{sketch_id}` - Delete sketch
+- `POST https://eye-dentify.onrender.com/sketches/save` - Save composite sketch
+- `GET https://eye-dentify.onrender.com/sketches` - Get all sketches
+- `GET https://eye-dentify.onrender.com/sketches/{sketch_id}` - Get sketch by ID
+- `DELETE https://eye-dentify.onrender.com/sketches/{sketch_id}` - Delete sketch
 
 **Assets:**
-- `POST /assets/upload` - Upload asset
-- `GET /assets` - Get all assets
-- `GET /assets/{asset_id}` - Get asset by ID
-- `DELETE /assets/{asset_id}` - Delete asset
+- `POST https://eye-dentify.onrender.com/assets/upload` - Upload asset
+- `GET https://eye-dentify.onrender.com/assets` - Get all assets
+- `GET https://eye-dentify.onrender.com/assets/{asset_id}` - Get asset by ID
+- `DELETE https://eye-dentify.onrender.com/assets/{asset_id}` - Delete asset
 
 **Health & Status:**
-- `GET /health` - Health check
-- `GET /` - API root
-- `GET /debug/routes` - List all routes
+- `GET https://eye-dentify.onrender.com/health` - Health check
+- `GET https://eye-dentify.onrender.com/` - API root
+- `GET https://eye-dentify.onrender.com/debug/routes` - List all routes
 
 ## Architecture
 
@@ -385,14 +418,16 @@ For detailed endpoint documentation, see [API_DOCUMENTATION.md](./API_DOCUMENTAT
 ┌─────────────────────────────────────────────────────────────┐
 │                        Frontend Layer                        │
 │  React + TypeScript + Tailwind CSS + shadcn/ui              │
-│  Port: 3000 (Development)                                   │
+│  Production: https://eye-dentify.vercel.app/                │
+│  Development: http://localhost:3000                        │
 └──────────────────────┬──────────────────────────────────────┘
                        │ HTTP/REST API
                        │ JWT Authentication
 ┌──────────────────────▼──────────────────────────────────────┐
 │                       Backend Layer                           │
 │  FastAPI + Python 3.12 + Uvicorn                            │
-│  Port: 8000                                                  │
+│  Production: https://eye-dentify.onrender.com                │
+│  Development: http://localhost:8000                         │
 │                                                              │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐    │
 │  │   Routes     │  │  Middleware  │  │   Services    │    │
@@ -441,6 +476,8 @@ Image → MTCNN → FaceNet → Embedding → Compare with DB → Return Match/N
 
 ## Deployment
 
+**Repository**: [https://github.com/GaneshKantle/EYE-dentify](https://github.com/GaneshKantle/EYE-dentify)
+
 ### Backend Deployment (Render/Railway/Heroku)
 
 1. Set environment variables in platform dashboard
@@ -488,9 +525,9 @@ docker-compose -f docker-compose.production.yml up -d
 - Check recognition threshold settings
 
 **CORS errors:**
-- Verify `ALLOWED_ORIGINS` includes frontend URL
+- Verify `ALLOWED_ORIGINS` includes frontend URL (`https://eye-dentify.vercel.app` or `https://eye-dentify.vercel.app/` for production)
 - Check backend CORS middleware configuration
-- Ensure frontend `REACT_APP_API_URL` matches backend URL
+- Ensure frontend `REACT_APP_API_URL` matches backend URL (`https://eye-dentify.onrender.com` for production)
 
 **Authentication issues:**
 - Verify JWT_SECRET_KEY is set
@@ -534,4 +571,4 @@ This project is intended for educational and law enforcement purposes. Ensure co
 ---
 
 **Version**: 1.0.0  
-**Last Updated**: 2024
+**Last Updated**: 2025

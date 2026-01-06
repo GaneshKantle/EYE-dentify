@@ -65,7 +65,7 @@ const RecognizeFace: React.FC = () => {
       
       // Small delay before showing result
       setTimeout(() => {
-        setResult(res.data);
+        setResult(res);
         setIsProcessing(false);
       }, 500);
       
