@@ -1,6 +1,6 @@
 /*eslint-disable*/
 import React from 'react';
-import { Github, Linkedin, Briefcase, ExternalLink, FileText, BookOpen, FileSpreadsheet } from 'lucide-react';
+import { Github, Linkedin, Briefcase, ExternalLink, FileText, BookOpen, FileSpreadsheet, Youtube, Play, Presentation } from 'lucide-react';
 import { GlassmorphismProfileCard, SocialLink } from '../components/ui/profile-card-1';
 
 const More = () => {
@@ -95,6 +95,40 @@ const More = () => {
           </div>
         </section>
 
+        {/* Demo Video Section */}
+        <section className="mb-6 xs:mb-8 sm:mb-10 md:mb-12">
+          <div className="max-w-2xl mx-auto">
+            <a
+              href="https://youtu.be/W5s8daeX4dw"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group relative block overflow-hidden rounded-xl bg-gradient-to-br from-red-600 via-red-500 to-red-700 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.01]"
+            >
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="relative p-4 xs:p-5 sm:p-6">
+                <div className="flex flex-col sm:flex-row items-center gap-3 xs:gap-4">
+                  <div className="flex-shrink-0 w-12 h-12 xs:w-14 xs:h-14 sm:w-16 sm:h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border-2 border-white/30 group-hover:scale-110 group-hover:bg-white/30 transition-all duration-300">
+                    <Play className="w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 text-white ml-0.5" fill="currentColor" />
+                  </div>
+                  <div className="flex-1 text-center sm:text-left">
+                    <div className="flex items-center justify-center sm:justify-start gap-1.5 mb-1">
+                      <Youtube className="w-4 h-4 xs:w-5 xs:h-5 text-white" />
+                      <span className="text-[10px] xs:text-xs font-semibold text-white/90 uppercase tracking-wider">Watch Demo</span>
+                    </div>
+                    <h3 className="text-base xs:text-lg sm:text-xl md:text-2xl font-bold text-white mb-1">
+                      Working Demo Video
+                    </h3>
+                    <p className="text-xs xs:text-sm text-white/90">
+                      See EYE-dentify in action
+                    </p>
+                  </div>
+                  <ExternalLink className="w-4 h-4 xs:w-5 xs:h-5 text-white opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all flex-shrink-0" />
+                </div>
+              </div>
+            </a>
+          </div>
+        </section>
+
         {/* Development Tools Section */}
         <section className="mb-8 xs:mb-10 sm:mb-12 md:mb-16 lg:mb-20">
           <h2 className="text-lg xs:text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-6 xs:mb-8 sm:mb-10 md:mb-12 text-center">
@@ -174,6 +208,14 @@ const More = () => {
               bgGradient="from-red-50 to-orange-50"
               iconColor="#00629B"
             />
+            <TechCard 
+              iconUrl="https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/shieldcheck.svg"
+              name="DrillBit"
+              category="Plagiarism Detection"
+              gradient="from-rose-600 via-pink-600 to-fuchsia-600"
+              bgGradient="from-rose-50 to-pink-50"
+              iconColor="#E91E63"
+            />
           </div>
         </section>
 
@@ -208,11 +250,11 @@ const More = () => {
           <h2 className="text-lg xs:text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-4 xs:mb-6 sm:mb-8 text-center">
             Documentation
           </h2>
-          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 xs:gap-4 sm:gap-5">
+          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-3 xs:gap-4 sm:gap-5">
             <ResourceCard icon={FileText} title="API Documentation" description="REST API endpoints & usage" href="https://github.com/GaneshKantle/EYE-dentify/blob/main/API_DOCUMENTATION.md" color="blue" />
-            <ResourceCard icon={BookOpen} title="Development Guide" description="Setup & development workflow" href="https://github.com/GaneshKantle/EYE-dentify/blob/main/DEVELOPMENT_GUIDE.md" color="emerald" />
+            <ResourceCard icon={BookOpen} title="Development Guide" description="Setup & development workflow" href="https://github.com/GaneshKantle/EYE-dentify/blob/main/DEVELOPMENT_GUIDE.md" color="orange" />
             <ResourceCard icon={FileText} title="Production Deployment" description="Deploy to production" href="https://github.com/GaneshKantle/EYE-dentify/blob/main/PRODUCTION_DEPLOYMENT.md" color="purple" />
-            <ResourceCard icon={FileText} title="Port Configuration" description="Network & port setup" href="https://github.com/GaneshKantle/EYE-dentify/blob/main/PORT_CONFIGURATION.md" color="orange" />
+            {/* <ResourceCard icon={FileText} title="Port Configuration" description="Network & port setup" href="https://github.com/GaneshKantle/EYE-dentify/blob/main/PORT_CONFIGURATION.md" color="orange" /> */}
           </div>
         </section>
 
@@ -222,9 +264,11 @@ const More = () => {
             Technical Papers
           </h2>
           <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-3 xs:gap-4 sm:gap-5">
-            <ResourceCard icon={BookOpen} title="Face Recognition Research" description="ML algorithms & methodology" comingSoon color="indigo" />
-            <ResourceCard icon={BookOpen} title="Sketch-to-Face Synthesis" description="GAN-based approach" comingSoon color="rose" />
-            <ResourceCard icon={BookOpen} title="System Architecture" description="Technical implementation" comingSoon color="cyan" />
+            <ResourceCard icon={BookOpen} title="FaceNet-Driven Face Recognition" description="Forensic sketch construction & matching" href="https://doi.org/10.55524/ijircst.2025.13.6.12" color="indigo" />
+            <ResourceCard icon={FileText} title="Published Paper (PDF)" description="Research paper publication" href="https://drive.google.com/file/d/17HDvgAdvBZ0toX6x4eSlTzHhdk6cM4DD/view?usp=sharing" color="emerald" />
+            <ResourceCard icon={Presentation} title="Project Presentation" description="Project PPT slides" href="https://docs.google.com/presentation/d/1ZZ0Pw8KFikMWSFz0RxTOMzW0UXd-ZtTh/edit?usp=sharing&ouid=104503515046523301340&rtpof=true&sd=true" color="purple" />
+            {/* <ResourceCard icon={BookOpen} title="Sketch-to-Face Synthesis" description="GAN-based approach" comingSoon color="rose" /> */}
+            {/* <ResourceCard icon={BookOpen} title="System Architecture" description="Technical implementation" comingSoon color="cyan" /> */}
           </div>
         </section>
 
@@ -234,9 +278,11 @@ const More = () => {
             Project Reports
           </h2>
           <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-3 xs:gap-4 sm:gap-5">
-            <ResourceCard icon={FileSpreadsheet} title="Project Synopsis" description="Overview & objectives" comingSoon color="amber" />
-            <ResourceCard icon={FileSpreadsheet} title="Progress Report" description="Development milestones" comingSoon color="teal" />
-            <ResourceCard icon={FileSpreadsheet} title="Final Report" description="Complete documentation" comingSoon color="violet" />
+            <ResourceCard icon={FileSpreadsheet} title="Plagiarism Report" description="DrillBit plagiarism detection" href="https://drive.google.com/file/d/1cSo7Aej9MUyjBVeAswArut2WZYIMaEQu/view?usp=sharing" color="rose" />
+            <ResourceCard icon={FileSpreadsheet} title="Final Report (PDF)" description="Complete documentation" href="https://drive.google.com/file/d/1-44AUw1udgvjhzaRRhR9cAahMA8kgXVd/view?usp=sharing" color="violet" />
+            <ResourceCard icon={FileSpreadsheet} title="Final Report (DOC)" description="Complete documentation" href="https://docs.google.com/document/d/1eVPFk9HBfg9iuBbn5mYbaJz0_bhz2FF1/edit?usp=sharing&ouid=104503515046523301340&rtpof=true&sd=true" color="indigo" />
+            {/* <ResourceCard icon={FileSpreadsheet} title="Project Synopsis" description="Overview & objectives" comingSoon color="amber" /> */}
+                 {/* <ResourceCard icon={FileSpreadsheet} title="Progress Report" description="Development milestones" comingSoon color="teal" /> */}
           </div>
         </section>
       </div>
@@ -268,7 +314,7 @@ const colorMap = {
 };
 
 const ResourceCard = React.memo<ResourceCardProps>(({ icon: Icon, title, description, href, comingSoon, color }) => {
-  const colors = colorMap[color];
+  const colors = colorMap[color] || colorMap.blue;
   const Content = (
     <div className={`relative h-full p-3 xs:p-4 sm:p-5 rounded-xl bg-gradient-to-br ${colors.bg} border border-gray-100 ${colors.border} transition-all duration-300 hover:shadow-md ${href ? 'cursor-pointer' : ''}`}>
       {comingSoon && (

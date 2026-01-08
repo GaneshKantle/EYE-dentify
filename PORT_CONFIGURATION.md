@@ -1,57 +1,50 @@
-# Port Configuration Guide
+# EYE-dentify Port Configuration
 
-## Configuration Summary
+## Production URLs
 
-### Frontend (React)
-- **Port**: 5000
-- **Configuration**: `craco.config.js` - devServer.port set to 5000
-- **Environment**: `.env` file with `PORT=5000` (create if needed)
-- **URL**: `http://localhost:5000`
+- **Frontend**: `https://eye-dentify.vercel.app`
+- **Backend**: `https://eye-dentify.onrender.com`
+- **API Docs**: `https://eye-dentify.onrender.com/docs`
 
-### Backend (FastAPI)
+## Local Development
+
+### Backend
 - **Port**: 8000
-- **Configuration**: Uses default uvicorn port 8000
-- **CORS**: Updated to allow `http://localhost:5000`
 - **URL**: `http://localhost:8000`
+- **Command**: `uvicorn main:app --reload --host 0.0.0.0 --port 8000`
 
-## Changes Made
-
-### 1. Frontend Configuration
-- ✅ Updated `craco.config.js` to set devServer port to 5000
-- ✅ API client already configured to use `http://localhost:8000` (no changes needed)
-
-### 2. Backend Configuration  
-- ✅ Updated `backend/main.py` CORS to allow `http://localhost:5000`
-- ✅ Updated `backend/env.example` with correct ALLOWED_ORIGINS
-
-## Running the Application
-
-### Start Backend (Port 8000)
-```bash
-cd backend
-uvicorn main:app --reload
-```
-Backend will run on: `http://localhost:8000`
-
-### Start Frontend (Port 5000)
-```bash
-npm start
-```
-Frontend will run on: `http://localhost:5000`
-
-## Verification
-
-1. **Backend**: Visit `http://localhost:8000/docs` - Should see API documentation
-2. **Frontend**: Visit `http://localhost:5000` - Should see the application
-3. **CORS**: Frontend should be able to make requests to backend without CORS errors
+### Frontend
+- **Port**: 5000
+- **URL**: `http://localhost:5000`
+- **Configuration**: `craco.config.js`
+- **Command**: `npm start`
 
 ## Environment Variables
 
-Create `.env` file in root directory (if not exists):
+### Backend (.env)
+```env
+PORT=8000
+HOST=0.0.0.0
 ```
+
+### Frontend (.env)
+```env
 PORT=5000
 REACT_APP_API_URL=http://localhost:8000
 ```
 
-The backend already uses port 8000 by default, so no additional configuration needed there.
+## CORS Configuration
 
+Backend allows:
+- `http://localhost:5000` (development)
+- `https://eye-dentify.vercel.app` (production)
+
+## Verification
+
+1. **Backend**: Visit `http://localhost:8000/docs`
+2. **Frontend**: Visit `http://localhost:5000`
+3. **Production**: Visit `https://eye-dentify.vercel.app`
+
+---
+
+**Production**: `https://eye-dentify.vercel.app` | `https://eye-dentify.onrender.com`

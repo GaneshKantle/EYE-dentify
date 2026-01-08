@@ -1,3 +1,5 @@
+/*eslint-disable*/  
+
 /**
  * Image Compression Utility
  * Uses native browser Canvas API for zero-dependency image compression
