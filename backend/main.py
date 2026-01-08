@@ -429,14 +429,19 @@ else:
 @app.post("/add_face")
 async def add_face(
     name: str = Form(...),
-    age: str = Form(""),
-    crime: str = Form(""),
-    description: str = Form(""),
+    age: Optional[str] = Form(None),
+    crime: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
     file: UploadFile = File(...)
 ):
     # Validate required fields
     if not name or not name.strip():
         raise HTTPException(status_code=400, detail="Name is required and cannot be empty")
+    
+    # Normalize optional fields - convert None to empty string
+    age = age or ""
+    crime = crime or ""
+    description = description or ""
     
     emb = None
     try:

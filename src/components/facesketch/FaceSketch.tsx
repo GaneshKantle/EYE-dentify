@@ -104,12 +104,25 @@ const extractSaveDetailsFromSketch = (
   }
   
   // Fallback to top-level sketchData fields
+  // Safely parse date - handle invalid dates
+  let parsedDate = new Date().toISOString().split('T')[0];
+  if (sketchData.date) {
+    try {
+      const dateObj = new Date(sketchData.date);
+      if (!isNaN(dateObj.getTime())) {
+        parsedDate = dateObj.toISOString().split('T')[0];
+      }
+    } catch (e) {
+      // Use default date if parsing fails
+    }
+  }
+  
   return {
     name: sketchData.name || '',
     suspect: sketchData.suspect || '',
     eyewitness: sketchData.eyewitness || '',
     officer: sketchData.officer || '',
-    date: sketchData.date ? new Date(sketchData.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    date: parsedDate,
     reason: sketchData.reason || '',
     description: sketchData.description || '',
     priority: sketchData.priority || 'normal',
@@ -1725,7 +1738,8 @@ const FaceSketch: React.FC = () => {
       formData.append('sketch_state', sketchStateJson);
       
       // Ensure image has proper filename
-      const filename = `${saveData.name.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '')}.png`;
+      const sanitizedName = saveData.name.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+      const filename = sanitizedName ? `${sanitizedName}.png` : 'sketch.png';
       formData.append('image', imageBlob, filename);
       
       // Verify FormData contents before sending (after all appends)
@@ -2052,10 +2066,16 @@ const FaceSketch: React.FC = () => {
     priority: string;
     status: string;
   }) => {
-    // Update saveDetails state immediately to keep it in sync
-    setSaveDetails(saveData);
-    // Then call the actual save function
-    await handleSaveSketch(saveData);
+    try {
+      // Update saveDetails state immediately to keep it in sync
+      setSaveDetails(saveData);
+      // Then call the actual save function
+      await handleSaveSketch(saveData);
+    } catch (error) {
+      // handleSaveSketch already handles errors and shows notifications
+      // Re-throw to let the modal handle it if needed
+      throw error;
+    }
   }, [handleSaveSketch]);
 
   const handlePrimarySaveClick = useCallback(() => {
@@ -2140,9 +2160,14 @@ const FaceSketch: React.FC = () => {
         }
       };
       
+      // Validate required fields
+      if (!updateData.name || !updateData.name.trim()) {
+        throw new Error('Sketch name is required');
+      }
+      
       // Create FormData with only metadata (no image)
       const formData = new FormData();
-      formData.append('name', updateData.name);
+      formData.append('name', updateData.name.trim());
       formData.append('suspect', updateData.suspect || '');
       formData.append('eyewitness', updateData.eyewitness || '');
       formData.append('officer', updateData.officer || '');
@@ -2203,7 +2228,15 @@ const FaceSketch: React.FC = () => {
           description: updatedSketch.description || '',
           witness: updatedSketch.eyewitness || '',
           suspect: updatedSketch.suspect || '',
-          date: updatedSketch.date ? new Date(updatedSketch.date).toISOString().split('T')[0] : createInitialCaseInfo().date,
+          date: (() => {
+            if (!updatedSketch.date) return createInitialCaseInfo().date;
+            try {
+              const dateObj = new Date(updatedSketch.date);
+              return !isNaN(dateObj.getTime()) ? dateObj.toISOString().split('T')[0] : createInitialCaseInfo().date;
+            } catch {
+              return createInitialCaseInfo().date;
+            }
+          })(),
           priority: (updatedSketch.priority as CaseInfo['priority']) || 'medium',
           status: (updatedSketch.status as CaseInfo['status']) || 'draft',
         });
@@ -2704,7 +2737,15 @@ const FaceSketch: React.FC = () => {
             description: sketchData.description || '',
             witness: sketchData.eyewitness || '',
             suspect: sketchData.suspect || '',
-            date: sketchData.date ? new Date(sketchData.date).toISOString().split('T')[0] : baseCase.date,
+            date: (() => {
+              if (!sketchData.date) return baseCase.date;
+              try {
+                const dateObj = new Date(sketchData.date);
+                return !isNaN(dateObj.getTime()) ? dateObj.toISOString().split('T')[0] : baseCase.date;
+              } catch {
+                return baseCase.date;
+              }
+            })(),
             priority: (sketchData.priority as CaseInfo['priority']) || 'medium',
             status: (sketchData.status as CaseInfo['status']) || 'draft',
           });

@@ -244,6 +244,11 @@ class APIClient {
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
+        // If request data is FormData, remove Content-Type header to let axios set it automatically
+        if (config.data instanceof FormData) {
+          delete config.headers['Content-Type'];
+          delete config.headers['content-type'];
+        }
         return config;
       },
       (error) => {
@@ -263,17 +268,18 @@ class APIClient {
   async directPost<T = any>(url: string, data?: any, requestConfig?: AxiosRequestConfig): Promise<T> {
     try {
       const client = this.getDirectClient();
-      // If data is FormData, remove Content-Type to let axios set it automatically with boundary
-      // Otherwise, keep the default application/json
-      const headers: Record<string, any> = { ...requestConfig?.headers };
-      if (data instanceof FormData) {
-        delete headers['Content-Type'];
-      }
       
-      const config = {
+      // Build config - interceptor will handle Content-Type removal for FormData
+      const config: AxiosRequestConfig = {
         ...requestConfig,
-        headers,
       };
+      
+      // For FormData, don't set headers - let axios detect FormData and set Content-Type automatically
+      // The interceptor will remove any Content-Type header to allow axios to set the boundary
+      // For non-FormData, preserve any custom headers from requestConfig
+      if (!(data instanceof FormData) && requestConfig?.headers) {
+        config.headers = { ...requestConfig.headers };
+      }
       
       const response = await client.post<T>(url, data, config);
       return response.data;

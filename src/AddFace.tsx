@@ -23,8 +23,11 @@ const AddFace: React.FC = () => {
   const [isUploading, setIsUploading] = useState<boolean>(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    const selectedFile = e.target.files?.[0] || null;
-    if (selectedFile) {
+    const input = e.target;
+    const selectedFile = input.files?.[0] || null;
+    
+    if (selectedFile && selectedFile instanceof File) {
+      // Ensure we have a valid File object
       setFile(selectedFile);
       fileRef.current = selectedFile;
     } else {
@@ -34,6 +37,7 @@ const AddFace: React.FC = () => {
   };
 
   const handleUpload = async (): Promise<void> => {
+    // Get file from ref first, fallback to state
     const fileToUpload = fileRef.current || file;
     
     if (!fileToUpload || !(fileToUpload instanceof File)) {
@@ -47,16 +51,35 @@ const AddFace: React.FC = () => {
     }
     
     setIsUploading(true);
+    
+    // Create FormData and append all fields
     const formData = new FormData();
+    
+    // Append file first (required)
     formData.append("file", fileToUpload);
+    
+    // Append name (required)
     formData.append("name", name.trim());
-    // Always append all fields, even if empty (backend accepts empty strings for optional fields)
-    formData.append("age", age.trim() || "");
-    formData.append("crime", crime.trim() || "");
-    formData.append("description", description.trim() || "");
+    
+    // Append optional fields - send them even if empty (backend handles None/empty)
+    // FastAPI Form(None) accepts missing fields, but we'll send empty strings if provided
+    const trimmedAge = age.trim();
+    const trimmedCrime = crime.trim();
+    const trimmedDescription = description.trim();
+    
+    // Always send fields if user has entered something, otherwise omit (backend will use None)
+    if (trimmedAge) {
+      formData.append("age", trimmedAge);
+    }
+    if (trimmedCrime) {
+      formData.append("crime", trimmedCrime);
+    }
+    if (trimmedDescription) {
+      formData.append("description", trimmedDescription);
+    }
 
     try {
-      // Don't set Content-Type manually - let axios set it automatically with boundary for FormData
+      // Send FormData - axios will automatically set Content-Type with boundary
       const response = await apiClient.directPost<{status: string, message: string, image_url?: string}>(
         '/add_face',
         formData

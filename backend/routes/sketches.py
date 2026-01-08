@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Body
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Body, Request
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from bson import ObjectId
@@ -229,6 +229,7 @@ async def get_sketch(sketch_id: str):
 @router.put("/{sketch_id}")
 async def update_sketch(
     sketch_id: str,
+    request: Request,
     name: Optional[str] = Form(None),
     suspect: Optional[str] = Form(None),
     eyewitness: Optional[str] = Form(None),
@@ -252,6 +253,7 @@ async def update_sketch(
         
         # Log received data for debugging
         print(f"📥 Update request for sketch {sketch_id}")
+        print(f"   Content-Type: {request.headers.get('content-type', 'N/A')}")
         print(f"   sketch_state provided: {sketch_state is not None}")
         print(f"   sketch_state length: {len(sketch_state) if sketch_state else 0}")
         print(f"   image provided: {image is not None}")
@@ -278,10 +280,56 @@ async def update_sketch(
         if status is not None:
             update_data["status"] = status
         
-        # Update sketch state if provided
-        if sketch_state is not None and sketch_state.strip():
+        # CRITICAL: sketch_state MUST always be included in updates
+        # Try multiple methods to get sketch_state (FastAPI Form() might not work with PUT + no file)
+        sketch_state_value = sketch_state
+        
+        # Method 1: Try from Form() parameter (works when FastAPI parses it correctly)
+        if sketch_state_value is None or (isinstance(sketch_state_value, str) and not sketch_state_value.strip()):
+            # Method 2: Try reading from request.form() directly (fallback for PUT requests without files)
+            # Note: This might fail if FastAPI has already consumed the request body, but we catch the exception
             try:
-                state_data = json.loads(sketch_state)
+                form_data = await request.form()
+                if 'sketch_state' in form_data:
+                    potential_state = form_data.get('sketch_state')
+                    # Handle both string and UploadFile cases (though it should be a string)
+                    if isinstance(potential_state, str):
+                        sketch_state_value = potential_state
+                        print(f"   ✅ Found sketch_state in form_data: {len(sketch_state_value)} chars")
+                    elif hasattr(potential_state, 'read'):
+                        # If it's an UploadFile, read it as string
+                        try:
+                            content = await potential_state.read()
+                            sketch_state_value = content.decode('utf-8')
+                            print(f"   ✅ Found sketch_state as file in form_data: {len(sketch_state_value)} chars")
+                        except UnicodeDecodeError as e:
+                            print(f"   ❌ Failed to decode sketch_state file as UTF-8: {str(e)}")
+                            sketch_state_value = None
+                        except Exception as e:
+                            print(f"   ❌ Error reading sketch_state file: {str(e)}")
+                            sketch_state_value = None
+                    else:
+                        print(f"   ⚠️ sketch_state in form_data is unexpected type: {type(potential_state)}")
+                else:
+                    # Safely get keys for logging
+                    try:
+                        keys = list(form_data.keys()) if hasattr(form_data, 'keys') else []
+                        print(f"   ⚠️ sketch_state not found in form_data. Available keys: {keys}")
+                    except Exception:
+                        print(f"   ⚠️ sketch_state not found in form_data. Could not list keys.")
+            except RuntimeError as e:
+                # FastAPI might raise RuntimeError if body is already consumed
+                if "stream consumed" in str(e).lower() or "already read" in str(e).lower():
+                    print(f"   ⚠️ Request body already consumed by FastAPI Form() parsing")
+                else:
+                    print(f"   ⚠️ RuntimeError reading form_data: {str(e)}")
+            except Exception as e:
+                print(f"   ⚠️ Could not read form_data: {str(e)}")
+        
+        # Process sketch_state if we found it
+        if sketch_state_value is not None and isinstance(sketch_state_value, str) and sketch_state_value.strip():
+            try:
+                state_data = json.loads(sketch_state_value)
                 update_data["sketch_state"] = state_data
                 print(f"📝 Updating sketch_state for {sketch_id}: {len(str(state_data))} chars")
             except json.JSONDecodeError as e:
@@ -289,6 +337,9 @@ async def update_sketch(
                 raise HTTPException(status_code=400, detail=f"Invalid sketch state format: {str(e)}")
         else:
             print(f"⚠️ sketch_state is None or empty for {sketch_id} - NOT updating sketch_state")
+            print(f"❌ ERROR: sketch_state is required for sketch updates but was not provided")
+            # CRITICAL: Don't proceed without sketch_state - it's required for data integrity
+            raise HTTPException(status_code=400, detail="sketch_state is required for sketch updates")
         
         # Update image if provided
         if image:
@@ -319,14 +370,12 @@ async def update_sketch(
         
         update_data["updated_at"] = datetime.utcnow()
         
-        # CRITICAL: sketch_state must always be updated, even if not provided in request
-        # This ensures the sketch state is always saved
-        if "sketch_state" not in update_data:
-            print(f"⚠️ WARNING: sketch_state not in update_data for {sketch_id}")
-            print(f"   This should not happen - sketch_state should always be provided")
-            # Don't fail, but log the warning
-        else:
+        # Verify sketch_state is in update_data (should always be present due to validation above)
+        if "sketch_state" in update_data:
             print(f"✅ sketch_state is in update_data for {sketch_id}")
+        else:
+            # This should never happen due to validation above, but log if it does
+            print(f"❌ CRITICAL: sketch_state not in update_data for {sketch_id} - this should not happen")
         
         # Ensure we have fields to update
         if not update_data or len(update_data) == 0:

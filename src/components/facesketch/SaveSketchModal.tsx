@@ -89,7 +89,12 @@ const SaveSketchModal: React.FC<SaveSketchModalProps> = ({
       alert('Sketch name is required');
       return;
     }
-    await onSave(formData);
+    try {
+      await onSave(formData);
+    } catch (error) {
+      // Error is already handled by handleSaveSketch, but ensure modal doesn't break
+      console.error('Error in modal save:', error);
+    }
   };
 
   return (
