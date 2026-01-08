@@ -6,6 +6,7 @@ from datetime import datetime
 from bson import ObjectId
 import json
 import os
+import gc
 from pymongo import MongoClient
 from dotenv import load_dotenv
 from pathlib import Path
@@ -35,9 +36,17 @@ async def upload_asset(
     file: UploadFile = File(...)
 ):
     try:
+        # Validate asset type
+        allowed_asset_types = ['face-shapes', 'eyes', 'noses', 'mouths', 'hair', 'accessories', 'eyebrows', 'nose', 'lips', 'facial-hair', 'ears', 'neck']
+        if type not in allowed_asset_types:
+            raise HTTPException(
+                status_code=422, 
+                detail=f"Invalid asset type '{type}'. Allowed types: {', '.join(allowed_asset_types)}"
+            )
+        
         # Validate file type
-        allowed_types = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp']
-        if file.content_type not in allowed_types:
+        allowed_file_types = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp']
+        if file.content_type not in allowed_file_types:
             raise HTTPException(status_code=400, detail="Invalid file type")
         
         try:
@@ -76,6 +85,9 @@ async def upload_asset(
                 file.file.close()
             gc.collect()
         
+    except HTTPException:
+        # Re-raise HTTP exceptions (validation errors, etc.)
+        raise
     except Exception as e:
         print(f"❌ Asset upload failed: {e}")
         import traceback

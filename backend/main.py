@@ -429,11 +429,15 @@ else:
 @app.post("/add_face")
 async def add_face(
     name: str = Form(...),
-    age: str = Form(...),
-    crime: str = Form(...),
-    description: str = Form(...),
+    age: str = Form(""),
+    crime: str = Form(""),
+    description: str = Form(""),
     file: UploadFile = File(...)
 ):
+    # Validate required fields
+    if not name or not name.strip():
+        raise HTTPException(status_code=400, detail="Name is required and cannot be empty")
+    
     emb = None
     try:
         emb = get_embedding(file)

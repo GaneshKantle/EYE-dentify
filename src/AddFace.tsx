@@ -46,28 +46,14 @@ const AddFace: React.FC = () => {
       return;
     }
     
-    if (!age.trim()) {
-      setToast({ message: "Age is required!", type: "error" });
-      return;
-    }
-    
-    if (!crime.trim()) {
-      setToast({ message: "Crime type is required!", type: "error" });
-      return;
-    }
-    
-    if (!description.trim()) {
-      setToast({ message: "Description is required!", type: "error" });
-      return;
-    }
-    
     setIsUploading(true);
     const formData = new FormData();
     formData.append("file", fileToUpload);
     formData.append("name", name.trim());
-    formData.append("age", age.trim());
-    formData.append("crime", crime.trim());
-    formData.append("description", description.trim());
+    // Always append all fields, even if empty (backend accepts empty strings for optional fields)
+    formData.append("age", age.trim() || "");
+    formData.append("crime", crime.trim() || "");
+    formData.append("description", description.trim() || "");
 
     try {
       // Don't set Content-Type manually - let axios set it automatically with boundary for FormData
@@ -267,10 +253,10 @@ const AddFace: React.FC = () => {
             <motion.button 
               type="button" 
               onClick={handleUpload}
-              disabled={isUploading || !file || !name.trim() || !age.trim() || !crime.trim() || !description.trim()}
+              disabled={isUploading || !file || !name.trim()}
               className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-xl transition-all duration-200 text-sm sm:text-base shadow-lg flex items-center justify-center gap-2"
-              whileHover={{ scale: isUploading || !file || !name.trim() || !age.trim() || !crime.trim() || !description.trim() ? 1 : 1.02 }}
-              whileTap={{ scale: isUploading || !file || !name.trim() || !age.trim() || !crime.trim() || !description.trim() ? 1 : 0.98 }}
+              whileHover={{ scale: isUploading || !file || !name.trim() ? 1 : 1.02 }}
+              whileTap={{ scale: isUploading || !file || !name.trim() ? 1 : 0.98 }}
             >
               {isUploading ? (
                 <>

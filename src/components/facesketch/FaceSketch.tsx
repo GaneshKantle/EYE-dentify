@@ -1721,8 +1721,20 @@ const FaceSketch: React.FC = () => {
         jsonLength: sketchStateJson.length
       });
       
-      // Verify FormData contents before sending
-      console.log('📦 FormData contents:', {
+      // Append sketch_state FIRST (before image) to ensure it's always included
+      formData.append('sketch_state', sketchStateJson);
+      
+      // Ensure image has proper filename
+      const filename = `${saveData.name.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '')}.png`;
+      formData.append('image', imageBlob, filename);
+      
+      // Verify FormData contents before sending (after all appends)
+      const hasSketchState = formData.has('sketch_state');
+      if (!hasSketchState) {
+        throw new Error('Critical error: sketch_state is missing from FormData');
+      }
+      
+      console.log('📦 FormData contents (verified):', {
         hasName: formData.has('name'),
         hasSketchState: formData.has('sketch_state'),
         hasImage: formData.has('image'),
@@ -1730,12 +1742,6 @@ const FaceSketch: React.FC = () => {
         sketchStateLength: sketchStateJson.length,
         imageSize: imageBlob?.size || 0
       });
-      
-      formData.append('sketch_state', sketchStateJson);
-      
-      // Ensure image has proper filename
-      const filename = `${saveData.name.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '')}.png`;
-      formData.append('image', imageBlob, filename);
       
       // Call API
       if (currentSketchId) {
@@ -2034,11 +2040,37 @@ const FaceSketch: React.FC = () => {
     }
   }, [features, canvasSettings, zoom, panOffset, selectedFeatures, exportCanvasAsBlob, currentSketchId, notifications, setCaseInfo, clearLocalStorage]);
 
+  // Wrapper to handle save from modal - updates saveDetails state first
+  const handleSaveFromModal = useCallback(async (saveData: {
+    name: string;
+    suspect: string;
+    eyewitness: string;
+    officer: string;
+    date: string;
+    reason: string;
+    description: string;
+    priority: string;
+    status: string;
+  }) => {
+    // Update saveDetails state immediately to keep it in sync
+    setSaveDetails(saveData);
+    // Then call the actual save function
+    await handleSaveSketch(saveData);
+  }, [handleSaveSketch]);
+
   const handlePrimarySaveClick = useCallback(() => {
     if (isSaving) {
       return;
     }
-    if (!currentSketchId || !saveDetails.name.trim()) {
+    // Always show modal if no sketch ID (new sketch)
+    // For existing sketches, use current saveDetails (which should be synced from DB)
+    if (!currentSketchId) {
+      setShowSaveModal(true);
+      return;
+    }
+    // For existing sketches, validate and save directly
+    // Note: saveDetails should already be synced from database
+    if (!saveDetails.name || !saveDetails.name.trim()) {
       setShowSaveModal(true);
       return;
     }
@@ -2119,7 +2151,25 @@ const FaceSketch: React.FC = () => {
       formData.append('description', updateData.description || '');
       formData.append('priority', updateData.priority);
       formData.append('status', updateData.status);
-      formData.append('sketch_state', JSON.stringify(sketchState));
+      
+      // Ensure sketch_state is valid JSON before appending
+      const sketchStateJson = JSON.stringify(sketchState);
+      if (!sketchStateJson || sketchStateJson === '{}') {
+        throw new Error('Sketch state is empty. Cannot update without sketch state.');
+      }
+      
+      formData.append('sketch_state', sketchStateJson);
+      
+      // Verify sketch_state is in FormData before sending
+      if (!formData.has('sketch_state')) {
+        throw new Error('Critical error: sketch_state is missing from FormData');
+      }
+      
+      console.log('📦 Update FormData contents (verified):', {
+        hasName: formData.has('name'),
+        hasSketchState: formData.has('sketch_state'),
+        sketchStateLength: sketchStateJson.length
+      });
       
       // Update existing sketch - use PUT with FormData (no image)
       await apiClient.directUploadFile<{ status: string; message: string; sketch_id: string }>(
@@ -3204,7 +3254,7 @@ const FaceSketch: React.FC = () => {
       <SaveSketchModal
         open={showSaveModal}
         onOpenChange={setShowSaveModal}
-        onSave={handleSaveSketch}
+        onSave={handleSaveFromModal}
         initialData={saveDetails}
         isLoading={isSaving}
       />
