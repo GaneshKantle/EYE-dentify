@@ -1,5 +1,5 @@
 /*eslint-disable*/
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { UserPlus, Upload, Shield, CheckCircle, Database } from "lucide-react";
@@ -14,6 +14,7 @@ interface ToastState {
 const AddFace: React.FC = () => {
   const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
+  const fileRef = useRef<File | null>(null);
   const [name, setName] = useState<string>("");
   const [age, setAge] = useState<string>("");
   const [crime, setCrime] = useState<string>("");
@@ -21,19 +22,52 @@ const AddFace: React.FC = () => {
   const [toast, setToast] = useState<ToastState | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const selectedFile = e.target.files?.[0] || null;
+    if (selectedFile) {
+      setFile(selectedFile);
+      fileRef.current = selectedFile;
+    } else {
+      setFile(null);
+      fileRef.current = null;
+    }
+  };
+
   const handleUpload = async (): Promise<void> => {
-    if (!file || !name) {
-      setToast({ message: "Name and file are required!", type: "error" });
+    const fileToUpload = fileRef.current || file;
+    
+    if (!fileToUpload || !(fileToUpload instanceof File)) {
+      setToast({ message: "Please select a valid image file!", type: "error" });
+      return;
+    }
+    
+    if (!name.trim()) {
+      setToast({ message: "Name is required!", type: "error" });
+      return;
+    }
+    
+    if (!age.trim()) {
+      setToast({ message: "Age is required!", type: "error" });
+      return;
+    }
+    
+    if (!crime.trim()) {
+      setToast({ message: "Crime type is required!", type: "error" });
+      return;
+    }
+    
+    if (!description.trim()) {
+      setToast({ message: "Description is required!", type: "error" });
       return;
     }
     
     setIsUploading(true);
     const formData = new FormData();
-    formData.append("file", file);
-    formData.append("name", name);
-    formData.append("age", age);
-    formData.append("crime", crime);
-    formData.append("description", description);
+    formData.append("file", fileToUpload);
+    formData.append("name", name.trim());
+    formData.append("age", age.trim());
+    formData.append("crime", crime.trim());
+    formData.append("description", description.trim());
 
     try {
       // Don't set Content-Type manually - let axios set it automatically with boundary for FormData
@@ -50,6 +84,7 @@ const AddFace: React.FC = () => {
       setCrime("");
       setDescription("");
       setFile(null);
+      fileRef.current = null;
       const fileInput = document.getElementById('file-input') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
     } catch (err: any) {
@@ -191,15 +226,15 @@ const AddFace: React.FC = () => {
             <label htmlFor="file-input" className="block text-xs sm:text-sm font-semibold text-slate-700 mb-2">
               Photo *
             </label>
-            <div className="border-2 border-dashed border-slate-200 rounded-lg sm:rounded-xl p-4 sm:p-6 text-center hover:border-slate-300 hover:bg-slate-50 transition-all duration-200 cursor-pointer shadow-[0_2px_6px_rgba(0,0,0,0.06),0_0_0_1px_rgba(148,163,184,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1),0_0_0_1px_rgba(148,163,184,0.15)]">
+            <div className="border-2 border-dashed border-slate-200 rounded-lg sm:rounded-xl p-4 sm:p-6 text-center hover:border-slate-300 hover:bg-slate-50 transition-all duration-200 shadow-[0_2px_6px_rgba(0,0,0,0.06),0_0_0_1px_rgba(148,163,184,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1),0_0_0_1px_rgba(148,163,184,0.15)]">
               <input 
                 type="file" 
                 id="file-input"
                 accept="image/*"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                onChange={handleFileChange}
                 className="hidden"
               />
-              <label htmlFor="file-input" className="cursor-pointer">
+              <label htmlFor="file-input" className="cursor-pointer block">
                 <div className="space-y-2 sm:space-y-3">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mx-auto shadow-sm">
                     <Upload className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
@@ -232,10 +267,10 @@ const AddFace: React.FC = () => {
             <motion.button 
               type="button" 
               onClick={handleUpload}
-              disabled={isUploading || !file || !name}
+              disabled={isUploading || !file || !name.trim() || !age.trim() || !crime.trim() || !description.trim()}
               className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-xl transition-all duration-200 text-sm sm:text-base shadow-lg flex items-center justify-center gap-2"
-              whileHover={{ scale: isUploading || !file || !name ? 1 : 1.02 }}
-              whileTap={{ scale: isUploading || !file || !name ? 1 : 0.98 }}
+              whileHover={{ scale: isUploading || !file || !name.trim() || !age.trim() || !crime.trim() || !description.trim() ? 1 : 1.02 }}
+              whileTap={{ scale: isUploading || !file || !name.trim() || !age.trim() || !crime.trim() || !description.trim() ? 1 : 0.98 }}
             >
               {isUploading ? (
                 <>

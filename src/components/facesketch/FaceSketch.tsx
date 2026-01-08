@@ -66,6 +66,57 @@ const createInitialCanvasSettings = () => ({
   quality: 'high' as 'standard' | 'high',
 });
 
+/**
+ * Extracts saveDetails from database response (sketchData and sketchState)
+ * This ensures database is the single source of truth for saveDetails
+ * Handles both sketch_state.saveDetails and top-level fields
+ */
+const extractSaveDetailsFromSketch = (
+  sketchData: {
+    name?: string;
+    suspect?: string;
+    eyewitness?: string;
+    officer?: string;
+    date?: string;
+    reason?: string;
+    description?: string;
+    priority?: string;
+    status?: string;
+  },
+  sketchState?: any
+): {
+  name: string;
+  suspect: string;
+  eyewitness: string;
+  officer: string;
+  date: string;
+  reason: string;
+  description: string;
+  priority: string;
+  status: string;
+} => {
+  // Prefer saveDetails from sketch_state if available (most accurate)
+  if (sketchState?.saveDetails) {
+    return {
+      ...createInitialSaveDetails(),
+      ...sketchState.saveDetails
+    };
+  }
+  
+  // Fallback to top-level sketchData fields
+  return {
+    name: sketchData.name || '',
+    suspect: sketchData.suspect || '',
+    eyewitness: sketchData.eyewitness || '',
+    officer: sketchData.officer || '',
+    date: sketchData.date ? new Date(sketchData.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    reason: sketchData.reason || '',
+    description: sketchData.description || '',
+    priority: sketchData.priority || 'normal',
+    status: sketchData.status || 'draft',
+  };
+};
+
 const FaceSketch: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const [features, setFeatures] = useState<PlacedFeature[]>([]);
@@ -1784,23 +1835,36 @@ const FaceSketch: React.FC = () => {
             if (state?.canvasSettings) setCanvasSettings({ ...createInitialCanvasSettings(), ...state.canvasSettings });
             console.log('✅ Sketch state reloaded from database after save');
           }
+          
+          // Update saveDetails from database response (single source of truth)
+          const extractedSaveDetails = extractSaveDetailsFromSketch(updatedSketch, updatedSketch.sketch_state);
+          setSaveDetails(extractedSaveDetails);
+          
+          // Update caseInfo from database response
+          const stateWithExtras = updatedSketch.sketch_state as any;
+          if (stateWithExtras?.caseInfo) {
+            setCaseInfo({
+              ...createInitialCaseInfo(),
+              ...stateWithExtras.caseInfo
+            });
+          } else {
+            setCaseInfo((prev) => ({
+              ...createInitialCaseInfo(),
+              caseNumber: extractedSaveDetails.name || prev.caseNumber,
+              officer: extractedSaveDetails.officer || '',
+              description: extractedSaveDetails.description || '',
+              witness: extractedSaveDetails.eyewitness || '',
+              date: extractedSaveDetails.date ? extractedSaveDetails.date.split('T')[0] : prev.date,
+              priority: (extractedSaveDetails.priority as CaseInfo['priority']) || prev.priority,
+              status: (extractedSaveDetails.status as CaseInfo['status']) || prev.status,
+            }));
+          }
         } catch (err) {
           console.error('❌ Failed to refetch after update:', err);
           // Don't fail the save operation if refetch fails, but log it
         }
 
         notifications.success('Sketch updated', 'All changes saved to the database.');
-        setSaveDetails(saveData);
-        setCaseInfo((prev) => ({
-          ...prev,
-          caseNumber: saveData.name || prev.caseNumber,
-          officer: saveData.officer || '',
-          description: saveData.description || '',
-          witness: saveData.eyewitness || '',
-          date: saveData.date ? saveData.date.split('T')[0] : prev.date,
-          priority: (saveData.priority as CaseInfo['priority']) || prev.priority,
-          status: (saveData.status as CaseInfo['status']) || prev.status,
-        }));
       } else {
         // Create new sketch
         console.log('🆕 Creating new sketch');
@@ -1897,23 +1961,36 @@ const FaceSketch: React.FC = () => {
             if (state?.canvasSettings) setCanvasSettings({ ...createInitialCanvasSettings(), ...state.canvasSettings });
             console.log('✅ Sketch state reloaded from database after save');
           }
+          
+          // Update saveDetails from database response (single source of truth)
+          const extractedSaveDetails = extractSaveDetailsFromSketch(savedSketch, savedSketch.sketch_state);
+          setSaveDetails(extractedSaveDetails);
+          
+          // Update caseInfo from database response
+          const stateWithExtras = savedSketch.sketch_state as any;
+          if (stateWithExtras?.caseInfo) {
+            setCaseInfo({
+              ...createInitialCaseInfo(),
+              ...stateWithExtras.caseInfo
+            });
+          } else {
+            setCaseInfo((prev) => ({
+              ...createInitialCaseInfo(),
+              caseNumber: extractedSaveDetails.name || prev.caseNumber,
+              officer: extractedSaveDetails.officer || '',
+              description: extractedSaveDetails.description || '',
+              witness: extractedSaveDetails.eyewitness || '',
+              date: extractedSaveDetails.date ? extractedSaveDetails.date.split('T')[0] : prev.date,
+              priority: (extractedSaveDetails.priority as CaseInfo['priority']) || prev.priority,
+              status: (extractedSaveDetails.status as CaseInfo['status']) || prev.status,
+            }));
+          }
         } catch (err) {
           console.error('❌ Failed to refetch after save:', err);
           // Don't fail the save operation if refetch fails, but log it
         }
         
         notifications.success('Sketch saved', 'Your sketch is now available in recent sketches.');
-        setSaveDetails(saveData);
-        setCaseInfo((prev) => ({
-          ...prev,
-          caseNumber: saveData.name || prev.caseNumber,
-          officer: saveData.officer || '',
-          description: saveData.description || '',
-          witness: saveData.eyewitness || '',
-          date: saveData.date ? saveData.date.split('T')[0] : prev.date,
-          priority: (saveData.priority as CaseInfo['priority']) || prev.priority,
-          status: (saveData.status as CaseInfo['status']) || prev.status,
-        }));
         
         // Update URL with sketch ID
         const url = new URL(window.location.href);
@@ -2058,18 +2135,9 @@ const FaceSketch: React.FC = () => {
       // Refetch sketch data from DB to ensure we have latest
       const updatedSketch = await getSketchById(currentSketchId, true);
       
-      // Update local state from DB data
-      setSaveDetails({
-        name: updatedSketch.name || '',
-        suspect: updatedSketch.suspect || '',
-        eyewitness: updatedSketch.eyewitness || '',
-        officer: updatedSketch.officer || '',
-        date: updatedSketch.date ? new Date(updatedSketch.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        reason: updatedSketch.reason || '',
-        description: updatedSketch.description || '',
-        priority: updatedSketch.priority || 'normal',
-        status: updatedSketch.status || 'draft',
-      });
+      // Update local state from DB data (single source of truth)
+      const extractedSaveDetails = extractSaveDetailsFromSketch(updatedSketch, updatedSketch.sketch_state);
+      setSaveDetails(extractedSaveDetails);
       
       const stateWithExtras = updatedSketch.sketch_state as any;
       if (stateWithExtras?.caseInfo) {
@@ -2592,25 +2660,9 @@ const FaceSketch: React.FC = () => {
           });
         }
 
-        // Restore saveDetails from sketch_state if available, otherwise from sketchData
-        if (stateWithExtras?.saveDetails) {
-          setSaveDetails({
-            ...createInitialSaveDetails(),
-            ...stateWithExtras.saveDetails
-          });
-        } else {
-          setSaveDetails({
-            name: sketchData.name || '',
-            suspect: sketchData.suspect || '',
-            eyewitness: sketchData.eyewitness || '',
-            officer: sketchData.officer || '',
-            date: sketchData.date ? new Date(sketchData.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-            reason: sketchData.reason || '',
-            description: sketchData.description || '',
-            priority: sketchData.priority || 'normal',
-            status: sketchData.status || 'draft',
-          });
-        }
+        // Restore saveDetails from database (single source of truth)
+        const extractedSaveDetails = extractSaveDetailsFromSketch(sketchData, state);
+        setSaveDetails(extractedSaveDetails);
 
         setCurrentSketchId(sketchId);
         loadedSketchIdRef.current = sketchId;

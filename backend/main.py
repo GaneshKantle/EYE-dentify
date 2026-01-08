@@ -192,7 +192,7 @@ def _load_models():
 
 
 def get_embedding(file: UploadFile):
-    """Get face embedding from uploaded image with memory cleanup"""
+    """Get face embedding from uploaded image with memory cleanup and optimized image processing"""
     if mtcnn is None or facenet is None or not models_ready:
         _load_models()
     if mtcnn is None or facenet is None or not models_ready:
@@ -204,10 +204,21 @@ def get_embedding(file: UploadFile):
     try:
         file.file.seek(0)
         img = Image.open(file.file).convert("RGB")
+        
+        # Optimize: Resize large images early to reduce memory and processing time
+        # FaceNet works on 160x160, so we can safely resize to max 800x800 before processing
+        max_dimension = max(img.width, img.height)
+        if max_dimension > 800:
+            ratio = 800 / max_dimension
+            new_width = int(img.width * ratio)
+            new_height = int(img.height * ratio)
+            img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        
         with torch.no_grad():
             face = mtcnn(img)
             if face is None:
-                img_resized = img.resize((160,160))
+                # If MTCNN fails, resize to 160x160 for direct processing
+                img_resized = img.resize((160, 160), Image.Resampling.LANCZOS)
                 face = torch.from_numpy(np.array(img_resized)).permute(2,0,1).float()/255.0
                 face = _fixed_image_standardization(face)
             if face.ndim == 3:
@@ -236,9 +247,19 @@ def _decode_embedding(b64: str) -> np.ndarray:
     return pickle.loads(base64.b64decode(b64.encode("utf-8"))).astype("float32")
 
 def cos_sim(a, b):
+    """Optimized cosine similarity using vectorized operations"""
     a = np.asarray(a, dtype="float32").flatten()
     b = np.asarray(b, dtype="float32").flatten()
     return float(np.dot(a,b))
+
+def cos_sim_batch(query_emb: np.ndarray, embeddings: np.ndarray) -> np.ndarray:
+    """Vectorized batch cosine similarity calculation - much faster for multiple comparisons"""
+    query_emb = np.asarray(query_emb, dtype="float32").flatten()
+    embeddings = np.asarray(embeddings, dtype="float32")
+    if embeddings.ndim == 1:
+        embeddings = embeddings.reshape(1, -1)
+    # Normalize embeddings if needed (they should already be normalized)
+    return np.dot(embeddings, query_emb).astype("float32")
 
 # ---------------- Application Lifespan ---------------- 
 @asynccontextmanager
@@ -462,10 +483,19 @@ async def add_face(
 
 @app.post("/recognize_face")
 async def recognize_face(file: UploadFile = File(...)):
-    """Recognize face using cursor iteration to avoid loading all data into memory"""
+    """
+    Optimized face recognition with:
+    - Early exit on high-confidence matches (>0.90)
+    - Batch processing for embeddings from same person
+    - Vectorized similarity calculations
+    - Memory-efficient cursor iteration
+    """
     emb = None
     try:
         emb = get_embedding(file)
+        
+        # High confidence threshold for early exit (very confident matches)
+        HIGH_CONFIDENCE_THRESHOLD = 0.90
         
         # Use cursor iteration instead of loading all faces into memory
         cursor = collection.find({}, {"name": 1, "age": 1, "crime": 1, "description": 1, "embeddings": 1, "image_urls": 1})
@@ -478,20 +508,56 @@ async def recognize_face(file: UploadFile = File(...)):
             embeddings_list = doc.get("embeddings", [])
             image_urls_list = doc.get("image_urls", [])
             
-            for emb_b64, img_url in zip(embeddings_list, image_urls_list):
-                decoded_emb = _decode_embedding(emb_b64)
-                sim = cos_sim(emb, decoded_emb)
-                del decoded_emb  # Clean up decoded embedding immediately
+            # Optimize: Batch process embeddings for same person when possible
+            if len(embeddings_list) > 1:
+                # Decode all embeddings for this person at once
+                decoded_embs = np.array([_decode_embedding(emb_b64) for emb_b64 in embeddings_list])
                 
-                if sim > best_score:
-                    best_score = sim
+                # Vectorized batch similarity calculation (much faster)
+                similarities = cos_sim_batch(emb, decoded_embs)
+                
+                # Find best match for this person
+                best_idx = int(np.argmax(similarities))
+                max_sim = float(similarities[best_idx])
+                
+                if max_sim > best_score:
+                    best_score = max_sim
                     best_face = {
                         "name": doc["name"],
                         "age": doc.get("age",""),
                         "crime": doc.get("crime",""),
                         "description": doc.get("description",""),
-                        "image_url": img_url
+                        "image_url": image_urls_list[best_idx] if best_idx < len(image_urls_list) else image_urls_list[0]
                     }
+                
+                # Clean up
+                del decoded_embs, similarities
+                
+                # Early exit: If we found a very high confidence match, return immediately
+                if best_score >= HIGH_CONFIDENCE_THRESHOLD:
+                    cursor.close()
+                    return {"status":"recognized","similarity":best_score, **best_face}
+            else:
+                # Single embedding - use optimized single comparison
+                if embeddings_list:
+                    decoded_emb = _decode_embedding(embeddings_list[0])
+                    sim = cos_sim(emb, decoded_emb)
+                    del decoded_emb
+                    
+                    if sim > best_score:
+                        best_score = sim
+                        best_face = {
+                            "name": doc["name"],
+                            "age": doc.get("age",""),
+                            "crime": doc.get("crime",""),
+                            "description": doc.get("description",""),
+                            "image_url": image_urls_list[0] if image_urls_list else ""
+                        }
+                    
+                    # Early exit for high confidence
+                    if best_score >= HIGH_CONFIDENCE_THRESHOLD:
+                        cursor.close()
+                        return {"status":"recognized","similarity":best_score, **best_face}
             
             # Clean up document data after processing
             del embeddings_list, image_urls_list

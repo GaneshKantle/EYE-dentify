@@ -5,6 +5,7 @@ import axios, { AxiosError } from "axios";
 import { RecognitionResult } from "./types";
 import { Upload, RotateCcw, PenTool, Target, CheckCircle, Eye, Zap, ArrowRight, Maximize2, Download, X } from "lucide-react";
 import { config, apiClient } from "./lib/api";
+import { smartCompressImage } from "./utils/imageCompression";
 
 const RecognizeFace: React.FC = () => {
   const navigate = useNavigate();
@@ -41,7 +42,7 @@ const RecognizeFace: React.FC = () => {
     if (!file) return;
 
     setIsProcessing(true);
-    setLoadingText("Initializing...");
+    setLoadingText("Optimizing image...");
 
     // Update loading text based on progress
     const textInterval = setInterval(() => {
@@ -49,10 +50,21 @@ const RecognizeFace: React.FC = () => {
       setLoadingText(forensicFacts[factIndex]);
     }, 600);
 
-    const formData = new FormData();
-    formData.append("file", file);
-
     try {
+      // Compress image before upload for faster performance
+      setLoadingText("Compressing image...");
+      const compressedFile = await smartCompressImage(file, {
+        maxWidth: 800,
+        maxHeight: 800,
+        maxSizeKB: 500,
+        quality: 0.85,
+        format: 'image/jpeg'
+      });
+      
+      setLoadingText("Uploading image...");
+      const formData = new FormData();
+      formData.append("file", compressedFile);
+
       // Use apiClient for better error handling and CORS support
       const res = await apiClient.directPost<RecognitionResult>(
         '/recognize_face',
@@ -392,7 +404,7 @@ const RecognizeFace: React.FC = () => {
                   {isProcessing ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span className="animate-pulse text-xs sm:text-sm">{loadingText}</span>
+                      <span className="animate-pulse text-xs sm:text-sm">Processing...</span>
                     </>
                   ) : (
                     <>

@@ -373,7 +373,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
     }
   };
   return (
-    <div className={`${rightSidebarCollapsed ? 'w-0 hidden lg:flex lg:w-24' : 'w-64 sm:w-72 md:w-80 lg:w-80'} ${rightSidebarCollapsed ? '' : 'absolute lg:relative inset-y-0 right-0 z-40'} bg-white/95 backdrop-blur-sm border-t lg:border-t-0 lg:border-l border-amber-200 flex flex-col shadow-lg lg:shadow-sm order-3 transition-all duration-300 ease-in-out flex-shrink-0 self-stretch overflow-hidden ${rightSidebarCollapsed ? 'bg-gradient-to-b from-white/95 to-slate-50/90' : ''}`}>
+    <div className={`${rightSidebarCollapsed ? 'w-16 sm:w-20 md:w-24' : 'w-64 sm:w-72 md:w-80 lg:w-80'} ${rightSidebarCollapsed ? '' : 'absolute lg:relative inset-y-0 right-0 z-40'} bg-white/95 backdrop-blur-sm border-t lg:border-t-0 lg:border-l border-amber-200 flex flex-col shadow-lg lg:shadow-sm order-3 transition-all duration-300 ease-in-out flex-shrink-0 self-stretch overflow-hidden ${rightSidebarCollapsed ? 'bg-gradient-to-b from-white/95 to-slate-50/90' : ''}`}>
       {/* Panel Header with Toggle */}
       <div className={`${rightSidebarCollapsed ? 'p-2 sm:p-2.5 justify-center' : 'p-3 sm:p-4 md:p-5 justify-between'} border-b border-amber-200 flex items-center transition-all duration-200 flex-shrink-0`}>
         <h3 className={`font-semibold text-slate-800 text-sm sm:text-base transition-opacity duration-200 ${rightSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>

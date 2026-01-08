@@ -117,7 +117,7 @@ class AssetCreateRequest(BaseModel):
     
     @validator('type')
     def validate_type(cls, v):
-        allowed_types = ['face-shapes', 'eyes', 'noses', 'mouths', 'hair', 'accessories']
+        allowed_types = ['face-shapes', 'eyes', 'noses', 'mouths', 'hair', 'accessories', 'eyebrows', 'nose', 'lips', 'facial-hair', 'ears', 'neck']
         if v not in allowed_types:
             raise ValueError(f'Type must be one of: {", ".join(allowed_types)}')
         return v
