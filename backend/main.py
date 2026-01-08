@@ -453,7 +453,7 @@ async def add_face(
         image_url = upload_res["secure_url"]
 
         encoded_emb = _encode_embedding(emb)
-        del emb  # Clean up embedding after encoding
+        emb = None  # Clean up embedding after encoding (set to None instead of deleting)
         
         doc = collection.find_one({"name": name})
         if doc:

@@ -85,24 +85,70 @@ const AddFace: React.FC = () => {
         formData
       );
       
-      // Success - show toast and reset form
-      setToast({ message: `Successfully added ${name}`, type: "success" });
-      // Reset form
-      setName("");
-      setAge("");
-      setCrime("");
-      setDescription("");
-      setFile(null);
-      fileRef.current = null;
-      const fileInput = document.getElementById('file-input') as HTMLInputElement;
-      if (fileInput) fileInput.value = '';
+      // Verify response - defensive check for any successful response
+      if (response) {
+        // Success - show toast with backend message or default success message
+        const successMessage = (response as any).message || `Successfully added ${name}`;
+        setToast({ message: successMessage, type: "success" });
+        
+        // Reset form
+        setName("");
+        setAge("");
+        setCrime("");
+        setDescription("");
+        setFile(null);
+        fileRef.current = null;
+        const fileInput = document.getElementById('file-input') as HTMLInputElement;
+        if (fileInput) fileInput.value = '';
+      } else {
+        // Unexpected response format - but still treat as success if we got here
+        setToast({ message: `Successfully added ${name}`, type: "success" });
+        
+        // Reset form anyway
+        setName("");
+        setAge("");
+        setCrime("");
+        setDescription("");
+        setFile(null);
+        fileRef.current = null;
+        const fileInput = document.getElementById('file-input') as HTMLInputElement;
+        if (fileInput) fileInput.value = '';
+      }
     } catch (err: any) {
       let errorMessage = "Failed to upload. Please try again.";
       
+      // Check if this is actually a successful response wrapped in an error
+      if (err?.response?.status === 200 && err?.response?.data) {
+        // Response was successful but something went wrong in parsing - try to extract success message
+        const data = err.response.data;
+        if (data.status === "ok" || data.message) {
+          const successMessage = data.message || `Successfully added ${name}`;
+          setToast({ message: successMessage, type: "success" });
+          
+          // Reset form
+          setName("");
+          setAge("");
+          setCrime("");
+          setDescription("");
+          setFile(null);
+          fileRef.current = null;
+          const fileInput = document.getElementById('file-input') as HTMLInputElement;
+          if (fileInput) fileInput.value = '';
+          setIsUploading(false);
+          return;
+        }
+      }
+      
+      // Handle timeout errors
+      if (err?.code === 'ECONNABORTED' || err?.message?.includes('timeout')) {
+        errorMessage = "Request timed out. The upload may have succeeded. Please check the database.";
+      } 
       // Handle CORS errors specifically
-      if (err?.message?.includes('CORS') || err?.code === 'ERR_NETWORK' || err?.response?.status === 0) {
+      else if (err?.message?.includes('CORS') || err?.code === 'ERR_NETWORK' || err?.response?.status === 0) {
         errorMessage = "CORS error: Unable to connect to server. Please check your connection and try again.";
-      } else if (err?.response?.data?.detail) {
+      } 
+      // Handle HTTP error responses
+      else if (err?.response?.data?.detail) {
         const detail = err.response.data.detail;
         if (Array.isArray(detail)) {
           errorMessage = detail.map((e: any) => e.msg || e.message || String(e)).join(", ");

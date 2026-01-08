@@ -373,7 +373,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
     }
   };
   return (
-    <div className={`${rightSidebarCollapsed ? 'w-16 sm:w-20 md:w-24' : 'w-64 sm:w-72 md:w-80 lg:w-80'} ${rightSidebarCollapsed ? '' : 'absolute lg:relative inset-y-0 right-0 z-40'} bg-white/95 backdrop-blur-sm border-t lg:border-t-0 lg:border-l border-amber-200 flex flex-col shadow-lg lg:shadow-sm order-3 transition-all duration-300 ease-in-out flex-shrink-0 self-stretch overflow-hidden ${rightSidebarCollapsed ? 'bg-gradient-to-b from-white/95 to-slate-50/90' : ''}`}>
+    <div className={`${rightSidebarCollapsed ? 'w-0 hidden lg:flex lg:w-20 xl:w-24' : 'w-64 sm:w-72 md:w-80 lg:w-80'} ${rightSidebarCollapsed ? '' : 'absolute lg:relative inset-y-0 right-0 z-40'} bg-white/95 backdrop-blur-sm border-t lg:border-t-0 lg:border-l border-amber-200 flex flex-col shadow-lg lg:shadow-sm order-3 transition-all duration-300 ease-in-out flex-shrink-0 self-stretch overflow-hidden ${rightSidebarCollapsed ? 'bg-gradient-to-b from-white/95 to-slate-50/90' : ''}`}>
       {/* Panel Header with Toggle */}
       <div className={`${rightSidebarCollapsed ? 'p-2 sm:p-2.5 justify-center' : 'p-3 sm:p-4 md:p-5 justify-between'} border-b border-amber-200 flex items-center transition-all duration-200 flex-shrink-0`}>
         <h3 className={`font-semibold text-slate-800 text-sm sm:text-base transition-opacity duration-200 ${rightSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>
@@ -396,23 +396,25 @@ const RightPanel: React.FC<RightPanelProps> = ({
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden min-h-0">
-        <TabsList className={`flex bg-slate-100 m-2 sm:m-3 transition-all duration-200 flex-shrink-0 rounded-lg overflow-x-auto ${
+        <TabsList className={`flex bg-slate-100 m-1.5 sm:m-2 transition-all duration-200 flex-shrink-0 rounded-lg overflow-hidden ${
             rightSidebarCollapsed
-              ? 'flex-col gap-2 sm:gap-2.5 p-2 sm:p-2.5'
-            : 'flex-row gap-2 sm:gap-2.5 p-2 sm:p-2.5'
+              ? 'flex-col gap-1.5 p-1.5'
+            : 'flex-row gap-2 sm:gap-2.5 p-2 sm:p-2.5 overflow-x-auto'
         }`}>
            <TabsTrigger 
             value="workspace" 
-            className={`text-xs sm:text-sm transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm whitespace-nowrap ${
-              rightSidebarCollapsed ? 'h-12 sm:h-14 w-full p-2 sm:p-2.5 flex-col justify-center' : 'h-9 sm:h-10 px-3 sm:px-4 flex-1 min-w-0'
+            className={`transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm ${
+              rightSidebarCollapsed 
+                ? 'h-14 w-full p-1.5 flex-col justify-center items-center gap-1' 
+                : 'h-9 sm:h-10 px-3 sm:px-4 flex-1 min-w-0 text-xs sm:text-sm whitespace-nowrap'
             }`}
             title="Assets"
           >
             {rightSidebarCollapsed ? (
-              <div className="flex flex-col items-center space-y-1.5">
-                <Layers className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-                <span className="text-xs font-medium text-slate-700">Assets</span>
-              </div>
+              <>
+                <Layers className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                <span className="text-[10px] font-medium text-slate-700 leading-tight">Assets</span>
+              </>
             ) : (
               'Assets'
             )}
@@ -420,16 +422,18 @@ const RightPanel: React.FC<RightPanelProps> = ({
 
           <TabsTrigger 
             value="layers" 
-            className={`text-xs sm:text-sm transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm whitespace-nowrap ${
-              rightSidebarCollapsed ? 'h-12 sm:h-14 w-full p-2 sm:p-2.5 flex-col justify-center' : 'h-9 sm:h-10 px-3 sm:px-4 flex-1 min-w-0'
+            className={`transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm ${
+              rightSidebarCollapsed 
+                ? 'h-14 w-full p-1.5 flex-col justify-center items-center gap-1' 
+                : 'h-9 sm:h-10 px-3 sm:px-4 flex-1 min-w-0 text-xs sm:text-sm whitespace-nowrap'
             }`}
             title="Layers"
           >
             {rightSidebarCollapsed ? (
-              <div className="flex flex-col items-center space-y-1.5">
-                <Layers className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
-                <span className="text-xs font-medium text-slate-700">Layers</span>
-              </div>
+              <>
+                <Layers className="w-5 h-5 text-green-600 flex-shrink-0" />
+                <span className="text-[10px] font-medium text-slate-700 leading-tight">Layers</span>
+              </>
             ) : (
               'Layers'
             )}
@@ -437,16 +441,18 @@ const RightPanel: React.FC<RightPanelProps> = ({
           
           <TabsTrigger 
             value="properties" 
-            className={`text-xs sm:text-sm transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm whitespace-nowrap ${
-              rightSidebarCollapsed ? 'h-12 sm:h-14 w-full p-2 sm:p-2.5 flex-col justify-center' : 'h-9 sm:h-10 px-3 sm:px-4 flex-1 min-w-0'
+            className={`transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm ${
+              rightSidebarCollapsed 
+                ? 'h-14 w-full p-1.5 flex-col justify-center items-center gap-1' 
+                : 'h-9 sm:h-10 px-3 sm:px-4 flex-1 min-w-0 text-xs sm:text-sm whitespace-nowrap'
             }`}
             title="Properties"
           >
             {rightSidebarCollapsed ? (
-              <div className="flex flex-col items-center space-y-1.5">
-                <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
-                <span className="text-xs font-medium text-slate-700">Props</span>
-              </div>
+              <>
+                <Settings className="w-5 h-5 text-purple-600 flex-shrink-0" />
+                <span className="text-[10px] font-medium text-slate-700 leading-tight">Props</span>
+              </>
             ) : (
               'Props'
             )}
@@ -454,16 +460,18 @@ const RightPanel: React.FC<RightPanelProps> = ({
          
           <TabsTrigger 
             value="case" 
-            className={`text-xs sm:text-sm transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm whitespace-nowrap ${
-              rightSidebarCollapsed ? 'h-12 sm:h-14 w-full p-2 sm:p-2.5 flex-col justify-center' : 'h-9 sm:h-10 px-3 sm:px-4 flex-1 min-w-0'
+            className={`transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm ${
+              rightSidebarCollapsed 
+                ? 'h-14 w-full p-1.5 flex-col justify-center items-center gap-1' 
+                : 'h-9 sm:h-10 px-3 sm:px-4 flex-1 min-w-0 text-xs sm:text-sm whitespace-nowrap'
             }`}
             title="Case Info"
           >
             {rightSidebarCollapsed ? (
-              <div className="flex flex-col items-center space-y-1.5">
-                <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
-                <span className="text-xs font-medium text-slate-700">Case</span>
-              </div>
+              <>
+                <FileText className="w-5 h-5 text-indigo-600 flex-shrink-0" />
+                <span className="text-[10px] font-medium text-slate-700 leading-tight">Case</span>
+              </>
             ) : (
               'Case'
             )}

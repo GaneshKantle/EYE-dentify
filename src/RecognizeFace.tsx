@@ -433,7 +433,7 @@ const RecognizeFace: React.FC = () => {
             
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
               {/* Primary Action - Context dependent */}
-              {result.status === 'recognized' ? (
+              {/* {result.status === 'recognized' ? (
                 <button 
                   onClick={() => {
                     alert(`Viewing detailed profile for ${result.name}`);
@@ -451,7 +451,7 @@ const RecognizeFace: React.FC = () => {
                   <PenTool className="w-4 h-4" />
                   <span>Create Sketch</span>
                 </button>
-              )}
+              )} */}
               
               {/* Secondary Action - Always relevant */}
               <button 
