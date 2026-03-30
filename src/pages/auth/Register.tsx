@@ -373,6 +373,7 @@ const Register: React.FC = () => {
                 </button>
               </div>
               <p className="text-xs text-gray-500">
+                For Test Purpose,Enter secret key as: Eyedentify@#25
                 Only authorized personnel can register
               </p>
             </div>
